@@ -1,0 +1,77 @@
+name: Create Unified Release
+
+on:
+  workflow_call:
+    inputs:
+      version_tag:
+        description: 'Version tag for release (e.g., v0.1.0)'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag for release (e.g., v0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Create Release ${{ inputs.version_tag }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout commons
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/commons
+          path: commons
+      
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+          override: true
+      
+      - name: Checkout all repos at version
+        run: |
+          chmod +x commons/scripts/*.sh
+          commons/scripts/setup-build-env.sh --tag ${{ inputs.version_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build all repositories
+        run: |
+          commons/build.sh --mode release
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+      
+      - name: Collect artifacts
+        run: |
+          commons/scripts/collect-artifacts.sh
+      
+      - name: Create release package
+        run: |
+          commons/scripts/create-release.sh ${{ inputs.version_tag }}
+      
+      - name: Verify versions
+        run: |
+          commons/scripts/verify-versions.sh
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.version_tag }}
+          name: BTCDecoded ${{ inputs.version_tag }}
+          body_path: commons/artifacts/RELEASE_NOTES.md
+          files: |
+            commons/artifacts/*.tar.gz
+            commons/artifacts/*.zip
+            commons/artifacts/SHA256SUMS
+          draft: false
+          prerelease: ${{ contains(inputs.version_tag, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
