@@ -105,6 +105,30 @@ Cancel old queued workflow runs, keeping only the most recent.
 ./cancel-old-jobs.sh consensus-proof verify_consensus
 ```
 
+#### `download-workflow-logs.sh`
+Download workflow logs from GitHub Actions using the GitHub REST API.
+
+```bash
+# Download logs for all configured repos (consensus-proof, protocol-engine, reference-node, developer-sdk, commons)
+./download-workflow-logs.sh
+
+# Custom output directory
+OUTPUT_DIR=./my-logs ./download-workflow-logs.sh
+
+# Download more runs per workflow
+MAX_RUNS=10 ./download-workflow-logs.sh
+```
+
+**Features:**
+- Downloads logs as ZIP archives
+- Automatically extracts ZIP files
+- Focuses on consensus-proof, protocol-engine, reference-node, developer-sdk, and commons
+- Uses proper GitHub REST API endpoints (`GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs`)
+- Handles API redirects correctly (logs endpoint returns 302 redirect to zip)
+- Skips already-downloaded files
+
+See `README_WORKFLOW_LOGS.md` for detailed documentation.
+
 ## Requirements
 
 All scripts require:
