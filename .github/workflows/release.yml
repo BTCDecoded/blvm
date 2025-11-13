@@ -21,7 +21,7 @@ permissions:
 jobs:
   release:
     name: Create Release ${{ inputs.version_tag }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust]
     
     steps:
       - name: Checkout commons
