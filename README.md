@@ -1,124 +1,69 @@
-# Bitcoin Commons - Build and Release System
+# BLLVM - Bitcoin Low-Level Virtual Machine Node
 
-This repository contains the unified build orchestration and release automation infrastructure for the Bitcoin Commons ecosystem.
+**Main binary for Bitcoin Commons BLLVM node implementation.**
 
-> **For verified system status**: See [SYSTEM_STATUS.md](https://github.com/BTCDecoded/.github/blob/main/SYSTEM_STATUS.md) in the BTCDecoded organization repository.
+This is the standalone binary crate that provides the `bllvm` executable. It depends on the `bllvm-node` library and provides a command-line interface for running a full Bitcoin node.
 
-## Overview
+## Installation
 
-The Bitcoin Commons project consists of multiple independent git repositories with complex dependencies:
+### From Source
 
-- **consensus-proof** (foundation library)
-- **protocol-engine** (depends on consensus-proof)
-- **reference-node** (depends on protocol-engine + consensus-proof)
-- **developer-sdk** (standalone, CLI tools)
-- **governance-app** (depends on developer-sdk)
-
-This repository provides:
-
-1. **Unified Build Script** (`build.sh`) - Builds all repos in dependency order
-2. **Version Coordination** (`versions.toml`) - Tracks compatible versions across repos
-3. **Reusable Workflows** - GitHub Actions workflows that other repos can call
-4. **Release Automation** - Creates unified releases with all binaries
-5. **Helper Scripts** - Utilities for artifact collection and verification
-
-## Quick Start
-
-### Building All Repositories Locally
-
-**Simplest way:**
 ```bash
-# Clone commons repository
-git clone https://github.com/BTCDecoded/commons.git
-cd commons
-
-# Ensure all Bitcoin Commons repos are cloned in parent directory
-# Expected structure:
-# BTCDecoded/  # GitHub organization directory
-#   ├── commons/
-#   ├── consensus-proof/
-#   ├── protocol-engine/
-#   ├── reference-node/
-#   ├── developer-sdk/
-#   └── governance-app/
-
-# Build everything (easiest)
-./build-local.sh
-
-# Or use full build script
-./build.sh --mode dev
+git clone https://github.com/BTCDecoded/bllvm.git
+cd bllvm
+cargo build --release
 ```
 
-**For release builds:**
+The binary will be at `target/release/bllvm`.
+
+### From Packages
+
+- **Debian/Ubuntu**: `.deb` package (coming soon)
+- **Arch Linux**: AUR package (coming soon)
+- **Windows**: `.exe` installer (coming soon)
+
+## Usage
+
 ```bash
-# Complete release chain
-./scripts/build-release-chain.sh
+# Start node in regtest mode (default, safe for development)
+bllvm
+
+# Start node on testnet
+bllvm --network testnet
+
+# Start node on mainnet (use with caution)
+bllvm --network mainnet
+
+# Custom RPC and P2P addresses
+bllvm --rpc-addr 127.0.0.1:8332 --listen-addr 0.0.0.0:8333
+
+# Custom data directory
+bllvm --data-dir /path/to/data
+
+# Verbose logging
+bllvm --verbose
 ```
 
-See [Quick Start Guide](docs/guides/QUICK_START.md) for more details.
+## Options
 
-### Using Workflows from Other Repositories
+- `--network, -n`: Network to connect to (regtest, testnet, mainnet) [default: regtest]
+- `--rpc-addr, -r`: RPC server address [default: 127.0.0.1:18332]
+- `--listen-addr, -l`: P2P listen address [default: 0.0.0.0:8333]
+- `--data-dir, -d`: Data directory [default: ./data]
+- `--verbose, -v`: Enable verbose logging
 
-Other repos can call reusable workflows from `commons`:
+## Architecture
 
-```yaml
-# In reference-node/.github/workflows/build.yml
-jobs:
-  build:
-    uses: BTCDecoded/commons/.github/workflows/build-single.yml@main
-    with:
-      repo-name: reference-node
-      required-deps: consensus-proof,protocol-engine
+This binary depends on:
+- `bllvm-node`: Core node library (depends on bllvm-protocol and bllvm-consensus)
+
+## Building
+
+```bash
+cargo build --release
 ```
-
-## Structure
-
-```
-commons/
-├── README.md                    # This file
-├── build.sh                     # Main unified build script
-├── versions.toml                # Version coordination manifest
-├── docker-compose.build.yml     # Docker build orchestration
-├── .github/
-│   └── workflows/
-│       ├── build-all.yml        # Reusable: Build all repos
-│       ├── build-single.yml     # Reusable: Build single repo
-│       ├── release.yml          # Reusable: Create unified release
-│       └── verify-versions.yml  # Reusable: Validate versions
-├── scripts/
-│   ├── setup-build-env.sh       # Setup build environment
-│   ├── collect-artifacts.sh     # Package binaries
-│   ├── create-release.sh        # Release creation
-│   ├── build-release-chain.sh   # Complete release chain
-│   └── verify-versions.sh       # Version validation
-├── docs/
-│   ├── build/                   # Build system documentation
-│   ├── workflows/               # Workflow documentation
-│   ├── testing/                 # Testing documentation
-│   └── guides/                  # Quick reference guides
-└── ops/
-    ├── SELF_HOSTED_RUNNER.md    # Runner setup
-    └── RUNNER_FLEET.md          # Runner fleet management
-```
-
-## Version Coordination
-
-The `versions.toml` file tracks compatible versions across all repositories. This ensures that releases are built with compatible dependency versions.
-
-See `versions.toml` for current version mappings.
-
-## Documentation
-
-Comprehensive documentation is organized in the `docs/` directory:
-
-- **[Build System](docs/build/)** - Build system documentation and guides
-- **[Workflows](docs/workflows/)** - Workflow methodology and enhancements
-- **[Testing](docs/testing/)** - Testing and validation documentation
-- **[Guides](docs/guides/)** - Quick reference guides
-
-See [docs/README.md](docs/README.md) for complete documentation index.
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT
 
