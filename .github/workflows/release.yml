@@ -29,6 +29,8 @@ jobs:
         with:
           repository: BTCDecoded/commons
           path: commons
+          ref: main
+          fetch-depth: 0
       
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
