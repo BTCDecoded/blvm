@@ -9,7 +9,7 @@ use bllvm_node::ProtocolVersion;
 use clap::{Parser, ValueEnum};
 use std::net::SocketAddr;
 use tokio::signal;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 #[derive(Parser)]
 #[command(name = "bllvm")]
@@ -36,7 +36,7 @@ struct Cli {
     verbose: bool,
 }
 
-#[derive(Clone, ValueEnum)]
+#[derive(Clone, Debug, ValueEnum)]
 enum Network {
     /// Regression testing network (default, safe for development)
     Regtest,
