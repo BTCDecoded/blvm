@@ -71,7 +71,7 @@ jobs:
       - name: Build all repositories (Windows cross-compile)
         run: |
           cd ${{ github.workspace }}
-          for repo in bllvm-node bllvm-sdk; do
+          for repo in bllvm bllvm-sdk; do
             if [ -d "$repo" ]; then
               echo "Building $repo for Windows..."
               cd "$repo"

@@ -74,6 +74,7 @@ git clone https://github.com/BTCDecoded/commons.git
 git clone https://github.com/BTCDecoded/bllvm-consensus.git
 git clone https://github.com/BTCDecoded/bllvm-protocol.git
 git clone https://github.com/BTCDecoded/bllvm-node.git
+git clone https://github.com/BTCDecoded/bllvm.git
 git clone https://github.com/BTCDecoded/bllvm-sdk.git
 git clone https://github.com/BTCDecoded/governance-app.git
 

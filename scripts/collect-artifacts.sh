@@ -23,10 +23,8 @@ else
 fi
 
 # Binary mapping
-# Note: bllvm-node is currently library-only (no binary target in Cargo.toml)
-# If a binary is added in the future, it will be automatically collected
 declare -A REPO_BINARIES
-REPO_BINARIES[bllvm-node]="bllvm-node"  # Currently library-only, but script will gracefully skip if not found
+REPO_BINARIES[bllvm]="bllvm"
 REPO_BINARIES[bllvm-sdk]="bllvm-keygen bllvm-sign bllvm-verify"
 REPO_BINARIES[governance-app]="governance-app key-manager test-content-hash test-content-hash-standalone"
 
@@ -119,14 +117,13 @@ main() {
     mkdir -p "$BINARIES_DIR"
     
     # Collect binaries from each repo
-    # Note: bllvm-node is currently library-only (no binary target)
     # Note: governance-app may not cross-compile easily, skip for Windows for now
     if [[ "$PLATFORM" == *"windows"* ]]; then
-        for repo in bllvm-sdk; do
+        for repo in bllvm bllvm-sdk; do
             collect_repo_binaries "$repo"
         done
     else
-        for repo in bllvm-node bllvm-sdk governance-app; do
+        for repo in bllvm bllvm-sdk governance-app; do
             collect_repo_binaries "$repo"
         done
     fi

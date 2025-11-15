@@ -50,7 +50,8 @@ done
 declare -A REPOS
 REPOS[bllvm-consensus]="library"
 REPOS[bllvm-protocol]="library|bllvm-consensus"
-REPOS[bllvm-node]="binary|bllvm-protocol,bllvm-consensus"
+REPOS[bllvm-node]="library|bllvm-protocol,bllvm-consensus"
+REPOS[bllvm]="binary|bllvm-node"
 REPOS[bllvm-sdk]="binary"
 REPOS[governance-app]="binary|bllvm-sdk"
 
@@ -59,6 +60,7 @@ declare -A DEPS
 DEPS[bllvm-consensus]=""
 DEPS[bllvm-protocol]="bllvm-consensus"
 DEPS[bllvm-node]="bllvm-protocol bllvm-consensus"
+DEPS[bllvm]="bllvm-node"
 DEPS[bllvm-sdk]=""
 DEPS[governance-app]="bllvm-sdk"
 
@@ -66,7 +68,8 @@ DEPS[governance-app]="bllvm-sdk"
 declare -A BINARIES
 BINARIES[bllvm-consensus]=""
 BINARIES[bllvm-protocol]=""
-BINARIES[bllvm-node]="bllvm-node"
+BINARIES[bllvm-node]=""
+BINARIES[bllvm]="bllvm"
 BINARIES[bllvm-sdk]="bllvm-keygen bllvm-sign bllvm-verify"
 BINARIES[governance-app]="governance-app key-manager test-content-hash test-content-hash-standalone"
 
