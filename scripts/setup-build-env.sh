@@ -54,7 +54,7 @@ clone_or_update_repo() {
                 log_info "Tag ${TAG} not found in ${repo}, using latest main..."
                 git checkout main 2>/dev/null || git checkout master 2>/dev/null
                 git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || true
-            }
+            fi
         else
             # Update to latest
             git checkout main 2>/dev/null || git checkout master 2>/dev/null
