@@ -22,7 +22,7 @@ jobs:
   release:
     name: Create Release ${{ inputs.version_tag }}
     runs-on: [self-hosted, Linux, X64]
-    
+    timeout-minutes: 120
     steps:
       - name: Checkout commons
         uses: actions/checkout@v4
