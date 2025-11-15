@@ -7,7 +7,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMONS_DIR="$(dirname "$SCRIPT_DIR")"
-PARENT_DIR="$(dirname "$COMMONS_DIR")"
+# Use PARENT_DIR from environment if set (e.g., in GitHub Actions), otherwise calculate from script location
+PARENT_DIR="${PARENT_DIR:-$(dirname "$COMMONS_DIR")}"
 
 # Configuration
 ORG="BTCDecoded"
