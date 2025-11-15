@@ -35,6 +35,29 @@ jobs:
         with:
           components: rustfmt, clippy
       
+      - name: Check for performance tools
+        run: |
+          echo "Checking for performance optimization tools..."
+          if command -v mold &> /dev/null; then
+            echo "✅ mold linker found"
+            export RUSTFLAGS="${RUSTFLAGS} -C link-arg=-fuse-ld=mold"
+          else
+            echo "⚠️  mold linker not found (install for faster linking)"
+          fi
+          if command -v sccache &> /dev/null; then
+            echo "✅ sccache found"
+            export RUSTC_WRAPPER=sccache
+          else
+            echo "⚠️  sccache not found (install for faster incremental builds)"
+          fi
+          if command -v ccache &> /dev/null; then
+            echo "✅ ccache found"
+            export CC="ccache gcc"
+            export CXX="ccache g++"
+          else
+            echo "⚠️  ccache not found (install for faster C dependency builds)"
+          fi
+      
       - name: Fix corrupted cargo dependencies
         run: |
           # Update cargo to latest version
