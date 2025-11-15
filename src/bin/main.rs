@@ -98,25 +98,17 @@ async fn main() -> Result<()> {
         }
     };
 
-    // Start node in background task
-    let node_handle = tokio::spawn(async move {
-        if let Err(e) = node.start().await {
-            error!("Node error: {}", e);
-            std::process::exit(1);
+    // Run node and signal handler concurrently
+    tokio::select! {
+        result = node.start() => {
+            if let Err(e) = result {
+                error!("Node error: {}", e);
+                return Err(e);
+            }
         }
-    });
-
-    // Wait for shutdown signal (Ctrl+C or SIGTERM)
-    match signal::ctrl_c().await {
-        Ok(()) => {
+        _ = signal::ctrl_c() => {
             info!("Shutting down BLLVM node...");
-            node_handle.abort();
             info!("Node stopped");
-        }
-        Err(err) => {
-            error!("Unable to listen for shutdown signal: {}", err);
-            node_handle.abort();
-            return Err(err.into());
         }
     }
 
