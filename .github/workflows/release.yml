@@ -124,32 +124,70 @@ jobs:
           # Note: This may require additional system packages on the runner
           echo "Windows target installed"
       
-      - name: Build all repositories (Linux)
+      - name: Build base variant (Linux)
         run: |
           # CRITICAL: Unset CARGO_BUILD_JOBS if it's 0 (cargo rejects this)
           if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
-          commons/build.sh --mode release
+          commons/build.sh --mode release --variant base
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
-      - name: Build all repositories (Windows cross-compile)
+      - name: Build experimental variant (Linux)
+        run: |
+          # CRITICAL: Unset CARGO_BUILD_JOBS if it's 0 (cargo rejects this)
+          if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
+            echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
+            unset CARGO_BUILD_JOBS
+          fi
+          commons/build.sh --mode release --variant experimental
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
+      
+      - name: Build base variant (Windows cross-compile)
         run: |
           cd ${{ github.workspace }}
           for repo in bllvm bllvm-sdk; do
             if [ -d "$repo" ]; then
-              echo "Building $repo for Windows..."
+              echo "Building $repo for Windows (base variant)..."
               cd "$repo"
-              # Unset CC/CXX to use default MinGW toolchain for Windows GNU target
-              # The CC=ccache gcc is for Linux builds, not Windows
               unset CC CXX || true
-              # Omit --jobs flag to use all available CPU cores
-              cargo build --release --target x86_64-pc-windows-gnu --all-features || {
+              # Build with production feature only (base variant)
+              cargo build --release --target x86_64-pc-windows-gnu --features production || {
                 echo "Windows build failed for $repo (continuing...)"
               }
+              cd ..
+            fi
+          done
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          CARGO_INCREMENTAL: "1"
+          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
+      
+      - name: Build experimental variant (Windows cross-compile)
+        run: |
+          cd ${{ github.workspace }}
+          for repo in bllvm bllvm-sdk; do
+            if [ -d "$repo" ]; then
+              echo "Building $repo for Windows (experimental variant)..."
+              cd "$repo"
+              unset CC CXX || true
+              # Build with all experimental features
+              if [ "$repo" = "bllvm" ]; then
+                # bllvm inherits from bllvm-node, need to build with experimental features
+                cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,dandelion,stratum-v2,bip158,sigop || {
+                  echo "Windows build failed for $repo (continuing...)"
+                }
+              else
+                # bllvm-sdk uses default features
+                cargo build --release --target x86_64-pc-windows-gnu --all-features || {
+                  echo "Windows build failed for $repo (continuing...)"
+                }
+              fi
               cd ..
             fi
           done
@@ -193,10 +231,15 @@ jobs:
           CI: true
           GITHUB_ACTIONS: true
       
-      - name: Collect artifacts
+      - name: Collect artifacts (base variant)
         run: |
-          commons/scripts/collect-artifacts.sh linux-x86_64
-          commons/scripts/collect-artifacts.sh windows-x86_64
+          commons/scripts/collect-artifacts.sh linux-x86_64 base
+          commons/scripts/collect-artifacts.sh windows-x86_64 base
+      
+      - name: Collect artifacts (experimental variant)
+        run: |
+          commons/scripts/collect-artifacts.sh linux-x86_64 experimental
+          commons/scripts/collect-artifacts.sh windows-x86_64 experimental
       
       - name: Create release package
         run: |
@@ -213,9 +256,12 @@ jobs:
           name: BTCDecoded ${{ inputs.version_tag }}
           body_path: commons/artifacts/RELEASE_NOTES.md
           files: |
-            commons/artifacts/*.tar.gz
-            commons/artifacts/*.zip
+            commons/artifacts/bllvm-*.tar.gz
+            commons/artifacts/bllvm-*.zip
+            commons/artifacts/bllvm-experimental-*.tar.gz
+            commons/artifacts/bllvm-experimental-*.zip
             commons/artifacts/SHA256SUMS-*
+            commons/artifacts/SHA256SUMS-experimental-*
           draft: false
           prerelease: ${{ contains(inputs.version_tag, '-') }}
         env:

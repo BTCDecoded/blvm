@@ -61,8 +61,8 @@ case "$REPO" in
     bllvm-sdk)
         BINARY_NAME="bllvm-keygen"  # Use first binary as representative
         ;;
-    governance-app)
-        BINARY_NAME="governance-app"
+    bllvm-commons)
+        BINARY_NAME="bllvm-commons"
         ;;
     bllvm-node)
         BINARY_NAME="bllvm-node"

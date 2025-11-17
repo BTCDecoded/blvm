@@ -17,6 +17,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 MODE="dev"
+VARIANT="base"  # base or experimental
 ARTIFACTS_DIR="${SCRIPT_DIR}/artifacts"
 TARGET_DIR="target/release"
 
@@ -41,10 +42,17 @@ log_error() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --mode) MODE="$2"; shift 2 ;;
+        --variant) VARIANT="$2"; shift 2 ;;
         dev|release) MODE="$1"; shift ;; # Backward compatibility
         *) log_error "Unknown argument: $1"; exit 1 ;;
     esac
 done
+
+# Validate variant
+if [ "$VARIANT" != "base" ] && [ "$VARIANT" != "experimental" ]; then
+    log_error "Invalid variant: $VARIANT (must be 'base' or 'experimental')"
+    exit 1
+fi
 
 # Repository configuration
 declare -A REPOS
@@ -53,7 +61,7 @@ REPOS[bllvm-protocol]="library|bllvm-consensus"
 REPOS[bllvm-node]="library|bllvm-protocol,bllvm-consensus"
 REPOS[bllvm]="binary|bllvm-node"
 REPOS[bllvm-sdk]="binary"
-REPOS[governance-app]="binary|bllvm-sdk"
+REPOS[bllvm-commons]="binary|bllvm-sdk"
 
 # Dependency graph (using directory names for paths, package names in Cargo.toml are updated)
 declare -A DEPS
@@ -62,7 +70,7 @@ DEPS[bllvm-protocol]="bllvm-consensus"
 DEPS[bllvm-node]="bllvm-protocol bllvm-consensus"
 DEPS[bllvm]="bllvm-node"
 DEPS[bllvm-sdk]=""
-DEPS[governance-app]="bllvm-sdk"
+DEPS[bllvm-commons]="bllvm-sdk"
 
 # Binary names
 declare -A BINARIES
@@ -71,7 +79,7 @@ BINARIES[bllvm-protocol]=""
 BINARIES[bllvm-node]=""
 BINARIES[bllvm]="bllvm"
 BINARIES[bllvm-sdk]="bllvm-keygen bllvm-sign bllvm-verify"
-BINARIES[governance-app]="governance-app key-manager test-content-hash test-content-hash-standalone"
+BINARIES[bllvm-commons]="bllvm-commons key-manager test-content-hash test-content-hash-standalone"
 
 check_rust_toolchain() {
     log_info "Checking Rust toolchain..."
@@ -138,8 +146,38 @@ build_repo() {
         unset CARGO_BUILD_JOBS
     fi
     
+    # Determine feature flags based on variant
+    local features=""
+    case "$VARIANT" in
+        base)
+            # Base variant: production optimizations only
+            features="production"
+            ;;
+        experimental)
+            # Experimental variant: all features
+            case "$repo" in
+                bllvm-consensus)
+                    features="production,utxo-commitments,ctv"
+                    ;;
+                bllvm-protocol)
+                    features="production,utxo-commitments"
+                    ;;
+                bllvm-node)
+                    features="production,utxo-commitments,dandelion,stratum-v2,bip158,sigop"
+                    ;;
+                bllvm)
+                    # bllvm binary inherits from bllvm-node
+                    features="production,utxo-commitments,dandelion,stratum-v2,bip158,sigop"
+                    ;;
+                *)
+                    # Other repos (bllvm-sdk, bllvm-commons) use default features
+                    features=""
+                    ;;
+            esac
+            ;;
+    esac
     
-    log_info "Building ${repo}..."
+    log_info "Building ${repo} (variant: ${VARIANT}, features: ${features:-default})..."
     
     pushd "$repo_path" > /dev/null
     
@@ -154,12 +192,18 @@ build_repo() {
     # Enable incremental compilation for faster builds
     export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
     
+    # Build command with features
+    local build_cmd="cargo build --release"
+    if [ -n "$features" ]; then
+        build_cmd="${build_cmd} --features ${features}"
+    fi
+    
     # Build: use --jobs only if CARGO_BUILD_JOBS is set (and not 0)
     # If unset or empty, cargo will use all cores by default
     if [ -n "${CARGO_BUILD_JOBS:-}" ] && [ "${CARGO_BUILD_JOBS}" != "0" ]; then
-        if ! cargo build --release --jobs "${CARGO_BUILD_JOBS}" 2>&1 | tee "/tmp/${repo}-build.log"; then
-            # In Phase 1 prerelease, governance-app is optional (governance not activated)
-            if [ "$repo" == "governance-app" ] && [ "$MODE" == "release" ]; then
+        if ! ${build_cmd} --jobs "${CARGO_BUILD_JOBS}" 2>&1 | tee "/tmp/${repo}-build.log"; then
+            # In Phase 1 prerelease, bllvm-commons is optional (governance not activated)
+            if [ "$repo" == "bllvm-commons" ] && [ "$MODE" == "release" ]; then
                 log_warn "Build failed for ${repo} (optional in Phase 1 prerelease)"
                 log_info "Skipping ${repo} - governance not yet activated"
                 popd > /dev/null
@@ -171,9 +215,9 @@ build_repo() {
         fi
     else
         # Use all cores (omit --jobs flag)
-        if ! cargo build --release 2>&1 | tee "/tmp/${repo}-build.log"; then
-            # In Phase 1 prerelease, governance-app is optional (governance not activated)
-            if [ "$repo" == "governance-app" ] && [ "$MODE" == "release" ]; then
+        if ! ${build_cmd} 2>&1 | tee "/tmp/${repo}-build.log"; then
+            # In Phase 1 prerelease, bllvm-commons is optional (governance not activated)
+            if [ "$repo" == "bllvm-commons" ] && [ "$MODE" == "release" ]; then
                 log_warn "Build failed for ${repo} (optional in Phase 1 prerelease)"
                 log_info "Skipping ${repo} - governance not yet activated"
                 popd > /dev/null
@@ -200,13 +244,20 @@ collect_binaries() {
         return 0
     fi
     
-    mkdir -p "${ARTIFACTS_DIR}/binaries"
+    # Use variant-specific directory
+    # Base variant uses "binaries", experimental uses "binaries-experimental"
+    if [ "$VARIANT" = "base" ]; then
+        local binaries_dir="${ARTIFACTS_DIR}/binaries"
+    else
+        local binaries_dir="${ARTIFACTS_DIR}/binaries-experimental"
+    fi
+    mkdir -p "$binaries_dir"
     
     for binary in $binaries; do
         local bin_path="${repo_path}/${TARGET_DIR}/${binary}"
         if [ -f "$bin_path" ]; then
-            cp "$bin_path" "${ARTIFACTS_DIR}/binaries/"
-            log_success "Collected binary: ${binary}"
+            cp "$bin_path" "${binaries_dir}/"
+            log_success "Collected binary: ${binary} (variant: ${VARIANT})"
         else
             log_warn "Binary not found: ${bin_path}"
         fi
@@ -247,6 +298,7 @@ topological_sort() {
 main() {
     log_info "Bitcoin Commons BLLVM Unified Build System"
     log_info "Mode: ${MODE}"
+    log_info "Variant: ${VARIANT}"
     echo ""
     
     # Setup
@@ -277,7 +329,11 @@ main() {
     # Summary
     if [ $failed -eq 0 ]; then
         log_success "All repositories built successfully!"
-        log_info "Binaries collected in: ${ARTIFACTS_DIR}/binaries"
+        if [ "$VARIANT" = "base" ]; then
+            log_info "Binaries collected in: ${ARTIFACTS_DIR}/binaries"
+        else
+            log_info "Binaries collected in: ${ARTIFACTS_DIR}/binaries-experimental"
+        fi
     else
         log_error "Build completed with $failed failure(s)"
         exit 1

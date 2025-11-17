@@ -42,9 +42,38 @@ This release includes the following components:
 - **bllvm-sdk** - Governance infrastructure and CLI tools
 - **bllvm-commons** - GitHub App for cryptographic governance enforcement
 
+## Build Variants
+
+This release includes two build variants:
+
+### Base Variant (\`bllvm-{version}-{platform}.tar.gz\`)
+**Purpose**: Stable, minimal release with core functionality only
+
+**Features**:
+- Core \`bllvm\` binary
+- Production optimizations
+- Standard storage backends
+
+**Use this variant for**: Production deployments, stability priority
+
+### Experimental Variant (\`bllvm-experimental-{version}-{platform}.tar.gz\`)
+**Purpose**: Full-featured build with all experimental features
+
+**Features**:
+- All base features
+- UTXO commitments
+- Dandelion++ privacy relay
+- BIP119 CheckTemplateVerify (CTV)
+- Stratum V2 mining
+- BIP158 compact block filters
+- Signature operations counting
+
+**Use this variant for**: Development, testing, advanced features
+
 ## Binaries Included
 
-- \`bllvm-node\` - Bitcoin reference node
+Both variants include:
+- \`bllvm\` - Bitcoin reference node
 - \`bllvm-keygen\` - Key generation tool
 - \`bllvm-sign\` - Message signing tool
 - \`bllvm-verify\` - Signature verification tool
@@ -55,19 +84,32 @@ This release includes the following components:
 
 ## Installation
 
-Extract the archive and place binaries in your PATH:
-
+### Base Variant
 \`\`\`bash
-tar -xzf bitcoin-commons-bllvm-*.tar.gz
+tar -xzf bllvm-${VERSION_TAG}-linux-x86_64.tar.gz
 sudo mv binaries/* /usr/local/bin/
+\`\`\`
+
+### Experimental Variant
+\`\`\`bash
+tar -xzf bllvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz
+sudo mv binaries-experimental/* /usr/local/bin/
 \`\`\`
 
 ## Verification
 
 Verify checksums:
 
+### Base Variant
 \`\`\`bash
-sha256sum -c SHA256SUMS-*
+sha256sum -c SHA256SUMS-linux-x86_64
+sha256sum -c SHA256SUMS-windows-x86_64
+\`\`\`
+
+### Experimental Variant
+\`\`\`bash
+sha256sum -c SHA256SUMS-experimental-linux-x86_64
+sha256sum -c SHA256SUMS-experimental-windows-x86_64
 \`\`\`
 
 Verify component provenance:
@@ -96,15 +138,20 @@ EOF
 main() {
     log_info "Creating release for tag: ${VERSION_TAG}"
     
-    if [ ! -d "$ARTIFACTS_DIR" ] || [ ! -d "${ARTIFACTS_DIR}/binaries" ]; then
-        log_info "Artifacts directory not found. Running collect-artifacts.sh..."
-        "${SCRIPT_DIR}/collect-artifacts.sh"
+    # Check for both base and experimental variants
+    if [ ! -d "$ARTIFACTS_DIR" ] || ([ ! -d "${ARTIFACTS_DIR}/binaries" ] && [ ! -d "${ARTIFACTS_DIR}/binaries-experimental" ]); then
+        log_info "Artifacts directory not found. Artifacts should be collected before creating release."
+        log_info "Expected directories:"
+        log_info "  - ${ARTIFACTS_DIR}/binaries (base variant)"
+        log_info "  - ${ARTIFACTS_DIR}/binaries-experimental (experimental variant)"
     fi
     
     create_release_notes
     
     log_success "Release created for ${VERSION_TAG}"
     log_info "Release artifacts: ${ARTIFACTS_DIR}"
+    log_info "Base variant: ${ARTIFACTS_DIR}/binaries"
+    log_info "Experimental variant: ${ARTIFACTS_DIR}/binaries-experimental"
 }
 
 main "$@"

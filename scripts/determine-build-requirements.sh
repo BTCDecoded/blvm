@@ -33,7 +33,7 @@ log_info() {
 }
 
 # Repos that produce binaries (need artifacts)
-BINARY_REPOS=("bllvm" "bllvm-sdk" "governance-app" "bllvm-node")
+BINARY_REPOS=("bllvm" "bllvm-sdk" "bllvm-commons" "bllvm-node")
 
 # Repos that are libraries only (don't need artifacts, but need to be built for dependencies)
 LIBRARY_REPOS=("bllvm-consensus" "bllvm-protocol")

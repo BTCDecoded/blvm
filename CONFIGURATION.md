@@ -248,3 +248,4 @@ bllvm --config ./bllvm.toml --network regtest --verbose
 - **Config file format**: Supports both TOML and JSON (auto-detected by file extension)
 - **Secrets**: Never put secrets (API keys, passwords) in config files. Use environment variables instead
 
+

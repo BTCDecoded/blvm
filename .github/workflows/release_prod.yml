@@ -230,7 +230,10 @@ jobs:
           
           # Build all repos (build.sh requires all repos to be present for dependencies)
           # Even if we downloaded artifacts for some repos, we still need to build dependencies
-          commons/build.sh --mode release
+          # Build base variant
+          commons/build.sh --mode release --variant base
+          # Build experimental variant
+          commons/build.sh --mode release --variant experimental
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
@@ -250,14 +253,41 @@ jobs:
           echo "Building Windows binaries for: $REPOS_TO_BUILD"
           
           cd ${{ github.workspace }}
+          
+          # Build base variant
+          echo "Building base variant for Windows..."
           for repo in $REPOS_TO_BUILD; do
             if [ -d "$repo" ]; then
-              echo "Building $repo for Windows..."
+              echo "Building $repo for Windows (base variant)..."
               cd "$repo"
               unset CC CXX || true
-              cargo build --release --target x86_64-pc-windows-gnu --all-features || {
+              # Build with production feature only (base variant)
+              cargo build --release --target x86_64-pc-windows-gnu --features production || {
                 echo "Windows build failed for $repo (continuing...)"
               }
+              cd ..
+            fi
+          done
+          
+          # Build experimental variant
+          echo "Building experimental variant for Windows..."
+          for repo in $REPOS_TO_BUILD; do
+            if [ -d "$repo" ]; then
+              echo "Building $repo for Windows (experimental variant)..."
+              cd "$repo"
+              unset CC CXX || true
+              # Build with all experimental features
+              if [ "$repo" = "bllvm" ]; then
+                # bllvm inherits from bllvm-node, need to build with experimental features
+                cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,dandelion,stratum-v2,bip158,sigop || {
+                  echo "Windows build failed for $repo (continuing...)"
+                }
+              else
+                # Other repos use default features
+                cargo build --release --target x86_64-pc-windows-gnu --all-features || {
+                  echo "Windows build failed for $repo (continuing...)"
+                }
+              fi
               cd ..
             fi
           done
@@ -303,13 +333,22 @@ jobs:
           CI: true
           GITHUB_ACTIONS: true
       
-      - name: Collect artifacts (from builds and downloads)
+      - name: Collect artifacts - base variant (from builds and downloads)
         run: |
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh linux-x86_64
+            commons/scripts/collect-artifacts.sh linux-x86_64 base
           fi
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh windows-x86_64
+            commons/scripts/collect-artifacts.sh windows-x86_64 base
+          fi
+      
+      - name: Collect artifacts - experimental variant (from builds and downloads)
+        run: |
+          if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
+            commons/scripts/collect-artifacts.sh linux-x86_64 experimental
+          fi
+          if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
+            commons/scripts/collect-artifacts.sh windows-x86_64 experimental
           fi
       
       - name: Generate component manifests
@@ -410,9 +449,9 @@ jobs:
           
           echo "=== Validating All Artifacts ==="
           
-          # Check for expected binaries based on platform
+          # Check for expected binaries based on platform (both variants)
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            echo "Checking Linux artifacts..."
+            echo "Checking Linux artifacts (base variant)..."
             if [ ! -d "${ARTIFACTS_DIR}/binaries" ]; then
               echo "❌ ERROR: Linux binaries directory not found"
               MISSING_ARTIFACTS=1
@@ -422,13 +461,27 @@ jobs:
                 echo "❌ ERROR: No Linux binaries found"
                 MISSING_ARTIFACTS=1
               else
-                echo "✅ Found $LINUX_BINARIES Linux binary(ies)"
+                echo "✅ Found $LINUX_BINARIES Linux binary(ies) (base)"
+              fi
+            fi
+            
+            echo "Checking Linux artifacts (experimental variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/binaries-experimental" ]; then
+              echo "❌ ERROR: Linux experimental binaries directory not found"
+              MISSING_ARTIFACTS=1
+            else
+              LINUX_EXP_BINARIES=$(find "${ARTIFACTS_DIR}/binaries-experimental" -type f -executable 2>/dev/null | wc -l)
+              if [ "$LINUX_EXP_BINARIES" -eq 0 ]; then
+                echo "❌ ERROR: No Linux experimental binaries found"
+                MISSING_ARTIFACTS=1
+              else
+                echo "✅ Found $LINUX_EXP_BINARIES Linux binary(ies) (experimental)"
               fi
             fi
           fi
           
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            echo "Checking Windows artifacts..."
+            echo "Checking Windows artifacts (base variant)..."
             if [ ! -d "${ARTIFACTS_DIR}/binaries-windows" ]; then
               echo "❌ ERROR: Windows binaries directory not found"
               MISSING_ARTIFACTS=1
@@ -438,7 +491,21 @@ jobs:
                 echo "❌ ERROR: No Windows binaries found"
                 MISSING_ARTIFACTS=1
               else
-                echo "✅ Found $WINDOWS_BINARIES Windows binary(ies)"
+                echo "✅ Found $WINDOWS_BINARIES Windows binary(ies) (base)"
+              fi
+            fi
+            
+            echo "Checking Windows artifacts (experimental variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/binaries-experimental-windows" ]; then
+              echo "❌ ERROR: Windows experimental binaries directory not found"
+              MISSING_ARTIFACTS=1
+            else
+              WINDOWS_EXP_BINARIES=$(find "${ARTIFACTS_DIR}/binaries-experimental-windows" -type f -name "*.exe" 2>/dev/null | wc -l)
+              if [ "$WINDOWS_EXP_BINARIES" -eq 0 ]; then
+                echo "❌ ERROR: No Windows experimental binaries found"
+                MISSING_ARTIFACTS=1
+              else
+                echo "✅ Found $WINDOWS_EXP_BINARIES Windows binary(ies) (experimental)"
               fi
             fi
           fi
@@ -472,26 +539,57 @@ jobs:
           FOUND_FILES=0
           
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            REQUIRED_FILES=$((REQUIRED_FILES + 1))
+            REQUIRED_FILES=$((REQUIRED_FILES + 2))  # Base + Experimental
             if [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
-              echo "✅ Found Linux release package"
+              echo "✅ Found Linux release package (base)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: Linux release package not found"
+              echo "❌ ERROR: Linux base release package not found"
+            fi
+            if [ -f "${ARTIFACTS_DIR}/bllvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
+              echo "✅ Found Linux release package (experimental)"
+              FOUND_FILES=$((FOUND_FILES + 1))
+            else
+              echo "❌ ERROR: Linux experimental release package not found"
             fi
           fi
           
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            REQUIRED_FILES=$((REQUIRED_FILES + 1))
+            REQUIRED_FILES=$((REQUIRED_FILES + 2))  # Base + Experimental
             if [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-windows-x86_64.zip" ]; then
-              echo "✅ Found Windows release package"
+              echo "✅ Found Windows release package (base)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: Windows release package not found"
+              echo "❌ ERROR: Windows base release package not found"
+            fi
+            if [ -f "${ARTIFACTS_DIR}/bllvm-experimental-${VERSION_TAG}-windows-x86_64.zip" ]; then
+              echo "✅ Found Windows release package (experimental)"
+              FOUND_FILES=$((FOUND_FILES + 1))
+            else
+              echo "❌ ERROR: Windows experimental release package not found"
             fi
           fi
           
-          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-linux-x86_64" ] || [ -f "${ARTIFACTS_DIR}/SHA256SUMS-windows-x86_64" ]; then
+          # Check for SHA256SUMS files (both variants)
+          SHA256SUMS_FOUND=0
+          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-linux-x86_64" ]; then
+            echo "✅ Found SHA256SUMS-linux-x86_64 (base)"
+            SHA256SUMS_FOUND=1
+          fi
+          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-experimental-linux-x86_64" ]; then
+            echo "✅ Found SHA256SUMS-experimental-linux-x86_64"
+            SHA256SUMS_FOUND=1
+          fi
+          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-windows-x86_64" ]; then
+            echo "✅ Found SHA256SUMS-windows-x86_64 (base)"
+            SHA256SUMS_FOUND=1
+          fi
+          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-experimental-windows-x86_64" ]; then
+            echo "✅ Found SHA256SUMS-experimental-windows-x86_64"
+            SHA256SUMS_FOUND=1
+          fi
+          
+          if [ "$SHA256SUMS_FOUND" -gt 0 ]; then
             echo "✅ Found SHA256SUMS file(s)"
             FOUND_FILES=$((FOUND_FILES + 1))
           else
@@ -530,9 +628,12 @@ jobs:
           name: BTCDecoded ${{ inputs.version_tag }}
           body_path: commons/artifacts/RELEASE_NOTES.md
           files: |
-            commons/artifacts/*.tar.gz
-            commons/artifacts/*.zip
+            commons/artifacts/bllvm-*.tar.gz
+            commons/artifacts/bllvm-*.zip
+            commons/artifacts/bllvm-experimental-*.tar.gz
+            commons/artifacts/bllvm-experimental-*.zip
             commons/artifacts/SHA256SUMS-*
+            commons/artifacts/SHA256SUMS-experimental-*
             commons/artifacts/release-manifest.json
             commons/artifacts/manifests/*.json
           draft: false

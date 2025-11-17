@@ -60,7 +60,7 @@ echo ""
 # Check latest workflow runs across key repositories
 echo -e "${CYAN}📋 Latest Workflow Runs:${NC}"
 echo "------------------------"
-REPOS=("commons" "bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm-sdk" "governance-app")
+REPOS=("commons" "bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm-sdk" "bllvm-commons")
 
 for repo in "${REPOS[@]}"; do
     RUNS=$(api_get "repos/${ORG}/${repo}/actions/runs?per_page=1")

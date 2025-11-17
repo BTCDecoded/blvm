@@ -235,3 +235,4 @@ echo "1. Collect signatures from other maintainers"
 echo "2. Aggregate signatures: bllvm-aggregate-signatures --signatures sig1.json,sig2.json,... --threshold ${THRESHOLD}"
 echo "3. Verify signatures: bllvm-verify-binary ... --signatures aggregated.json --threshold ${THRESHOLD}"
 
+

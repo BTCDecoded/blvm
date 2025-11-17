@@ -10,16 +10,31 @@ COMMONS_DIR="$(dirname "$SCRIPT_DIR")"
 PARENT_DIR="$(dirname "$COMMONS_DIR")"
 ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
 PLATFORM="${1:-linux-x86_64}"
+VARIANT="${2:-base}"  # base or experimental
+
+# Validate variant
+if [ "$VARIANT" != "base" ] && [ "$VARIANT" != "experimental" ]; then
+    echo "ERROR: Invalid variant: $VARIANT (must be 'base' or 'experimental')"
+    exit 1
+fi
 
 # Determine target directory and binary extension based on platform
 if [[ "$PLATFORM" == *"windows"* ]]; then
     TARGET_DIR="target/x86_64-pc-windows-gnu/release"
     BIN_EXT=".exe"
-    BINARIES_DIR="${ARTIFACTS_DIR}/binaries-windows"
+    if [ "$VARIANT" = "base" ]; then
+        BINARIES_DIR="${ARTIFACTS_DIR}/binaries-windows"
+    else
+        BINARIES_DIR="${ARTIFACTS_DIR}/binaries-experimental-windows"
+    fi
 else
     TARGET_DIR="target/release"
     BIN_EXT=""
-    BINARIES_DIR="${ARTIFACTS_DIR}/binaries"
+    if [ "$VARIANT" = "base" ]; then
+        BINARIES_DIR="${ARTIFACTS_DIR}/binaries"
+    else
+        BINARIES_DIR="${ARTIFACTS_DIR}/binaries-experimental"
+    fi
 fi
 
 # Binary mapping
@@ -62,11 +77,17 @@ collect_repo_binaries() {
 }
 
 generate_checksums() {
-    log_info "Generating checksums for ${PLATFORM}..."
+    log_info "Generating checksums for ${PLATFORM} (variant: ${VARIANT})..."
     
     pushd "$BINARIES_DIR" > /dev/null
     
-    local checksum_file="${ARTIFACTS_DIR}/SHA256SUMS-${PLATFORM}"
+    # Base variant uses SHA256SUMS-{platform}, experimental uses SHA256SUMS-experimental-{platform}
+    local checksum_file
+    if [ "$VARIANT" = "base" ]; then
+        checksum_file="${ARTIFACTS_DIR}/SHA256SUMS-${PLATFORM}"
+    else
+        checksum_file="${ARTIFACTS_DIR}/SHA256SUMS-experimental-${PLATFORM}"
+    fi
     if command -v sha256sum &> /dev/null; then
         sha256sum * > "$checksum_file" 2>/dev/null || true
         log_success "Generated ${checksum_file}"
@@ -81,38 +102,60 @@ generate_checksums() {
 }
 
 create_archives() {
-    log_info "Creating release archives for ${PLATFORM}..."
+    log_info "Creating release archives for ${PLATFORM} (variant: ${VARIANT})..."
     
-    local archive_name="bitcoin-commons-bllvm-${PLATFORM}"
-    local checksum_file="SHA256SUMS-${PLATFORM}"
+    # Base variant uses bllvm-{version}-{platform}, experimental uses bllvm-experimental-{version}-{platform}
+    # Note: version will be added by create-release.sh, here we just set the base name
+    local archive_base
+    if [ "$VARIANT" = "base" ]; then
+        archive_base="bllvm-${PLATFORM}"
+    else
+        archive_base="bllvm-experimental-${PLATFORM}"
+    fi
+    
+    # Checksum file name
+    local checksum_file
+    if [ "$VARIANT" = "base" ]; then
+        checksum_file="SHA256SUMS-${PLATFORM}"
+    else
+        checksum_file="SHA256SUMS-experimental-${PLATFORM}"
+    fi
     
     pushd "$ARTIFACTS_DIR" > /dev/null
     
     # Determine binaries directory name
     local bin_dir_name
     if [[ "$PLATFORM" == *"windows"* ]]; then
-        bin_dir_name="binaries-windows"
+        if [ "$VARIANT" = "base" ]; then
+            bin_dir_name="binaries-windows"
+        else
+            bin_dir_name="binaries-experimental-windows"
+        fi
     else
-        bin_dir_name="binaries"
+        if [ "$VARIANT" = "base" ]; then
+            bin_dir_name="binaries"
+        else
+            bin_dir_name="binaries-experimental"
+        fi
     fi
     
     # Create tar.gz (skip for Windows, use zip instead)
     if [[ "$PLATFORM" != *"windows"* ]] && [ -d "$bin_dir_name" ] && [ "$(ls -A $bin_dir_name)" ]; then
-        tar -czf "${archive_name}.tar.gz" "$bin_dir_name/" "$checksum_file" 2>/dev/null || true
-        log_success "Created: ${archive_name}.tar.gz"
+        tar -czf "${archive_base}.tar.gz" "$bin_dir_name/" "$checksum_file" 2>/dev/null || true
+        log_success "Created: ${archive_base}.tar.gz"
     fi
         
     # Create zip (preferred for Windows, also available for Linux)
     if command -v zip &> /dev/null && [ -d "$bin_dir_name" ] && [ "$(ls -A $bin_dir_name)" ]; then
-        zip -r "${archive_name}.zip" "$bin_dir_name/" "$checksum_file" 2>/dev/null || true
-            log_success "Created: ${archive_name}.zip"
+        zip -r "${archive_base}.zip" "$bin_dir_name/" "$checksum_file" 2>/dev/null || true
+        log_success "Created: ${archive_base}.zip"
     fi
     
     popd > /dev/null
 }
 
 main() {
-    log_info "Collecting artifacts for ${PLATFORM}..."
+    log_info "Collecting artifacts for ${PLATFORM} (variant: ${VARIANT})..."
     
     mkdir -p "$BINARIES_DIR"
     
