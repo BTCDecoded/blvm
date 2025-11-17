@@ -1,0 +1,64 @@
+# BLLVM Node Configuration Example
+# Copy this file to bllvm.toml and customize as needed
+# Usage: bllvm --config bllvm.toml
+
+# Network listening address
+listen_addr = "0.0.0.0:8333"
+
+# Transport preference: "tcp_only", "iroh_only", "hybrid", or "all"
+transport_preference = "tcp_only"
+
+# Maximum number of peers
+max_peers = 100
+
+# Protocol version: "BitcoinV1", "Testnet3", or "Regtest"
+protocol_version = "Regtest"
+
+# Enable self-advertisement (send own address to peers)
+enable_self_advertisement = true
+
+# Persistent peers (peers to connect to on startup)
+# persistent_peers = ["1.2.3.4:8333", "5.6.7.8:8333"]
+
+# Stratum V2 mining configuration (requires compile-time feature)
+# [stratum_v2]
+# enabled = false
+# pool_url = "tcp://pool.example.com:3333"
+# listen_addr = "0.0.0.0:3333"
+# transport_preference = "tcp_only"
+# merge_mining_enabled = false
+# secondary_chains = []
+
+# RPC authentication configuration
+# [rpc_auth]
+# required = false
+# tokens = []
+# certificates = []
+# rate_limit_burst = 100
+# rate_limit_rate = 10
+
+# Ban list sharing configuration
+# [ban_list_sharing]
+# enabled = false
+# share_interval_seconds = 3600
+# max_entries = 1000
+
+# Storage and pruning configuration
+# [storage]
+# backend = "redb"  # "sled" or "redb"
+# 
+# [storage.pruning]
+# enabled = false
+# mode = "normal"  # "normal" or "aggressive"
+# min_blocks_to_keep = 288  # ~2 days at 10 min/block
+# auto_prune = false
+# auto_prune_interval = 3600
+
+# Module system configuration
+# [modules]
+# enabled = true
+# modules_dir = "modules"
+# data_dir = "data/modules"
+# socket_dir = "data/modules/sockets"
+# enabled_modules = []
+
