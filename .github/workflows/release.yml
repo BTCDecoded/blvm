@@ -117,12 +117,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           PARENT_DIR: ${{ github.workspace }}
       
-      - name: Install Windows target for cross-compilation
+      - name: Install Windows target and toolchain for cross-compilation
         run: |
+          # Install Rust Windows target
           rustup target add x86_64-pc-windows-gnu
-          # Install mingw-w64 for linking (required for cross-compilation)
-          # Note: This may require additional system packages on the runner
-          echo "Windows target installed"
+          
+          # Install MinGW-w64 toolchain (standard for Linux cross-compilation)
+          if command -v apt-get &> /dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq gcc-mingw-w64-x86-64 || {
+              echo "⚠️  Failed to install gcc-mingw-w64-x86-64, trying alternative..."
+              sudo apt-get install -y -qq mingw-w64 || true
+            }
+          elif command -v yum &> /dev/null; then
+            sudo yum install -y -q mingw64-gcc || {
+              sudo dnf install -y -q mingw64-gcc || true
+            }
+          elif command -v pacman &> /dev/null; then
+            sudo pacman -S --noconfirm mingw-w64-gcc || true
+          else
+            echo "⚠️  Package manager not recognized, MinGW may need manual installation"
+          fi
+          
+          # Verify MinGW installation
+          if command -v x86_64-w64-mingw32-gcc &> /dev/null; then
+            echo "✅ MinGW-w64 GCC found: $(x86_64-w64-mingw32-gcc --version | head -n1)"
+          else
+            echo "⚠️  MinGW-w64 GCC not found in PATH, builds may fail"
+          fi
+          
+          # Configure Cargo to use MinGW linker
+          mkdir -p ~/.cargo
+          cat >> ~/.cargo/config.toml <<EOF
+          [target.x86_64-pc-windows-gnu]
+          linker = "x86_64-w64-mingw32-gcc"
+          ar = "x86_64-w64-mingw32-ar"
+          EOF
+          
+          echo "✅ Windows cross-compilation environment configured"
       
       - name: Build base variant (Linux)
         run: |
@@ -151,18 +183,28 @@ jobs:
       - name: Build base variant (Windows cross-compile)
         run: |
           cd ${{ github.workspace }}
+          FAILED_REPOS=()
+          
           for repo in bllvm bllvm-sdk; do
             if [ -d "$repo" ]; then
               echo "Building $repo for Windows (base variant)..."
               cd "$repo"
-              unset CC CXX || true
+              # Cargo config already set up MinGW linker, no need to unset CC/CXX
               # Build with production feature only (base variant)
-              cargo build --release --target x86_64-pc-windows-gnu --features production || {
-                echo "Windows build failed for $repo (continuing...)"
-              }
+              if cargo build --release --target x86_64-pc-windows-gnu --features production; then
+                echo "✅ Successfully built $repo for Windows (base)"
+              else
+                echo "❌ Windows build failed for $repo (base variant)"
+                FAILED_REPOS+=("$repo")
+              fi
               cd ..
             fi
           done
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+            exit 1
+          fi
         env:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_INCREMENTAL: "1"
@@ -171,26 +213,38 @@ jobs:
       - name: Build experimental variant (Windows cross-compile)
         run: |
           cd ${{ github.workspace }}
+          FAILED_REPOS=()
+          
           for repo in bllvm bllvm-sdk; do
             if [ -d "$repo" ]; then
               echo "Building $repo for Windows (experimental variant)..."
               cd "$repo"
-              unset CC CXX || true
-              # Build with all experimental features
+              # Build with experimental features
               if [ "$repo" = "bllvm" ]; then
                 # bllvm inherits from bllvm-node, need to build with experimental features
-                cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,dandelion,stratum-v2,bip158,sigop || {
-                  echo "Windows build failed for $repo (continuing...)"
-                }
+                if cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,dandelion,stratum-v2,bip158,sigop; then
+                  echo "✅ Successfully built $repo for Windows (experimental)"
+                else
+                  echo "❌ Windows build failed for $repo (experimental variant)"
+                  FAILED_REPOS+=("$repo")
+                fi
               else
                 # bllvm-sdk uses default features
-                cargo build --release --target x86_64-pc-windows-gnu --all-features || {
-                  echo "Windows build failed for $repo (continuing...)"
-                }
+                if cargo build --release --target x86_64-pc-windows-gnu --all-features; then
+                  echo "✅ Successfully built $repo for Windows (experimental)"
+                else
+                  echo "❌ Windows build failed for $repo (experimental variant)"
+                  FAILED_REPOS+=("$repo")
+                fi
               fi
               cd ..
             fi
           done
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+            exit 1
+          fi
         env:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_INCREMENTAL: "1"

@@ -1,0 +1,14 @@
+# Cargo configuration for Windows cross-compilation
+# Copy this to ~/.cargo/config.toml or .cargo/config.toml in your project root
+
+[target.x86_64-pc-windows-gnu]
+# Use the system MinGW-w64 toolchain
+linker = "x86_64-w64-mingw32-gcc"
+# Optional: Set ar (archive tool)
+ar = "x86_64-w64-mingw32-ar"
+
+# Alternative: If using pre-built MinGW from rustup
+# [target.x86_64-pc-windows-gnu]
+# linker = "x86_64-w64-mingw32-gcc"
+# ar = "x86_64-w64-mingw32-ar"
+
