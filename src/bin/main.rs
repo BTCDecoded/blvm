@@ -260,7 +260,7 @@ async fn main() -> Result<()> {
             let (config, _, _, _, _) = build_final_config(&cli);
             match subcommand {
                 ConfigCommand::Show => handle_config_show(&config),
-                ConfigCommand::Validate { path } => handle_config_validate(path, &cli.config),
+                ConfigCommand::Validate { path } => handle_config_validate(path.clone(), &cli.config),
                 ConfigCommand::Path => handle_config_path(&cli.config),
             }
         }
