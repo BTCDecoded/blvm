@@ -202,7 +202,21 @@ build_repo() {
     
     # Build command with features
     # Use --locked for reproducible builds (required for deterministic builds)
-    local build_cmd="cargo build --release --locked"
+    # But if lock file is outdated, update it first in release mode
+    local build_cmd="cargo build --release"
+    if [ "$MODE" == "release" ]; then
+        # For release mode, try with --locked first, but if it fails due to outdated lock, update it
+        if ! cargo build --release --locked --dry-run 2>&1 | grep -q "lock file.*needs to be updated"; then
+            build_cmd="cargo build --release --locked"
+        else
+            log_warn "Lock file outdated, updating it first..."
+            cargo update
+            build_cmd="cargo build --release --locked"
+        fi
+    else
+        # For dev mode, don't use --locked (allows dependency updates)
+        build_cmd="cargo build --release"
+    fi
     if [ -n "$features" ]; then
         build_cmd="${build_cmd} --features ${features}"
     fi
