@@ -172,12 +172,12 @@ build_repo() {
                     features="production,utxo-commitments,ctv"
                     ;;
                 bllvm-node)
-                    # Pass through ctv from bllvm-protocol
-                    features="production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop"
+                    # Pass through ctv from bllvm-protocol, include all experimental features
+                    features="production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh"
                     ;;
                 bllvm)
-                    # bllvm binary inherits from bllvm-node, pass through ctv
-                    features="production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop"
+                    # bllvm binary inherits from bllvm-node, include all experimental features
+                    features="production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh"
                     ;;
                 *)
                     # Other repos (bllvm-sdk, bllvm-commons) use default features
