@@ -150,8 +150,16 @@ build_repo() {
     local features=""
     case "$VARIANT" in
         base)
-            # Base variant: production optimizations only
-            features="production"
+            # Base variant: production optimizations only (for repos that have it)
+            case "$repo" in
+                bllvm-consensus|bllvm-protocol|bllvm-node|bllvm)
+                    features="production"
+                    ;;
+                *)
+                    # Other repos (bllvm-sdk, bllvm-commons) use default features
+                    features=""
+                    ;;
+            esac
             ;;
         experimental)
             # Experimental variant: all features
@@ -193,7 +201,8 @@ build_repo() {
     export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
     
     # Build command with features
-    local build_cmd="cargo build --release"
+    # Use --locked for reproducible builds (required for deterministic builds)
+    local build_cmd="cargo build --release --locked"
     if [ -n "$features" ]; then
         build_cmd="${build_cmd} --features ${features}"
     fi
