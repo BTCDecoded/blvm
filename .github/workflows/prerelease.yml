@@ -8,14 +8,10 @@ on:
         required: true
         type: string
       platform:
-        description: 'Platform to build for'
+        description: 'Platform to build for (linux, windows, or both)'
         required: false
         default: 'both'
-        type: choice
-        options:
-          - linux
-          - windows
-          - both
+        type: string
   workflow_dispatch:
     inputs:
       version_tag:
@@ -23,14 +19,10 @@ on:
         required: true
         type: string
       platform:
-        description: 'Platform to build for'
+        description: 'Platform to build for (linux, windows, or both)'
         required: false
         default: 'both'
-        type: choice
-        options:
-          - linux
-          - windows
-          - both
+        type: string
 
 permissions:
   contents: write
