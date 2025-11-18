@@ -42,10 +42,6 @@ jobs:
           ref: main
           fetch-depth: 0
       
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: "v1-rust"
-      
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -115,13 +111,18 @@ jobs:
             done
             unset CARGO_INCREMENTAL || true
           fi
-          # Completely clear cargo registry to fix corrupted crates
-          echo "Cleaning corrupted cargo registry..."
-          rm -rf ~/.cargo/registry/src/* 2>/dev/null || true
-          rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
-          rm -rf ~/.cargo/git/db/* 2>/dev/null || true
-          rm -rf ~/.cargo/git/checkouts/* 2>/dev/null || true
-          echo "Cargo registry cleaned, dependencies will be re-downloaded"
+          # Only clean cargo registry if explicitly needed (rust-cache handles caching)
+          # This step is kept for emergency recovery but should rarely be needed
+          if [ "${FORCE_CLEAN_CARGO_REGISTRY:-false}" = "true" ]; then
+            echo "⚠️  FORCE_CLEAN_CARGO_REGISTRY=true, cleaning cargo registry..."
+            rm -rf ~/.cargo/registry/src/* 2>/dev/null || true
+            rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
+            rm -rf ~/.cargo/git/db/* 2>/dev/null || true
+            rm -rf ~/.cargo/git/checkouts/* 2>/dev/null || true
+            echo "Cargo registry cleaned, dependencies will be re-downloaded"
+          else
+            echo "✅ Using rust-cache for dependency management (set FORCE_CLEAN_CARGO_REGISTRY=true to force clean)"
+          fi
       
       - name: Checkout all repos at version
         run: |
@@ -130,6 +131,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           PARENT_DIR: ${{ github.workspace }}
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-rust-prerelease"
+          cache-all-crates: true
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       
       - name: Install Windows target and toolchain for cross-compilation
         if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' }}
