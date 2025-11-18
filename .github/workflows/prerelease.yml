@@ -190,6 +190,20 @@ jobs:
             unset CARGO_BUILD_JOBS
           fi
           commons/build.sh --mode release --variant base
+          
+          # Save hashes from first build for deterministic verification
+          echo "Saving hashes from first build for deterministic verification..."
+          cd ${{ github.workspace }}
+          for repo in bllvm bllvm-sdk; do
+            if [ -d "$repo" ] && [ -d "$repo/target/release" ]; then
+              cd "$repo"
+              find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
+              if [ -f "Cargo.lock" ]; then
+                sha256sum Cargo.lock >> /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
+              fi
+              cd - > /dev/null
+            fi
+          done
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
@@ -280,6 +294,68 @@ jobs:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_INCREMENTAL: "1"
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
+      
+      - name: Verify deterministic builds (Linux base variant)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          echo "=== Verifying Deterministic Builds (Base Variant) ==="
+          echo "This step verifies that builds are reproducible by rebuilding and comparing hashes"
+          echo "Note: This doubles build time but ensures reproducibility"
+          
+          PARENT_DIR="${GITHUB_WORKSPACE}"
+          FAILED_REPOS=()
+          
+          for repo in bllvm bllvm-sdk; do
+            if [ -d "${PARENT_DIR}/${repo}" ] && [ -f "/tmp/${repo}-build1-hashes.txt" ]; then
+              echo "Verifying deterministic build for ${repo} (base variant)..."
+              cd "${PARENT_DIR}/${repo}"
+              
+              # Clean and rebuild with same flags as first build
+              cargo clean
+              export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
+              if cargo build --release --locked --features production 2>&1 | tee /tmp/${repo}-rebuild.log; then
+                # Generate second hash set
+                find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build2-hashes.txt 2>/dev/null || true
+                if [ -f "Cargo.lock" ]; then
+                  sha256sum Cargo.lock >> /tmp/${repo}-build2-hashes.txt 2>/dev/null || true
+                fi
+                
+                # Compare (sort both files for consistent comparison)
+                sort /tmp/${repo}-build1-hashes.txt > /tmp/${repo}-build1-sorted.txt 2>/dev/null || true
+                sort /tmp/${repo}-build2-hashes.txt > /tmp/${repo}-build2-sorted.txt 2>/dev/null || true
+                
+                if diff -q /tmp/${repo}-build1-sorted.txt /tmp/${repo}-build2-sorted.txt > /dev/null 2>&1; then
+                  echo "✅ ${repo} (base): Deterministic build verified - hashes match"
+                else
+                  echo "⚠️  WARNING: ${repo} (base): Non-deterministic build detected"
+                  echo "First build hashes:"
+                  cat /tmp/${repo}-build1-sorted.txt || true
+                  echo "Second build hashes:"
+                  cat /tmp/${repo}-build2-sorted.txt || true
+                  FAILED_REPOS+=("${repo}")
+                fi
+              else
+                echo "⚠️  WARNING: ${repo} (base): Rebuild failed, skipping verification"
+                FAILED_REPOS+=("${repo}")
+              fi
+              cd - > /dev/null
+            else
+              echo "⚠️  WARNING: ${repo} (base): No first build hashes found, skipping verification"
+            fi
+          done
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  WARNING: Some builds failed deterministic verification: ${FAILED_REPOS[*]}"
+            echo "This is non-blocking for Phase 1 prerelease, but should be fixed for production releases"
+            echo "Common causes: timestamps in binaries, non-deterministic compilation order"
+          else
+            echo "✅ All deterministic builds verified (base variant)"
+          fi
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Run tests (skip doctests for Phase 1 prerelease)
         run: |
