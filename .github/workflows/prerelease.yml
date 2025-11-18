@@ -415,8 +415,8 @@ jobs:
       
       - name: Validate artifacts exist
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           MISSING_ARTIFACTS=0
           
           echo "=== Validating Artifacts ==="
@@ -523,8 +523,8 @@ jobs:
       
       - name: Verify artifact checksums (if available)
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           
           echo "=== Verifying Artifact Checksums ==="
           
@@ -563,8 +563,8 @@ jobs:
       
       - name: Validate release artifacts before publishing
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           VERSION_TAG="${{ inputs.version_tag }}"
           
           echo "=== Final Artifact Validation ==="
