@@ -264,12 +264,12 @@ async fn main() -> Result<()> {
                 ConfigCommand::Path => handle_config_path(&cli.config),
             }
         }
-        Some(Command::Rpc { method, ref params, rpc_addr }) => {
+        Some(Command::Rpc { ref method, ref params, rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
             let (config, _, _, _, _) = build_final_config(&cli);
             let params: Value = serde_json::from_str(params)
                 .context("Invalid JSON parameters")?;
-            handle_rpc(rpc_addr, &method, params, &config).await
+            handle_rpc(rpc_addr, method, params, &config).await
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
@@ -300,11 +300,14 @@ async fn main() -> Result<()> {
             node = node.with_config(config.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to apply config: {}", e))?;
             
+            // with_modules_from_config takes ownership, so we need to handle it carefully
             node = match node.with_modules_from_config(&config) {
                 Ok(n) => n,
                 Err(e) => {
                     warn!("Failed to configure modules: {}. Continuing without modules.", e);
-                    node
+                    // If it fails, we can't recover the node since with_modules_from_config consumes it
+                    // We need to return an error - the node has been consumed
+                    return Err(anyhow::anyhow!("Failed to configure modules: {}", e));
                 }
             };
 
