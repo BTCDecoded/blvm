@@ -574,29 +574,49 @@ jobs:
           
           echo "=== Verifying Artifact Checksums ==="
           
-          # Verify Linux checksums if available
-          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-linux-x86_64" ] && [ -d "${ARTIFACTS_DIR}/binaries" ]; then
-            echo "Verifying Linux checksums..."
-            cd "${ARTIFACTS_DIR}/binaries"
-            if sha256sum -c "../SHA256SUMS-linux-x86_64" 2>/dev/null; then
-              echo "✅ Linux checksums verified"
-            else
-              echo "⚠️  WARNING: Linux checksum verification failed (continuing...)"
+          # Verify checksums for each directory/checksum pair
+          for checksum_file in "${ARTIFACTS_DIR}"/SHA256SUMS-*; do
+            if [ ! -f "$checksum_file" ]; then
+              continue
             fi
-            cd - > /dev/null
-          fi
-          
-          # Verify Windows checksums if available
-          if [ -f "${ARTIFACTS_DIR}/SHA256SUMS-windows-x86_64" ] && [ -d "${ARTIFACTS_DIR}/binaries-windows" ]; then
-            echo "Verifying Windows checksums..."
-            cd "${ARTIFACTS_DIR}/binaries-windows"
-            if sha256sum -c "../SHA256SUMS-windows-x86_64" 2>/dev/null; then
-              echo "✅ Windows checksums verified"
+            
+            checksum_name=$(basename "$checksum_file")
+            echo "Verifying checksums for $checksum_name..."
+            
+            # Determine which directory to check based on checksum filename
+            if [[ "$checksum_name" == *"bllvm-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/bllvm-linux"
+            elif [[ "$checksum_name" == *"bllvm-experimental-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/bllvm-experimental-linux"
+            elif [[ "$checksum_name" == *"bllvm-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/bllvm-windows"
+            elif [[ "$checksum_name" == *"bllvm-experimental-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/bllvm-experimental-windows"
+            elif [[ "$checksum_name" == *"governance-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/governance-linux"
+            elif [[ "$checksum_name" == *"governance-experimental-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/governance-experimental-linux"
+            elif [[ "$checksum_name" == *"governance-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/governance-windows"
+            elif [[ "$checksum_name" == *"governance-experimental-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/governance-experimental-windows"
             else
-              echo "⚠️  WARNING: Windows checksum verification failed (continuing...)"
+              echo "⚠️  WARNING: Unknown checksum file format: $checksum_name"
+              continue
             fi
-            cd - > /dev/null
-          fi
+            
+            if [ -d "$check_dir" ]; then
+              cd "$check_dir"
+              if sha256sum -c "$checksum_file" 2>/dev/null; then
+                echo "✅ Checksums verified for $checksum_name"
+              else
+                echo "⚠️  WARNING: Checksum verification failed for $checksum_name (continuing...)"
+              fi
+              cd - > /dev/null
+            else
+              echo "⚠️  WARNING: Directory not found for $checksum_name: $check_dir"
+            fi
+          done
         continue-on-error: true
       
       - name: Create release package
