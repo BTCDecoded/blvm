@@ -715,6 +715,12 @@ jobs:
             bllvm/artifacts/bllvm-governance-*.tar.gz
             bllvm/artifacts/bllvm-governance-*.zip
             bllvm/artifacts/SHA256SUMS-*
+            bllvm/artifacts/bllvm-linux/bllvm
+            bllvm/artifacts/bllvm-experimental-linux/bllvm
+            bllvm/artifacts/bllvm-windows/bllvm.exe
+            bllvm/artifacts/bllvm-experimental-windows/bllvm.exe
+            bllvm/artifacts/governance-linux/*
+            bllvm/artifacts/governance-windows/*
           draft: false
           prerelease: true
         env:
