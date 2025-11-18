@@ -35,19 +35,19 @@ jobs:
     outputs:
       build_requirements: ${{ steps.check.outputs.requirements }}
     steps:
-      - name: Checkout commons
+      - name: Checkout bllvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/commons
-          path: commons
+          repository: BTCDecoded/bllvm
+          path: bllvm
           ref: main
           fetch-depth: 0
       
       - name: Determine which repos need building
         id: check
         run: |
-          chmod +x commons/scripts/*.sh
-          REQUIREMENTS=$(commons/scripts/determine-build-requirements.sh commons/versions.toml ${{ inputs.platform }} || echo "{}")
+          chmod +x bllvm/scripts/*.sh
+          REQUIREMENTS=$(bllvm/scripts/determine-build-requirements.sh bllvm/versions.toml ${{ inputs.platform }} || echo "{}")
           echo "requirements<<EOF" >> $GITHUB_OUTPUT
           echo "$REQUIREMENTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -63,11 +63,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 180
     steps:
-      - name: Checkout commons
+      - name: Checkout bllvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/commons
-          path: commons
+          repository: BTCDecoded/bllvm
+          path: bllvm
           ref: main
           fetch-depth: 0
       
@@ -155,11 +155,11 @@ jobs:
       
       - name: Download existing release artifacts
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           mkdir -p "$ARTIFACTS_DIR"
           
-          chmod +x commons/scripts/*.sh
+          chmod +x bllvm/scripts/*.sh
           
           echo "=== Downloading Existing Release Artifacts ==="
           
@@ -169,7 +169,7 @@ jobs:
           # Download artifacts for repos that have existing releases
           echo "$REQUIREMENTS" | jq -r 'to_entries[] | select(.value.download == true) | "\(.key)|\(.value.version)"' | while IFS='|' read -r repo version; do
             echo "Downloading artifacts for ${repo}@${version}..."
-            if commons/scripts/download-release-artifacts.sh "$repo" "$version" "$ARTIFACTS_DIR" "BTCDecoded" "${{ inputs.platform }}" || true; then
+            if bllvm/scripts/download-release-artifacts.sh "$repo" "$version" "$ARTIFACTS_DIR" "BTCDecoded" "${{ inputs.platform }}" || true; then
               echo "✅ Downloaded artifacts for ${repo}"
             else
               echo "⚠️  Failed to download artifacts for ${repo}, will need to build"
@@ -182,8 +182,8 @@ jobs:
       
       - name: Checkout all repos at locked versions
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          chmod +x commons/scripts/*.sh
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          chmod +x bllvm/scripts/*.sh
           
           echo "=== Checking Out All Repos at Locked Versions ==="
           echo "Note: All repos are checked out for dependency resolution, even if artifacts are downloaded"
@@ -191,7 +191,7 @@ jobs:
           # Checkout all repos at their locked versions from versions.toml
           # This ensures dependencies are available even if we download artifacts for some repos
           # Use the version tag from the unified release (all repos should be at same version)
-          commons/scripts/setup-build-env.sh ${{ inputs.version_tag }} || {
+          bllvm/scripts/setup-build-env.sh ${{ inputs.version_tag }} || {
             echo "⚠️  Some repos may not have been checked out, continuing..."
           }
         env:
@@ -247,7 +247,7 @@ jobs:
       - name: Build repositories that need building (Linux)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
           REQUIREMENTS='${{ needs.determine-requirements.outputs.build_requirements }}'
           REPOS_TO_BUILD=$(echo "$REQUIREMENTS" | jq -r 'to_entries[] | select(.value.build == true) | .key' | tr '\n' ' ')
           
@@ -268,9 +268,9 @@ jobs:
           # Build all repos (build.sh requires all repos to be present for dependencies)
           # Even if we downloaded artifacts for some repos, we still need to build dependencies
           # Build base variant
-          commons/build.sh --mode release --variant base
+          bllvm/build.sh --mode release --variant base
           # Build experimental variant
-          commons/build.sh --mode release --variant experimental
+          bllvm/build.sh --mode release --variant experimental
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
@@ -278,7 +278,7 @@ jobs:
       - name: Build repositories that need building (Windows cross-compile)
         if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' }}
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
           REQUIREMENTS='${{ needs.determine-requirements.outputs.build_requirements }}'
           REPOS_TO_BUILD=$(echo "$REQUIREMENTS" | jq -r 'to_entries[] | select(.value.build == true) | .key' | tr '\n' ' ')
           
@@ -355,7 +355,7 @@ jobs:
       
       - name: Run tests for built repositories
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
           REQUIREMENTS='${{ needs.determine-requirements.outputs.build_requirements }}'
           REPOS_TO_BUILD=$(echo "$REQUIREMENTS" | jq -r 'to_entries[] | select(.value.build == true) | .key' | tr '\n' ' ')
           
@@ -393,29 +393,29 @@ jobs:
       - name: Collect artifacts - base variant (from builds and downloads)
         run: |
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh linux-x86_64 base
+            bllvm/scripts/collect-artifacts.sh linux-x86_64 base
           fi
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh windows-x86_64 base
+            bllvm/scripts/collect-artifacts.sh windows-x86_64 base
           fi
       
       - name: Collect artifacts - experimental variant (from builds and downloads)
         run: |
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh linux-x86_64 experimental
+            bllvm/scripts/collect-artifacts.sh linux-x86_64 experimental
           fi
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            commons/scripts/collect-artifacts.sh windows-x86_64 experimental
+            bllvm/scripts/collect-artifacts.sh windows-x86_64 experimental
           fi
       
       - name: Generate component manifests
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           MANIFESTS_DIR="${ARTIFACTS_DIR}/manifests"
           mkdir -p "$MANIFESTS_DIR"
           
-          chmod +x commons/scripts/*.sh
+          chmod +x bllvm/scripts/*.sh
           
           REQUIREMENTS='${{ needs.determine-requirements.outputs.build_requirements }}'
           PLATFORM="${{ inputs.platform }}"
@@ -454,7 +454,7 @@ jobs:
             
             # Generate manifest
             MANIFEST_FILE="${MANIFESTS_DIR}/component-${repo}-${version}.json"
-            if commons/scripts/generate-component-manifest.sh \
+            if bllvm/scripts/generate-component-manifest.sh \
               "$repo" "$version" "$COMMIT_HASH" "$MANIFEST_PLATFORM" "$MANIFEST_FILE" \
               --artifacts-dir "$ARTIFACTS_DIR"; then
               echo "✅ Generated manifest for ${repo}@${version}"
@@ -469,11 +469,11 @@ jobs:
       
       - name: Generate integration manifest
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           MANIFESTS_DIR="${ARTIFACTS_DIR}/manifests"
           
-          chmod +x commons/scripts/*.sh
+          chmod +x bllvm/scripts/*.sh
           
           echo "=== Generating Integration Manifest ==="
           
@@ -487,7 +487,7 @@ jobs:
           
           # Generate integration manifest
           INTEGRATION_MANIFEST="${ARTIFACTS_DIR}/release-manifest.json"
-          if commons/scripts/generate-integration-manifest.sh \
+          if bllvm/scripts/generate-integration-manifest.sh \
             "${{ inputs.version_tag }}" "$ARTIFACTS_DIR" "$INTEGRATION_MANIFEST" \
             "${COMPONENT_MANIFESTS[@]}" 2>/dev/null; then
             echo "✅ Generated integration manifest"
@@ -500,8 +500,8 @@ jobs:
       
       - name: Validate all artifacts exist
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           MISSING_ARTIFACTS=0
           
           echo "=== Validating All Artifacts ==="
@@ -578,16 +578,16 @@ jobs:
       
       - name: Create release package
         run: |
-          commons/scripts/create-release.sh ${{ inputs.version_tag }}
+          bllvm/scripts/create-release.sh ${{ inputs.version_tag }}
       
       - name: Verify versions
         run: |
-          commons/scripts/verify-versions.sh
+          bllvm/scripts/verify-versions.sh
       
       - name: Validate release artifacts before publishing
         run: |
-          COMMONS_DIR="${GITHUB_WORKSPACE}/commons"
-          ARTIFACTS_DIR="${COMMONS_DIR}/artifacts"
+          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
+          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
           VERSION_TAG="${{ inputs.version_tag }}"
           
           echo "=== Final Artifact Validation ==="
@@ -683,16 +683,16 @@ jobs:
         with:
           tag_name: ${{ inputs.version_tag }}
           name: BTCDecoded ${{ inputs.version_tag }}
-          body_path: commons/artifacts/RELEASE_NOTES.md
+          body_path: bllvm/artifacts/RELEASE_NOTES.md
           files: |
-            commons/artifacts/bllvm-*.tar.gz
-            commons/artifacts/bllvm-*.zip
-            commons/artifacts/bllvm-experimental-*.tar.gz
-            commons/artifacts/bllvm-experimental-*.zip
-            commons/artifacts/SHA256SUMS-*
-            commons/artifacts/SHA256SUMS-experimental-*
-            commons/artifacts/release-manifest.json
-            commons/artifacts/manifests/*.json
+            bllvm/artifacts/bllvm-*.tar.gz
+            bllvm/artifacts/bllvm-*.zip
+            bllvm/artifacts/bllvm-experimental-*.tar.gz
+            bllvm/artifacts/bllvm-experimental-*.zip
+            bllvm/artifacts/SHA256SUMS-*
+            bllvm/artifacts/SHA256SUMS-experimental-*
+            bllvm/artifacts/release-manifest.json
+            bllvm/artifacts/manifests/*.json
           draft: false
           prerelease: false
         env:
