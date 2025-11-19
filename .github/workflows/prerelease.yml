@@ -260,13 +260,24 @@ jobs:
               echo "Building $repo for Windows (base variant)..."
               cd "$repo"
               
-              # Build with production feature only (base variant)
+              # Build with appropriate features (bllvm-sdk doesn't have production feature)
               # Cargo config already set up MinGW linker, no need to unset CC/CXX
-              if cargo build --release --target x86_64-pc-windows-gnu --features production; then
-                echo "✅ Successfully built $repo for Windows (base)"
+              if [ "$repo" = "bllvm" ]; then
+                # bllvm has production feature
+                if cargo build --release --target x86_64-pc-windows-gnu --features production; then
+                  echo "✅ Successfully built $repo for Windows (base)"
+                else
+                  echo "❌ Windows build failed for $repo (base variant)"
+                  FAILED_REPOS+=("$repo")
+                fi
               else
-                echo "❌ Windows build failed for $repo (base variant)"
-                FAILED_REPOS+=("$repo")
+                # bllvm-sdk uses default features (no production feature)
+                if cargo build --release --target x86_64-pc-windows-gnu; then
+                  echo "✅ Successfully built $repo for Windows (base)"
+                else
+                  echo "❌ Windows build failed for $repo (base variant)"
+                  FAILED_REPOS+=("$repo")
+                fi
               fi
               cd ..
             fi
