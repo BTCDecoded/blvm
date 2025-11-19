@@ -700,7 +700,7 @@ jobs:
           echo "=== Verifying files exist before release ==="
           
           # List all files that will be uploaded
-          echo "Archive files (bllvm and bllvm-experimental only):"
+          echo "Archive files (bllvm and bllvm-experimental, both tar.gz and zip):"
           find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "bllvm-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-${VERSION_TAG}-*.zip" -o -name "bllvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-experimental-${VERSION_TAG}-*.zip" \) -ls
           
           echo ""

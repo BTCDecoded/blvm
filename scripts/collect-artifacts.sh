@@ -73,15 +73,17 @@ collect_bllvm_binary() {
         log_success "Collected: ${binary}${BIN_EXT}"
         
         # Include governance tools in both base and experimental bllvm archives
-        # Collect governance tools first if not already collected
-        if [ ! -d "$GOVERNANCE_DIR" ] || [ -z "$(ls -A "$GOVERNANCE_DIR" 2>/dev/null)" ]; then
-            collect_governance_binaries
-        fi
+        # Always collect governance tools to ensure they're fresh
+        collect_governance_binaries
         
         # Copy governance tools into the bllvm archive
         if [ -d "$GOVERNANCE_DIR" ] && [ "$(ls -A "$GOVERNANCE_DIR" 2>/dev/null)" ]; then
             log_info "Including governance tools in bllvm archive..."
             cp -r "$GOVERNANCE_DIR"/* "${BLLVM_DIR}/" 2>/dev/null || true
+            log_info "Contents of ${BLLVM_DIR} after adding governance tools:"
+            ls -lh "${BLLVM_DIR}" || true
+        else
+            log_warn "Governance directory is empty or missing: ${GOVERNANCE_DIR}"
         fi
         
         return 0
