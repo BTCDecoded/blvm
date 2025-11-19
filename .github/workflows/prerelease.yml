@@ -581,10 +581,6 @@ jobs:
               check_dir="${ARTIFACTS_DIR}/bllvm-windows"
             elif [[ "$checksum_name" == *"bllvm-experimental-windows"* ]]; then
               check_dir="${ARTIFACTS_DIR}/bllvm-experimental-windows"
-            elif [[ "$checksum_name" == *"governance-linux"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/governance-linux"
-            elif [[ "$checksum_name" == *"governance-windows"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/governance-windows"
             else
               echo "⚠️  WARNING: Unknown checksum file format: $checksum_name"
               continue
@@ -704,8 +700,8 @@ jobs:
           echo "=== Verifying files exist before release ==="
           
           # List all files that will be uploaded
-          echo "Archive files:"
-          find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "bllvm-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-${VERSION_TAG}-*.zip" -o -name "bllvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-experimental-${VERSION_TAG}-*.zip" -o -name "bllvm-governance-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-governance-${VERSION_TAG}-*.zip" \) -ls
+          echo "Archive files (bllvm and bllvm-experimental only):"
+          find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "bllvm-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-${VERSION_TAG}-*.zip" -o -name "bllvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-experimental-${VERSION_TAG}-*.zip" \) -ls
           
           echo ""
           echo "Checksum files:"
@@ -725,9 +721,8 @@ jobs:
             bllvm/artifacts/bllvm-${{ inputs.version_tag }}-*.zip
             bllvm/artifacts/bllvm-experimental-${{ inputs.version_tag }}-*.tar.gz
             bllvm/artifacts/bllvm-experimental-${{ inputs.version_tag }}-*.zip
-            bllvm/artifacts/bllvm-governance-${{ inputs.version_tag }}-*.tar.gz
-            bllvm/artifacts/bllvm-governance-${{ inputs.version_tag }}-*.zip
-            bllvm/artifacts/SHA256SUMS-*
+            bllvm/artifacts/SHA256SUMS-bllvm-*
+            bllvm/artifacts/SHA256SUMS-bllvm-experimental-*
           draft: false
           prerelease: true
         env:
