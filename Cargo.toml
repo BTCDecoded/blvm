@@ -51,6 +51,10 @@ tempfile = "3.8"
 assert_cmd = "2.0"
 predicates = "3.0"
 
+# Patch sha2-asm to disable it for Windows targets (it doesn't support Windows)
+[patch.crates-io]
+sha2-asm = { version = "0.6.4", package = "sha2-asm", optional = true }
+
 [profile.release]
 opt-level = 3
 lto = "fat"
