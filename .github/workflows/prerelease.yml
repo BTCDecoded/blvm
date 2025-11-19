@@ -184,15 +184,30 @@ jobs:
             echo "   Expected: x86_64-w64-mingw32-gcc"
           fi
           
-          # Configure Cargo to use MinGW linker
+          # Configure Cargo to use MinGW linker (check if config exists first)
           mkdir -p ~/.cargo
-          cat >> ~/.cargo/config.toml <<EOF
-          [target.x86_64-pc-windows-gnu]
-          linker = "x86_64-w64-mingw32-gcc"
-          ar = "x86_64-w64-mingw32-ar"
-          EOF
           
-          echo "✅ Windows cross-compilation environment configured"
+          # Check if the target section already exists
+          if [ -f ~/.cargo/config.toml ] && grep -q "\[target.x86_64-pc-windows-gnu\]" ~/.cargo/config.toml; then
+            echo "⚠️  Windows target config already exists in ~/.cargo/config.toml, skipping..."
+            echo "   If builds fail, manually verify the config is correct"
+          else
+            # Append or create config
+            cat >> ~/.cargo/config.toml <<EOF
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+ar = "x86_64-w64-mingw32-ar"
+EOF
+            echo "✅ Added Windows target configuration to ~/.cargo/config.toml"
+          fi
+          
+          # Verify the config is valid
+          if cargo config get target.x86_64-pc-windows-gnu.linker &> /dev/null; then
+            echo "✅ Windows cross-compilation environment configured"
+            echo "   Linker: $(cargo config get target.x86_64-pc-windows-gnu.linker 2>/dev/null || echo 'not set')"
+          else
+            echo "⚠️  Could not verify Cargo config, but continuing..."
+          fi
       
       - name: Build base variant (Linux)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
