@@ -192,12 +192,12 @@ jobs:
             echo "⚠️  Windows target config already exists in ~/.cargo/config.toml, skipping..."
             echo "   If builds fail, manually verify the config is correct"
           else
-            # Append or create config
-            cat >> ~/.cargo/config.toml <<'EOF'
-            [target.x86_64-pc-windows-gnu]
-            linker = "x86_64-w64-mingw32-gcc"
-            ar = "x86_64-w64-mingw32-ar"
-            EOF
+            # Append or create config (using echo to avoid YAML parsing issues)
+            {
+              echo '[target.x86_64-pc-windows-gnu]'
+              echo 'linker = "x86_64-w64-mingw32-gcc"'
+              echo 'ar = "x86_64-w64-mingw32-ar"'
+            } >> ~/.cargo/config.toml
             echo "✅ Added Windows target configuration to ~/.cargo/config.toml"
           fi
           
