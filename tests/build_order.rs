@@ -73,13 +73,18 @@ bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-con
     let build_order = manifest.build_order().expect("Should calculate build order");
     
     // bllvm-consensus and bllvm-sdk have no dependencies, so they can be built in parallel
-    // They should both come before bllvm-protocol
+    // bllvm-protocol depends on bllvm-consensus, so consensus must come before protocol
+    // bllvm-sdk has no dependencies, so its position relative to protocol is non-deterministic
     let consensus_pos = build_order.iter().position(|r| r == "bllvm-consensus").unwrap();
-    let sdk_pos = build_order.iter().position(|r| r == "bllvm-sdk").unwrap();
     let protocol_pos = build_order.iter().position(|r| r == "bllvm-protocol").unwrap();
     
-    // Both should come before protocol
-    assert!(consensus_pos < protocol_pos);
-    assert!(sdk_pos < protocol_pos);
+    // Consensus must come before protocol (it's a dependency)
+    assert!(consensus_pos < protocol_pos, "bllvm-consensus should come before bllvm-protocol (it's a dependency)");
+    
+    // Verify all repos are present (order between independent repos is non-deterministic)
+    assert!(build_order.contains(&"bllvm-consensus".to_string()));
+    assert!(build_order.contains(&"bllvm-sdk".to_string()));
+    assert!(build_order.contains(&"bllvm-protocol".to_string()));
+    assert_eq!(build_order.len(), 3, "Should have exactly 3 repos in build order");
 }
 
