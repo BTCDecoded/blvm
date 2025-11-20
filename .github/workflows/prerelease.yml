@@ -746,7 +746,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ inputs.version_tag }}
-          name: BTCDecoded ${{ inputs.version_tag }} (Prerelease)
+          name: Bitcoin Commons ${{ inputs.version_tag }} (Prerelease)
           body_path: bllvm/artifacts/RELEASE_NOTES.md
           files: |
             bllvm/artifacts/bllvm-${{ inputs.version_tag }}-*.tar.gz

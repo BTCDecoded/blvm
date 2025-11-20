@@ -28,7 +28,7 @@ create_release_notes() {
     local notes_file="${ARTIFACTS_DIR}/RELEASE_NOTES.md"
     
     cat > "$notes_file" <<EOF
-# BTCDecoded Release ${VERSION_TAG}
+# Bitcoin Commons Release ${VERSION_TAG}
 
 Release date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
@@ -41,6 +41,24 @@ This release includes the following components:
 - **bllvm-node** - Minimal Bitcoin node implementation
 - **bllvm-sdk** - Governance infrastructure and CLI tools
 - **bllvm-commons** - GitHub App for cryptographic governance enforcement
+
+## Cargo Registry
+
+All library dependencies are published to [crates.io](https://crates.io):
+
+- \`bllvm-consensus = "${VERSION_TAG#v}"\`
+- \`bllvm-protocol = "${VERSION_TAG#v}"\`
+- \`bllvm-node = "${VERSION_TAG#v}"\`
+- \`bllvm-sdk = "${VERSION_TAG#v}"\`
+
+You can depend on these crates directly in your \`Cargo.toml\`:
+
+\`\`\`toml
+[dependencies]
+bllvm-consensus = "=${VERSION_TAG#v}"
+bllvm-protocol = "=${VERSION_TAG#v}"
+bllvm-node = "=${VERSION_TAG#v}"
+\`\`\`
 
 ## Build Variants
 

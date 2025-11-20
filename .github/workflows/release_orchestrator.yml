@@ -36,11 +36,13 @@ jobs:
       - name: Parse versions.toml
         id: parse
         run: |
-          CP=$(grep -E '^consensus-proof' versions.toml | awk -F '="' '{print $2}' | tr -d '"')
-          PE=$(grep -E '^protocol-engine' versions.toml | awk -F '="' '{print $2}' | tr -d '"')
-          RN=$(grep -E '^reference-node' versions.toml | awk -F '="' '{print $2}' | tr -d '"')
-          DS=$(grep -E '^developer-sdk' versions.toml | awk -F '="' '{print $2}' | tr -d '"')
-          GA=$(grep -E '^governance-app' versions.toml | awk -F '="' '{print $2}' | tr -d '"')
+          # Parse versions.toml using new repo names
+          # Format: bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0", ... }
+          CP=$(grep -A 1 "bllvm-consensus" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1)
+          PE=$(grep -A 1 "bllvm-protocol" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1)
+          RN=$(grep -A 1 "bllvm-node" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1)
+          DS=$(grep -A 1 "bllvm-sdk" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1)
+          GA=$(grep -A 1 "governance-app" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1)
           echo "cp=$CP" >> $GITHUB_OUTPUT
           echo "pe=$PE" >> $GITHUB_OUTPUT
           echo "rn=$RN" >> $GITHUB_OUTPUT
@@ -51,18 +53,18 @@ jobs:
     needs: read-versions
     uses: ./.github/workflows/verify_consensus_cached.yml
     with:
-      repo: consensus-proof
+      repo: bllvm-consensus
       kani: true
       ref: ${{ needs.read-versions.outputs.cp }}
       use_cache: true
       timeout_minutes: 120
 
-  build-protocol-engine:
+  build-protocol:
     needs: verify-consensus
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: protocol-engine
-      package: protocol-engine
+      repo: bllvm-protocol
+      package: bllvm-protocol
       ref: ${{ needs.read-versions.outputs.pe }}
       features: ""
       release: true
@@ -70,12 +72,12 @@ jobs:
       use_cache: true
       timeout_minutes: 60
 
-  build-reference-node:
-    needs: build-protocol-engine
+  build-node:
+    needs: build-protocol
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: reference-node
-      package: reference-node
+      repo: bllvm-node
+      package: bllvm-node
       ref: ${{ needs.read-versions.outputs.rn }}
       features: ""
       release: true
@@ -83,12 +85,12 @@ jobs:
       use_cache: true
       timeout_minutes: 90
 
-  build-developer-sdk:
-    needs: build-reference-node
+  build-sdk:
+    needs: build-node
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: developer-sdk
-      package: developer-sdk
+      repo: bllvm-sdk
+      package: bllvm-sdk
       ref: ${{ needs.read-versions.outputs.ds }}
       features: ""
       release: true
@@ -97,40 +99,55 @@ jobs:
       timeout_minutes: 60
 
   build-governance-app-image:
-    needs: build-developer-sdk
+    needs: build-sdk
     uses: ./.github/workflows/build_docker.yml
     with:
-      repo: bllvm-commons  # GitHub repo name (was governance-app)
+      repo: bllvm-commons
       context: .
-      image_name: governance-app  # Docker image name (kept for compatibility)
+      image_name: governance-app
       push: false
       ref: ${{ needs.read-versions.outputs.ga }}
       tag: ${{ needs.read-versions.outputs.ga }}
       use_cache: true
       timeout_minutes: 30
 
-  trigger-prerelease:
+  trigger-release:
     needs: build-governance-app-image
     if: success()
     runs-on: [self-hosted, Linux, X64]
     steps:
-      - name: Generate prerelease version
-        id: version
+      - name: Determine release type
+        id: release-type
         run: |
-          DATE=$(date +%Y%m%d)
-          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-          VERSION="nightly-${DATE}-${COMMIT}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Generated prerelease version: ${VERSION}"
+          # Check if this is main branch (official release) or other (prerelease)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "type=official" >> $GITHUB_OUTPUT
+            echo "Triggering official release for main branch"
+          else
+            echo "type=prerelease" >> $GITHUB_OUTPUT
+            DATE=$(date +%Y%m%d)
+            COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+            VERSION="nightly-${DATE}-${COMMIT}"
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Triggering prerelease for branch: $BRANCH"
+          fi
+      
+      - name: Trigger official release
+        if: steps.release-type.outputs.type == 'official'
+        uses: ./.github/workflows/release.yml
+        with:
+          platform: both
       
       - name: Trigger prerelease
+        if: steps.release-type.outputs.type == 'prerelease'
         uses: ./.github/workflows/prerelease.yml
         with:
-          version_tag: ${{ steps.version.outputs.version }}
+          version_tag: ${{ steps.release-type.outputs.version }}
           platform: both
 
   deploy-signal:
-    needs: [build-governance-app-image, trigger-prerelease]
+    needs: [build-governance-app-image, trigger-release]
     runs-on: [self-hosted, Linux, X64]
     steps:
       - name: Send deployment signal to governance-app self-hosted runner

@@ -1,40 +1,114 @@
-name: Create Unified Release
+name: Official Release
 
 on:
-  workflow_call:
-    inputs:
-      version_tag:
-        description: 'Version tag for release (e.g., v0.1.0)'
-        required: true
-        type: string
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag for release (e.g., v0.1.0)'
-        required: true
+        description: 'Version tag for release (e.g., v0.1.0). If not provided, auto-increments patch from versions.toml'
+        required: false
         type: string
+      platform:
+        description: 'Platform to build for (linux, windows, or both)'
+        required: false
+        default: 'both'
+        type: string
+      skip_tagging:
+        description: 'Skip creating git tags (for testing)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
   actions: read
 
 jobs:
-  release:
-    name: Create Release ${{ inputs.version_tag }}
+  determine-version:
+    name: Determine Release Version
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 120
+    outputs:
+      version_tag: ${{ steps.version.outputs.version_tag }}
+      version_number: ${{ steps.version.outputs.version_number }}
+      release_set_id: ${{ steps.version.outputs.release_set_id }}
     steps:
-      - name: Checkout commons
+      - name: Checkout bllvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/commons
-          path: commons
+          repository: BTCDecoded/bllvm
+          path: bllvm
           ref: main
           fetch-depth: 0
       
-      - uses: Swatinem/rust-cache@v2
+      - name: Determine version
+        id: version
+        run: |
+          # If version_tag provided via workflow_dispatch, use it
+          if [ -n "${{ inputs.version_tag }}" ]; then
+            VERSION_TAG="${{ inputs.version_tag }}"
+            # Extract version number (remove 'v' prefix if present)
+            VERSION_NUMBER="${VERSION_TAG#v}"
+            echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+            echo "version_number=${VERSION_NUMBER}" >> $GITHUB_OUTPUT
+            echo "Using provided version: ${VERSION_TAG}"
+            exit 0
+          fi
+          
+          # Otherwise, read from versions.toml and auto-increment patch
+          VERSIONS_FILE="bllvm/versions.toml"
+          
+          if [ ! -f "$VERSIONS_FILE" ]; then
+            echo "ERROR: versions.toml not found"
+            exit 1
+          fi
+          
+          # Extract current version from versions.toml (look for bllvm-consensus as base)
+          # Format: bllvm-consensus = { version = "0.1.0", ... }
+          CURRENT_VERSION=$(grep -A 1 "bllvm-consensus" "$VERSIONS_FILE" | grep "version" | sed -E 's/.*version = "([^"]+)".*/\1/' | head -1)
+          
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "ERROR: Could not determine current version from versions.toml"
+            exit 1
+          fi
+          
+          echo "Current version from versions.toml: ${CURRENT_VERSION}"
+          
+          # Auto-increment patch version (X.Y.Z -> X.Y.(Z+1))
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          VERSION_TAG="v${NEW_VERSION}"
+          
+          # Generate release set ID (e.g., set-2025-01A)
+          DATE=$(date +%Y-%m)
+          MONTH_ABBR=$(date +%b | tr '[:upper:]' '[:lower:]')
+          RELEASE_SET_ID="set-$(date +%Y-%m%d)"
+          
+          echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          echo "version_number=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "release_set_id=${RELEASE_SET_ID}" >> $GITHUB_OUTPUT
+          echo "Auto-incremented version: ${CURRENT_VERSION} -> ${NEW_VERSION} (${VERSION_TAG})"
+          echo "Release set ID: ${RELEASE_SET_ID}"
+
+  release:
+    name: Create Release ${{ needs.determine-version.outputs.version_tag }}
+    needs: determine-version
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 180
+    steps:
+      - name: Checkout bllvm
+        uses: actions/checkout@v4
         with:
-          prefix-key: "v1-rust"
+          repository: BTCDecoded/bllvm
+          path: bllvm
+          ref: main
+          fetch-depth: 0
       
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -58,37 +132,32 @@ jobs:
             echo "CXX=ccache g++" >> $GITHUB_ENV
           else
             echo "⚠️  ccache not found (install for faster C dependency builds)"
+            echo "CC=" >> $GITHUB_ENV
+            echo "CXX=" >> $GITHUB_ENV
           fi
       
       - name: Fix corrupted cargo dependencies and config
         run: |
-          # Update rustup and toolchain (cargo comes with the toolchain)
           rustup update stable || true
-          # CRITICAL: Unset CARGO_BUILD_JOBS if it's 0 (cargo rejects this)
           if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
-            # Remove from GITHUB_ENV if it exists
             if [ -f "$GITHUB_ENV" ]; then
               sed -i '/^CARGO_BUILD_JOBS=/d' "$GITHUB_ENV" || true
             fi
           fi
-          # Remove jobs=0 from config files (cargo rejects this)
-          # Check for various formats: jobs=0, jobs = 0, jobs= 0, jobs =0
           if [ -f ~/.cargo/config.toml ]; then
             if grep -qE "jobs\s*=\s*0" ~/.cargo/config.toml 2>/dev/null; then
               echo "⚠️  Found jobs=0 in ~/.cargo/config.toml, removing it..."
               sed -i -E '/jobs\s*=\s*0/d' ~/.cargo/config.toml || true
             fi
           fi
-          # Remove jobs=0 from workspace config files
           find . -name "config.toml" -path "*/.cargo/*" 2>/dev/null | while read file; do
             if grep -qE "jobs\s*=\s*0" "$file" 2>/dev/null; then
               echo "⚠️  Found jobs=0 in $file, removing it..."
               sed -i -E '/jobs\s*=\s*0/d' "$file" || true
             fi
           done
-          # Remove incremental from config files when using sccache
           if [ "${RUSTC_WRAPPER:-}" = "sccache" ]; then
             if [ -f ~/.cargo/config.toml ]; then
               if grep -q "incremental" ~/.cargo/config.toml 2>/dev/null; then
@@ -105,28 +174,108 @@ jobs:
             done
             unset CARGO_INCREMENTAL || true
           fi
-          # Completely clear cargo registry to fix corrupted crates
-          echo "Cleaning corrupted cargo registry..."
-          rm -rf ~/.cargo/registry/src/* 2>/dev/null || true
-          rm -rf ~/.cargo/registry/cache/* 2>/dev/null || true
-          rm -rf ~/.cargo/git/db/* 2>/dev/null || true
-          rm -rf ~/.cargo/git/checkouts/* 2>/dev/null || true
-          echo "Cargo registry cleaned, dependencies will be re-downloaded"
       
-      - name: Checkout all repos at version
+      - name: Checkout all repos at main
         run: |
-          chmod +x commons/scripts/*.sh
-          commons/scripts/setup-build-env.sh ${{ inputs.version_tag }}
+          chmod +x bllvm/scripts/*.sh
+          bllvm/scripts/setup-build-env.sh
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           PARENT_DIR: ${{ github.workspace }}
       
-      - name: Install Windows target and toolchain for cross-compilation
+      - name: Publish dependencies to crates.io
         run: |
-          # Install Rust Windows target
+          VERSION_NUMBER="${{ needs.determine-version.outputs.version_number }}"
+          PARENT_DIR="${GITHUB_WORKSPACE}"
+          
+          # Publishing order: dependencies first, then dependents
+          # bllvm-sdk depends on bllvm-node (composition framework), so must come after
+          PUBLISH_ORDER=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm-sdk")
+          
+          echo "=== Publishing Dependencies to crates.io ==="
+          echo "Version: ${VERSION_NUMBER}"
+          
+          # Check for crates.io token
+          if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            echo "⚠️  CARGO_REGISTRY_TOKEN not set, skipping crate publication"
+            echo "   Set CARGO_REGISTRY_TOKEN secret to enable crate publishing"
+            exit 0
+          fi
+          
+          # Configure cargo for crates.io
+          cargo login "${CARGO_REGISTRY_TOKEN}"
+          
+          for repo in "${PUBLISH_ORDER[@]}"; do
+            REPO_PATH="${PARENT_DIR}/${repo}"
+            if [ ! -d "$REPO_PATH" ]; then
+              echo "⚠️  Repository not found: ${repo}, skipping..."
+              continue
+            fi
+            
+            echo "=========================================="
+            echo "Publishing ${repo} v${VERSION_NUMBER}..."
+            echo "=========================================="
+            cd "$REPO_PATH"
+            
+            # Update dependencies to use published crates before publishing
+            # bllvm-sdk depends on bllvm-node (composition framework)
+            if [ "$repo" = "bllvm-sdk" ]; then
+              echo "Updating bllvm-sdk dependencies to use published crates..."
+              if [ -f "Cargo.toml" ]; then
+                # Update bllvm-node dependency to use published version
+                sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${VERSION_NUMBER}"'"|g' Cargo.toml
+                echo "✅ Updated bllvm-sdk/Cargo.toml to use published bllvm-node"
+              fi
+            fi
+            
+            # Publish to crates.io
+            if cargo publish --dry-run 2>&1 | tee /tmp/${repo}-publish-dry-run.log; then
+              echo "✅ Dry-run successful for ${repo}"
+              
+              # Check if version already exists
+              CRATE_NAME=$(grep -E '^name = ' Cargo.toml | sed -E 's/^name = "([^"]+)".*/\1/')
+              if cargo search "$CRATE_NAME" --limit 1 2>/dev/null | grep -q "v${VERSION_NUMBER}"; then
+                echo "⚠️  Version ${VERSION_NUMBER} already published for ${repo}, skipping..."
+              else
+                echo "Publishing ${repo} v${VERSION_NUMBER} to crates.io..."
+                if cargo publish --token "${CARGO_REGISTRY_TOKEN}" 2>&1 | tee /tmp/${repo}-publish.log; then
+                  echo "✅ Successfully published ${repo} v${VERSION_NUMBER}"
+                  # Wait a bit for crates.io to index
+                  echo "Waiting 30 seconds for crates.io to index..."
+                  sleep 30
+                else
+                  echo "❌ Failed to publish ${repo}"
+                  echo "Publish log (last 50 lines):"
+                  tail -50 /tmp/${repo}-publish.log || true
+                  # Continue with other repos even if one fails
+                fi
+              fi
+            else
+              echo "❌ Dry-run failed for ${repo}"
+              echo "Dry-run log (last 50 lines):"
+              tail -50 /tmp/${repo}-publish-dry-run.log || true
+              # Continue with other repos even if one fails
+            fi
+            
+            cd - > /dev/null
+          done
+          
+          echo "=== Crate Publishing Complete ==="
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v1-rust-release"
+          cache-all-crates: true
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      
+      - name: Install Windows target and toolchain for cross-compilation
+        if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        run: |
           rustup target add x86_64-pc-windows-gnu
           
-          # Install MinGW-w64 toolchain (standard for Linux cross-compilation)
           if command -v apt-get &> /dev/null; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq gcc-mingw-w64-x86-64 || {
@@ -135,70 +284,340 @@ jobs:
             }
           elif command -v yum &> /dev/null; then
             sudo yum install -y -q mingw64-gcc || {
+              echo "⚠️  Trying dnf..."
               sudo dnf install -y -q mingw64-gcc || true
             }
           elif command -v pacman &> /dev/null; then
             sudo pacman -S --noconfirm mingw-w64-gcc || true
-          else
-            echo "⚠️  Package manager not recognized, MinGW may need manual installation"
           fi
           
-          # Verify MinGW installation
-          if command -v x86_64-w64-mingw32-gcc &> /dev/null; then
-            echo "✅ MinGW-w64 GCC found: $(x86_64-w64-mingw32-gcc --version | head -n1)"
-          else
-            echo "⚠️  MinGW-w64 GCC not found in PATH, builds may fail"
+          if command -v x86_64-w64-mingw32-gcc &> /dev/null || [ -f /usr/bin/x86_64-w64-mingw32-gcc ]; then
+            MINGW_GCC=$(command -v x86_64-w64-mingw32-gcc 2>/dev/null || echo "/usr/bin/x86_64-w64-mingw32-gcc")
+            if [ -x "$MINGW_GCC" ]; then
+              echo "✅ MinGW-w64 GCC found: $($MINGW_GCC --version | head -n1)"
+            fi
           fi
           
-          # Configure Cargo to use MinGW linker
           mkdir -p ~/.cargo
-          cat >> ~/.cargo/config.toml <<EOF
-          [target.x86_64-pc-windows-gnu]
-          linker = "x86_64-w64-mingw32-gcc"
-          ar = "x86_64-w64-mingw32-ar"
-          EOF
+          if [ -f ~/.cargo/config.toml ] && grep -q "\[target.x86_64-pc-windows-gnu\]" ~/.cargo/config.toml; then
+            echo "⚠️  Windows target config already exists, skipping..."
+          else
+            {
+              echo '[target.x86_64-pc-windows-gnu]'
+              echo 'linker = "x86_64-w64-mingw32-gcc"'
+              echo 'ar = "x86_64-w64-mingw32-ar"'
+            } >> ~/.cargo/config.toml
+            echo "✅ Added Windows target configuration"
+          fi
+      
+      - name: Update Cargo.toml to use published crates
+        run: |
+          VERSION_NUMBER="${{ needs.determine-version.outputs.version_number }}"
+          PARENT_DIR="${GITHUB_WORKSPACE}"
           
-          echo "✅ Windows cross-compilation environment configured"
+          echo "=== Updating Cargo.toml to use published crates ==="
+          echo "Version: ${VERSION_NUMBER}"
+          
+          # Update bllvm-protocol to use published bllvm-consensus
+          if [ -f "${PARENT_DIR}/bllvm-protocol/Cargo.toml" ]; then
+            echo "Updating bllvm-protocol/Cargo.toml..."
+            sed -i 's|bllvm-consensus = { path = "\.\./bllvm-consensus"|bllvm-consensus = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-protocol/Cargo.toml"
+          fi
+          
+          # Update bllvm-node to use published bllvm-protocol
+          if [ -f "${PARENT_DIR}/bllvm-node/Cargo.toml" ]; then
+            echo "Updating bllvm-node/Cargo.toml..."
+            sed -i 's|bllvm-protocol = { path = "\.\./bllvm-protocol"|bllvm-protocol = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-node/Cargo.toml"
+          fi
+          
+          # Update bllvm to use published bllvm-node
+          if [ -f "${PARENT_DIR}/bllvm/Cargo.toml" ]; then
+            echo "Updating bllvm/Cargo.toml..."
+            sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm/Cargo.toml"
+          fi
+          
+          # Update bllvm-sdk to use published bllvm-node (for composition framework)
+          if [ -f "${PARENT_DIR}/bllvm-sdk/Cargo.toml" ]; then
+            echo "Updating bllvm-sdk/Cargo.toml..."
+            sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-sdk/Cargo.toml"
+          fi
+          
+          # Update bllvm-commons to use published bllvm-sdk and bllvm-protocol
+          if [ -f "${PARENT_DIR}/bllvm-commons/Cargo.toml" ]; then
+            echo "Updating bllvm-commons/Cargo.toml..."
+            # Update bllvm-sdk dependency
+            sed -i 's|bllvm-sdk = { path = "\.\./\.\./bllvm-sdk"|bllvm-sdk = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-commons/Cargo.toml"
+            # Update bllvm-protocol dependency
+            sed -i 's|bllvm-protocol = { path = "\.\./\.\./bllvm-protocol"|bllvm-protocol = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-commons/Cargo.toml"
+          fi
+          
+          echo "✅ Cargo.toml files updated to use published crates"
+        env:
+          PARENT_DIR: ${{ github.workspace }}
       
-      - name: Build base variant (Linux)
+      - name: Build base variant (Linux) - Optimized (using published crates)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
         run: |
-          # CRITICAL: Unset CARGO_BUILD_JOBS if it's 0 (cargo rejects this)
           if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
-          commons/build.sh --mode release --variant base
+          
+          echo "=== Building final binaries using published crates ==="
+          echo "Dependencies (bllvm-consensus, bllvm-protocol, bllvm-node) are already published"
+          echo "Building only: bllvm, bllvm-sdk, bllvm-commons"
+          
+          PARENT_DIR="${GITHUB_WORKSPACE}"
+          RUSTFLAGS="${RUSTFLAGS:-} -C debuginfo=0"
+          
+          # Build bllvm (uses published bllvm-node)
+          echo "Building bllvm (base variant)..."
+          cd "${PARENT_DIR}/bllvm"
+          cargo build --release --locked --features production
+          
+          # Build bllvm-sdk binaries (uses published bllvm-node)
+          echo "Building bllvm-sdk binaries..."
+          cd "${PARENT_DIR}/bllvm-sdk"
+          cargo build --release --locked --bins
+          
+          # Build bllvm-commons (uses published bllvm-sdk and bllvm-protocol)
+          echo "Building bllvm-commons..."
+          cd "${PARENT_DIR}/bllvm-commons"
+          cargo build --release --locked --bins || echo "⚠️  bllvm-commons build failed (optional in Phase 1)"
+          
+          echo "✅ Final binaries built using published crates"
+          
+          # Save hashes from first build for deterministic verification
+          echo "Saving hashes from first build for deterministic verification..."
+          cd ${{ github.workspace }}
+          for repo in bllvm bllvm-sdk; do
+            if [ -d "$repo" ] && [ -d "$repo/target/release" ]; then
+              cd "$repo"
+              find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
+              if [ -f "Cargo.lock" ]; then
+                sha256sum Cargo.lock >> /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
+              fi
+              cd - > /dev/null
+            fi
+          done
         env:
           PARENT_DIR: ${{ github.workspace }}
-          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
+          RUSTFLAGS: "-C debuginfo=0"
       
-      - name: Build experimental variant (Linux)
+      - name: Build experimental variant (Linux) - Optimized (using published crates)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
         run: |
-          # CRITICAL: Unset CARGO_BUILD_JOBS if it's 0 (cargo rejects this)
           if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
-          commons/build.sh --mode release --variant experimental
+          
+          echo "=== Building experimental variant using published crates ==="
+          echo "Dependencies are already published, building only final binaries"
+          
+          PARENT_DIR="${GITHUB_WORKSPACE}"
+          RUSTFLAGS="${RUSTFLAGS:-} -C debuginfo=0"
+          
+          # Build bllvm (experimental - all features)
+          echo "Building bllvm (experimental variant)..."
+          cd "${PARENT_DIR}/bllvm"
+          cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh
+          
+          # Build bllvm-sdk binaries
+          echo "Building bllvm-sdk binaries (experimental)..."
+          cd "${PARENT_DIR}/bllvm-sdk"
+          cargo build --release --locked --bins --all-features
+          
+          # Build bllvm-commons
+          echo "Building bllvm-commons (experimental)..."
+          cd "${PARENT_DIR}/bllvm-commons"
+          cargo build --release --locked --bins --all-features || echo "⚠️  bllvm-commons build failed (optional)"
+          
+          echo "✅ Experimental binaries built using published crates"
         env:
           PARENT_DIR: ${{ github.workspace }}
-          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
+          RUSTFLAGS: "-C debuginfo=0"
       
-      - name: Build base variant (Windows cross-compile)
+      - name: Build base variant (Windows cross-compile) - Optimized (using published crates)
+        if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        run: |
+          echo "=== Building Windows binaries using published crates ==="
+          echo "Dependencies are already published, building only final binaries"
+          
+          cd ${{ github.workspace }}
+          FAILED_REPOS=()
+          
+          # Build bllvm for Windows (uses published bllvm-node)
+          if [ -d "bllvm" ]; then
+            echo "Building bllvm for Windows (base variant)..."
+            cd bllvm
+            if cargo build --release --locked --target x86_64-pc-windows-gnu --features production; then
+              echo "✅ Successfully built bllvm for Windows (base)"
+            else
+              echo "❌ Windows build failed for bllvm (base variant)"
+              FAILED_REPOS+=("bllvm")
+            fi
+            cd ..
+          fi
+          
+          # Build bllvm-sdk binaries for Windows (uses published bllvm-node)
+          if [ -d "bllvm-sdk" ]; then
+            echo "Building bllvm-sdk for Windows (base variant)..."
+            cd bllvm-sdk
+            if cargo build --release --locked --target x86_64-pc-windows-gnu --bins; then
+              echo "✅ Successfully built bllvm-sdk for Windows (base)"
+            else
+              echo "❌ Windows build failed for bllvm-sdk (base variant)"
+              FAILED_REPOS+=("bllvm-sdk")
+            fi
+              cd ..
+          fi
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+            exit 1
+          fi
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          CARGO_INCREMENTAL: "1"
+          RUSTFLAGS: "-C debuginfo=0"
+      
+      - name: Build experimental variant (Windows cross-compile) - Optimized (using published crates)
+        if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        run: |
+          echo "=== Building Windows experimental binaries using published crates ==="
+          echo "Dependencies are already published, building only final binaries"
+          
+          cd ${{ github.workspace }}
+          FAILED_REPOS=()
+          
+          # Build bllvm for Windows (experimental - all features)
+          if [ -d "bllvm" ]; then
+            echo "Building bllvm for Windows (experimental variant)..."
+            cd bllvm
+            if cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
+              echo "✅ Successfully built bllvm for Windows (experimental)"
+            else
+              echo "❌ Windows build failed for bllvm (experimental variant)"
+              FAILED_REPOS+=("bllvm")
+            fi
+            cd ..
+          fi
+          
+          # Build bllvm-sdk binaries for Windows (experimental)
+          if [ -d "bllvm-sdk" ]; then
+            echo "Building bllvm-sdk for Windows (experimental variant)..."
+            cd bllvm-sdk
+            if cargo build --release --locked --target x86_64-pc-windows-gnu --bins --all-features; then
+              echo "✅ Successfully built bllvm-sdk for Windows (experimental)"
+            else
+              echo "❌ Windows build failed for bllvm-sdk (experimental variant)"
+              FAILED_REPOS+=("bllvm-sdk")
+            fi
+            cd ..
+          fi
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+            exit 1
+          fi
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          CARGO_INCREMENTAL: "1"
+          RUSTFLAGS: "-C debuginfo=0"
+      
+      - name: Verify deterministic builds (Linux base variant)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          echo "=== Verifying Deterministic Builds (Base Variant) ==="
+          
+          PARENT_DIR="${GITHUB_WORKSPACE}"
+          FAILED_REPOS=()
+          
+          for repo in bllvm bllvm-sdk; do
+            if [ -d "${PARENT_DIR}/${repo}" ] && [ -f "/tmp/${repo}-build1-hashes.txt" ]; then
+              echo "Verifying deterministic build for ${repo} (base variant)..."
+              cd "${PARENT_DIR}/${repo}"
+              
+              cargo clean
+              export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
+              
+              if [ "$repo" = "bllvm" ] || [ "$repo" = "bllvm-consensus" ] || [ "$repo" = "bllvm-protocol" ] || [ "$repo" = "bllvm-node" ]; then
+                BUILD_CMD="cargo build --release --locked --features production"
+              else
+                BUILD_CMD="cargo build --release --locked"
+              fi
+              
+              if eval "$BUILD_CMD" 2>&1 | tee /tmp/${repo}-rebuild.log; then
+                find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build2-hashes.txt 2>/dev/null || true
+                if [ -f "Cargo.lock" ]; then
+                  sha256sum Cargo.lock >> /tmp/${repo}-build2-hashes.txt 2>/dev/null || true
+                fi
+                
+                sort /tmp/${repo}-build1-hashes.txt > /tmp/${repo}-build1-sorted.txt 2>/dev/null || true
+                sort /tmp/${repo}-build2-hashes.txt > /tmp/${repo}-build2-sorted.txt 2>/dev/null || true
+                
+                if diff -q /tmp/${repo}-build1-sorted.txt /tmp/${repo}-build2-sorted.txt > /dev/null 2>&1; then
+                  echo "✅ ${repo} (base): Deterministic build verified - hashes match"
+                else
+                  echo "⚠️  WARNING: ${repo} (base): Non-deterministic build detected"
+                  FAILED_REPOS+=("${repo}")
+                fi
+              else
+                echo "⚠️  WARNING: ${repo} (base): Rebuild failed, skipping verification"
+                FAILED_REPOS+=("${repo}")
+              fi
+              cd - > /dev/null
+            fi
+          done
+          
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  WARNING: Some builds failed deterministic verification: ${FAILED_REPOS[*]}"
+            echo "This should be fixed for production releases"
+          else
+            echo "✅ All deterministic builds verified (base variant)"
+          fi
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          RUSTFLAGS: "-C debuginfo=0"
+      
+      - name: Run tests
         run: |
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          for repo in bllvm bllvm-sdk; do
+          for repo in bllvm-consensus bllvm-protocol bllvm-node bllvm-sdk; do
             if [ -d "$repo" ]; then
-              echo "Building $repo for Windows (base variant)..."
+              echo "=========================================="
+              echo "Running tests in $repo..."
+              echo "=========================================="
               cd "$repo"
-              # Cargo config already set up MinGW linker, no need to unset CC/CXX
-              # Build with production feature only (base variant)
-              if cargo build --release --target x86_64-pc-windows-gnu --features production; then
-                echo "✅ Successfully built $repo for Windows (base)"
+              
+              echo "Building tests for $repo..."
+              if ! cargo build --release --all-features --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
+                echo "❌ Test compilation failed in $repo"
+                tail -100 /tmp/${repo}-test-build.log || true
+                FAILED_REPOS+=("$repo")
+                cd ..
+                continue
+              fi
+              
+              echo "✅ Tests compiled successfully for $repo"
+              echo "Running tests..."
+              
+              if timeout 1800 cargo test --release --all-features --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/${repo}-test_output.log; then
+                echo "✅ Tests passed for $repo"
               else
-                echo "❌ Windows build failed for $repo (base variant)"
+                EXIT_CODE=$?
+                if [ $EXIT_CODE -eq 124 ]; then
+                  echo "❌ Tests timed out in $repo (exceeded 30 minutes)"
+                  tail -100 /tmp/${repo}-test_output.log || true
+                else
+                  echo "❌ Tests failed in $repo"
+                  tail -100 /tmp/${repo}-test_output.log || true
+                fi
                 FAILED_REPOS+=("$repo")
               fi
               cd ..
@@ -206,122 +625,103 @@ jobs:
           done
           
           if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
-            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+            echo ""
+            echo "❌ Tests failed in the following repos: ${FAILED_REPOS[*]}"
             exit 1
+          else
+            echo ""
+            echo "✅ All tests passed"
           fi
-        env:
-          PARENT_DIR: ${{ github.workspace }}
-          CARGO_INCREMENTAL: "1"
-          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
-      
-      - name: Build experimental variant (Windows cross-compile)
-        run: |
-          cd ${{ github.workspace }}
-          FAILED_REPOS=()
-          
-          for repo in bllvm bllvm-sdk; do
-            if [ -d "$repo" ]; then
-              echo "Building $repo for Windows (experimental variant)..."
-              cd "$repo"
-              # Build with experimental features
-              if [ "$repo" = "bllvm" ]; then
-                # bllvm inherits from bllvm-node, need to build with experimental features
-                if cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
-                  echo "✅ Successfully built $repo for Windows (experimental)"
-                else
-                  echo "❌ Windows build failed for $repo (experimental variant)"
-                  FAILED_REPOS+=("$repo")
-                fi
-              else
-                # bllvm-sdk uses default features
-                if cargo build --release --target x86_64-pc-windows-gnu --all-features; then
-                  echo "✅ Successfully built $repo for Windows (experimental)"
-                else
-                  echo "❌ Windows build failed for $repo (experimental variant)"
-                  FAILED_REPOS+=("$repo")
-                fi
-              fi
-              cd ..
-            fi
-          done
-          
-          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
-            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
-            exit 1
-          fi
-        env:
-          PARENT_DIR: ${{ github.workspace }}
-          CARGO_INCREMENTAL: "1"
-          RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
-      
-      - name: Run tests (skip doctests for Phase 1 prerelease)
-        run: |
-          cd ${{ github.workspace }}
-          for repo in bllvm-consensus bllvm-protocol bllvm-node bllvm-sdk; do
-            if [ -d "$repo" ]; then
-              echo "Running tests in $repo (skipping doctests and CI-problematic tests)..."
-              cd "$repo"
-              # Skip doctests for Phase 1 prerelease
-              # --lib --bins --tests excludes --doc (doctests)
-              # Skip tests that hang in CI environment
-              # Use timeout command to prevent hanging tests (30 min total per repo)
-              # Run tests with single thread to avoid resource contention
-              # Skip tests that hang in CI - use filter to exclude them
-              # The test was removed but --skip is harmless if test doesn't exist
-              timeout 1800 cargo test --release --all-features --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/test_output.log || {
-                EXIT_CODE=$?
-                if [ $EXIT_CODE -eq 124 ]; then
-                  echo "Tests timed out in $repo (exceeded 30 minutes)"
-                  echo "Last 50 lines of test output:"
-                  tail -50 /tmp/test_output.log || true
-                else
-                  echo "Tests failed in $repo"
-                  echo "Last 50 lines of test output:"
-                  tail -50 /tmp/test_output.log || true
-                fi
-                exit 1
-              }
-              cd ..
-            fi
-          done
         env:
           PARENT_DIR: ${{ github.workspace }}
           CI: true
           GITHUB_ACTIONS: true
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
         run: |
-          commons/scripts/collect-artifacts.sh linux-x86_64 base
-          commons/scripts/collect-artifacts.sh windows-x86_64 base
+          PLATFORM_FLAG=""
+          if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ] || [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_FLAG="${PLATFORM_FLAG} linux-x86_64"
+          fi
+          if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ] || [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_FLAG="${PLATFORM_FLAG} windows-x86_64"
+          fi
+          
+          for platform in $PLATFORM_FLAG; do
+            bllvm/scripts/collect-artifacts.sh $platform base
+          done
       
       - name: Collect artifacts (experimental variant)
         run: |
-          commons/scripts/collect-artifacts.sh linux-x86_64 experimental
-          commons/scripts/collect-artifacts.sh windows-x86_64 experimental
+          PLATFORM_FLAG=""
+          if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ] || [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_FLAG="${PLATFORM_FLAG} linux-x86_64"
+          fi
+          if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ] || [ "${{ github.event_name }}" = "push" ]; then
+            PLATFORM_FLAG="${PLATFORM_FLAG} windows-x86_64"
+          fi
+          
+          for platform in $PLATFORM_FLAG; do
+            bllvm/scripts/collect-artifacts.sh $platform experimental
+          done
       
       - name: Create release package
         run: |
-          commons/scripts/create-release.sh ${{ inputs.version_tag }}
+          bllvm/scripts/create-release.sh ${{ needs.determine-version.outputs.version_tag }}
       
       - name: Verify versions
         run: |
-          commons/scripts/verify-versions.sh
+          bllvm/scripts/verify-versions.sh
+      
+      - name: Tag all repositories
+        if: ${{ !inputs.skip_tagging }}
+        run: |
+          VERSION_TAG="${{ needs.determine-version.outputs.version_tag }}"
+          ORG="BTCDecoded"
+          REPOS=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm" "bllvm-sdk" "bllvm-commons")
+          
+          for repo in "${REPOS[@]}"; do
+            REPO_PATH="${PARENT_DIR}/${repo}"
+            if [ -d "$REPO_PATH" ]; then
+              echo "Tagging ${repo} with ${VERSION_TAG}..."
+              cd "$REPO_PATH"
+              
+              # Check if tag already exists
+              if git rev-parse "$VERSION_TAG" >/dev/null 2>&1; then
+                echo "⚠️  Tag ${VERSION_TAG} already exists in ${repo}, skipping..."
+              else
+                # Create and push tag
+                git tag -a "$VERSION_TAG" -m "Release ${VERSION_TAG}" || {
+                  echo "⚠️  Failed to create tag in ${repo}"
+                  continue
+                }
+                git push origin "$VERSION_TAG" || {
+                  echo "⚠️  Failed to push tag in ${repo}"
+                }
+                echo "✅ Tagged ${repo} with ${VERSION_TAG}"
+              fi
+              cd - > /dev/null
+            fi
+          done
+        env:
+          PARENT_DIR: ${{ github.workspace }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ inputs.version_tag }}
-          name: BTCDecoded ${{ inputs.version_tag }}
-          body_path: commons/artifacts/RELEASE_NOTES.md
+          tag_name: ${{ needs.determine-version.outputs.version_tag }}
+          name: Bitcoin Commons ${{ needs.determine-version.outputs.version_tag }}
+          body_path: bllvm/artifacts/RELEASE_NOTES.md
           files: |
-            commons/artifacts/bllvm-*.tar.gz
-            commons/artifacts/bllvm-*.zip
-            commons/artifacts/bllvm-experimental-*.tar.gz
-            commons/artifacts/bllvm-experimental-*.zip
-            commons/artifacts/SHA256SUMS-*
-            commons/artifacts/SHA256SUMS-experimental-*
+            bllvm/artifacts/bllvm-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
+            bllvm/artifacts/bllvm-${{ needs.determine-version.outputs.version_tag }}-*.zip
+            bllvm/artifacts/bllvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
+            bllvm/artifacts/bllvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.zip
+            bllvm/artifacts/SHA256SUMS-bllvm-*
+            bllvm/artifacts/SHA256SUMS-bllvm-experimental-*
           draft: false
-          prerelease: ${{ contains(inputs.version_tag, '-') }}
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
-
