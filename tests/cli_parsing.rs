@@ -61,7 +61,7 @@ fn test_feature_flags() {
         "--enable-sigop",
         "--disable-sigop",
     ];
-    
+
     for flag in &flags {
         let mut cmd = Command::cargo_bin("bllvm").unwrap();
         cmd.arg(flag);
@@ -113,4 +113,3 @@ fn test_advanced_config_options() {
     // Should parse successfully
     let _ = cmd.assert();
 }
-

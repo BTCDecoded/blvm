@@ -88,9 +88,7 @@ fn test_sync_subcommand() {
 fn test_config_show_subcommand() {
     let mut cmd = Command::cargo_bin("bllvm").unwrap();
     cmd.arg("config").arg("show");
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains("["));
+    cmd.assert().success().stdout(predicate::str::contains("["));
 }
 
 /// Test config validate subcommand (no file)
@@ -106,7 +104,9 @@ fn test_config_validate_no_file() {
 #[test]
 fn test_config_validate_with_path() {
     let mut cmd = Command::cargo_bin("bllvm").unwrap();
-    cmd.arg("config").arg("validate").arg("/nonexistent/path.toml");
+    cmd.arg("config")
+        .arg("validate")
+        .arg("/nonexistent/path.toml");
     // Should fail if file doesn't exist
     cmd.assert().failure();
 }
@@ -134,9 +134,7 @@ fn test_rpc_subcommand_parsing() {
 #[test]
 fn test_rpc_subcommand_with_params() {
     let mut cmd = Command::cargo_bin("bllvm").unwrap();
-    cmd.arg("rpc")
-        .arg("getblockchaininfo")
-        .arg("[]");
+    cmd.arg("rpc").arg("getblockchaininfo").arg("[]");
     cmd.timeout(std::time::Duration::from_secs(2));
     // Will fail without running node, but should parse correctly
     let _ = cmd.assert();
@@ -208,4 +206,3 @@ fn test_start_subcommand() {
     // Should try to start node (will fail, but parsing should work)
     let _ = cmd.assert();
 }
-

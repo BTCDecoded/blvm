@@ -260,21 +260,26 @@ async fn main() -> Result<()> {
             let (config, _, _, _, _) = build_final_config(&cli);
             match subcommand {
                 ConfigCommand::Show => handle_config_show(&config),
-                ConfigCommand::Validate { path } => handle_config_validate(path.clone(), &cli.config),
+                ConfigCommand::Validate { path } => {
+                    handle_config_validate(path.clone(), &cli.config)
+                }
                 ConfigCommand::Path => handle_config_path(&cli.config),
             }
         }
-        Some(Command::Rpc { ref method, ref params, rpc_addr }) => {
+        Some(Command::Rpc {
+            ref method,
+            ref params,
+            rpc_addr,
+        }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
             let (config, _, _, _, _) = build_final_config(&cli);
-            let params: Value = serde_json::from_str(params)
-                .context("Invalid JSON parameters")?;
+            let params: Value = serde_json::from_str(params).context("Invalid JSON parameters")?;
             handle_rpc(rpc_addr, method, params, &config).await
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
             let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli);
-            
+
             info!("Starting Bitcoin Commons BLLVM Node");
             info!("Network: {:?}", network);
             info!("RPC address: {}", rpc_addr);
@@ -297,14 +302,18 @@ async fn main() -> Result<()> {
                 }
             };
 
-            node = node.with_config(config.clone())
+            node = node
+                .with_config(config.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to apply config: {}", e))?;
-            
+
             // with_modules_from_config takes ownership, so we need to handle it carefully
             node = match node.with_modules_from_config(&config) {
                 Ok(n) => n,
                 Err(e) => {
-                    warn!("Failed to configure modules: {}. Continuing without modules.", e);
+                    warn!(
+                        "Failed to configure modules: {}. Continuing without modules.",
+                        e
+                    );
                     // If it fails, we can't recover the node since with_modules_from_config consumes it
                     // We need to return an error - the node has been consumed
                     return Err(anyhow::anyhow!("Failed to configure modules: {}", e));
@@ -373,9 +382,7 @@ impl EnvOverrides {
             listen_addr: env::var("BLLVM_LISTEN_ADDR")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            rpc_addr: env::var("BLLVM_RPC_ADDR")
-                .ok()
-                .and_then(|s| s.parse().ok()),
+            rpc_addr: env::var("BLLVM_RPC_ADDR").ok().and_then(|s| s.parse().ok()),
             log_level: env::var("BLLVM_LOG_LEVEL").ok(),
             max_peers: env::var("BLLVM_NODE_MAX_PEERS")
                 .ok()
@@ -454,13 +461,13 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
             return Some(path.clone());
         }
     }
-    
+
     // 2. Current directory
     let current_dir = Path::new("./bllvm.toml");
     if current_dir.exists() {
         return Some(current_dir.to_path_buf());
     }
-    
+
     // 3. User config directory
     if let Ok(home) = env::var("HOME") {
         let user_config = Path::new(&home).join(".config/bllvm/bllvm.toml");
@@ -468,13 +475,13 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
             return Some(user_config);
         }
     }
-    
+
     // 4. System config directory
     let system_config = Path::new("/etc/bllvm/bllvm.toml");
     if system_config.exists() {
         return Some(system_config.to_path_buf());
     }
-    
+
     None
 }
 
@@ -482,7 +489,7 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr, Network) {
     // 1. Start with defaults
     let mut config = NodeConfig::default();
-    
+
     // 2. Load config file (if found)
     if let Some(config_path) = find_config_file(&cli.config) {
         info!("Loading configuration from: {}", config_path.display());
@@ -498,10 +505,10 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
     } else if cli.config.is_some() {
         warn!("Config file specified but not found. Using defaults.");
     }
-    
+
     // 3. Load ENV overrides
     let env_overrides = EnvOverrides::from_env();
-    
+
     // Apply ENV overrides (ENV overrides config file)
     if let Some(data_dir) = &env_overrides.data_dir {
         info!("Data directory overridden by ENV: {}", data_dir);
@@ -526,28 +533,33 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
         // Parse transport preference
         match transport.to_lowercase().as_str() {
             "tcp_only" | "tcp" => {
-                config.transport_preference = bllvm_node::config::TransportPreferenceConfig::TcpOnly;
+                config.transport_preference =
+                    bllvm_node::config::TransportPreferenceConfig::TcpOnly;
             }
             #[cfg(feature = "iroh")]
             "iroh_only" | "iroh" => {
-                config.transport_preference = bllvm_node::config::TransportPreferenceConfig::IrohOnly;
+                config.transport_preference =
+                    bllvm_node::config::TransportPreferenceConfig::IrohOnly;
             }
             #[cfg(feature = "iroh")]
             "hybrid" => {
                 config.transport_preference = bllvm_node::config::TransportPreferenceConfig::Hybrid;
             }
             _ => {
-                warn!("Unknown transport preference: {}. Using default.", transport);
+                warn!(
+                    "Unknown transport preference: {}. Using default.",
+                    transport
+                );
             }
         }
     }
-    
+
     // Apply ENV feature flags
     apply_env_feature_flags(&mut config, &env_overrides);
-    
+
     // Apply ENV overrides for new config options
     apply_env_config_overrides(&mut config, &env_overrides);
-    
+
     // 4. Determine final values (CLI overrides everything)
     // For network, parse ENV override if present, but CLI still wins
     let network = if let Some(network_str) = &env_overrides.network {
@@ -557,29 +569,32 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
             "testnet" => Network::Testnet,
             "mainnet" => Network::Mainnet,
             _ => {
-                warn!("Unknown network in ENV: {}. Using CLI/default.", network_str);
+                warn!(
+                    "Unknown network in ENV: {}. Using CLI/default.",
+                    network_str
+                );
                 cli.network.clone()
             }
         }
     } else {
         cli.network.clone()
     };
-    
+
     // CLI always wins for these (they're required CLI args with defaults)
     let data_dir = cli.data_dir.clone();
     let listen_addr = cli.listen_addr;
     let rpc_addr = cli.rpc_addr;
-    
+
     // Apply CLI overrides to config (CLI overrides ENV and config file)
     config.listen_addr = Some(listen_addr);
     config.protocol_version = Some(format!("{:?}", network));
-    
+
     // Apply CLI feature flags (CLI overrides ENV and config file)
     apply_feature_flags(&mut config, &cli.features);
-    
+
     // Apply CLI advanced config (CLI overrides everything)
     apply_cli_advanced_config(&mut config, &cli.advanced);
-    
+
     (config, data_dir, listen_addr, rpc_addr, network)
 }
 
@@ -595,7 +610,10 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
             if let Some(ref mut sv2) = config.stratum_v2 {
                 sv2.enabled = enabled;
             }
-            info!("Stratum V2 {} via ENV", if enabled { "enabled" } else { "disabled" });
+            info!(
+                "Stratum V2 {} via ENV",
+                if enabled { "enabled" } else { "disabled" }
+            );
         }
         #[cfg(not(feature = "stratum-v2"))]
         {
@@ -604,12 +622,15 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
             }
         }
     }
-    
+
     // Dandelion
     if let Some(enabled) = env.dandelion {
         #[cfg(feature = "dandelion")]
         {
-            info!("Dandelion++ {} via ENV", if enabled { "enabled" } else { "disabled" });
+            info!(
+                "Dandelion++ {} via ENV",
+                if enabled { "enabled" } else { "disabled" }
+            );
             // Dandelion may be controlled via relay policies in NodeConfig
         }
         #[cfg(not(feature = "dandelion"))]
@@ -619,12 +640,15 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
             }
         }
     }
-    
+
     // BIP158
     if let Some(enabled) = env.bip158 {
         #[cfg(feature = "bip158")]
         {
-            info!("BIP158 block filtering {} via ENV", if enabled { "enabled" } else { "disabled" });
+            info!(
+                "BIP158 block filtering {} via ENV",
+                if enabled { "enabled" } else { "disabled" }
+            );
         }
         #[cfg(not(feature = "bip158"))]
         {
@@ -633,12 +657,15 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
             }
         }
     }
-    
+
     // Sigop
     if let Some(enabled) = env.sigop {
         #[cfg(feature = "sigop")]
         {
-            info!("Signature operations counting {} via ENV", if enabled { "enabled" } else { "disabled" });
+            info!(
+                "Signature operations counting {} via ENV",
+                if enabled { "enabled" } else { "disabled" }
+            );
         }
         #[cfg(not(feature = "sigop"))]
         {
@@ -673,7 +700,9 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
         }
         #[cfg(not(feature = "stratum-v2"))]
         {
-            warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
+            warn!(
+                "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
+            );
         }
     }
 
@@ -681,12 +710,18 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
     // through the node's runtime configuration rather than NodeConfig.
     // These features are typically controlled at compile-time via Cargo features,
     // but some may have runtime toggles. Check the node implementation for details.
-    
+
     if features.enable_bip158 || features.disable_bip158 {
         #[cfg(feature = "bip158")]
         {
-            info!("BIP158 block filtering {} via CLI", 
-                  if features.enable_bip158 { "enabled" } else { "disabled" });
+            info!(
+                "BIP158 block filtering {} via CLI",
+                if features.enable_bip158 {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
             // BIP158 is typically always enabled if compiled in, but may have runtime config
         }
         #[cfg(not(feature = "bip158"))]
@@ -698,21 +733,35 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
     if features.enable_dandelion || features.disable_dandelion {
         #[cfg(feature = "dandelion")]
         {
-            info!("Dandelion++ privacy relay {} via CLI",
-                  if features.enable_dandelion { "enabled" } else { "disabled" });
+            info!(
+                "Dandelion++ privacy relay {} via CLI",
+                if features.enable_dandelion {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
             // Dandelion may be controlled via relay policies in NodeConfig
         }
         #[cfg(not(feature = "dandelion"))]
         {
-            warn!("Dandelion++ feature not compiled in. Rebuild with --features dandelion to enable.");
+            warn!(
+                "Dandelion++ feature not compiled in. Rebuild with --features dandelion to enable."
+            );
         }
     }
 
     if features.enable_sigop || features.disable_sigop {
         #[cfg(feature = "sigop")]
         {
-            info!("Signature operations counting {} via CLI",
-                  if features.enable_sigop { "enabled" } else { "disabled" });
+            info!(
+                "Signature operations counting {} via CLI",
+                if features.enable_sigop {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
         }
         #[cfg(not(feature = "sigop"))]
         {
@@ -730,50 +779,92 @@ fn apply_env_config_overrides(_config: &mut NodeConfig, env: &EnvOverrides) {
         info!("Target peer count overridden by ENV: {}", target_peer_count);
     }
     if let Some(peer_connection_delay) = env.peer_connection_delay {
-        info!("Peer connection delay overridden by ENV: {}", peer_connection_delay);
+        info!(
+            "Peer connection delay overridden by ENV: {}",
+            peer_connection_delay
+        );
     }
     if let Some(max_addresses_from_dns) = env.max_addresses_from_dns {
-        info!("Max addresses from DNS overridden by ENV: {}", max_addresses_from_dns);
+        info!(
+            "Max addresses from DNS overridden by ENV: {}",
+            max_addresses_from_dns
+        );
     }
-    
+
     // Request timeout config
     if let Some(async_request_timeout) = env.async_request_timeout {
-        info!("Async request timeout overridden by ENV: {}", async_request_timeout);
+        info!(
+            "Async request timeout overridden by ENV: {}",
+            async_request_timeout
+        );
     }
     if let Some(utxo_commitment_timeout) = env.utxo_commitment_timeout {
-        info!("UTXO commitment timeout overridden by ENV: {}", utxo_commitment_timeout);
+        info!(
+            "UTXO commitment timeout overridden by ENV: {}",
+            utxo_commitment_timeout
+        );
     }
     if let Some(request_cleanup_interval) = env.request_cleanup_interval {
-        info!("Request cleanup interval overridden by ENV: {}", request_cleanup_interval);
+        info!(
+            "Request cleanup interval overridden by ENV: {}",
+            request_cleanup_interval
+        );
     }
     if let Some(pending_request_max_age) = env.pending_request_max_age {
-        info!("Pending request max age overridden by ENV: {}", pending_request_max_age);
+        info!(
+            "Pending request max age overridden by ENV: {}",
+            pending_request_max_age
+        );
     }
-    
+
     // Module resource limits config
     if let Some(module_max_cpu_percent) = env.module_max_cpu_percent {
-        info!("Module max CPU percent overridden by ENV: {}", module_max_cpu_percent);
+        info!(
+            "Module max CPU percent overridden by ENV: {}",
+            module_max_cpu_percent
+        );
     }
     if let Some(module_max_memory_bytes) = env.module_max_memory_bytes {
-        info!("Module max memory bytes overridden by ENV: {}", module_max_memory_bytes);
+        info!(
+            "Module max memory bytes overridden by ENV: {}",
+            module_max_memory_bytes
+        );
     }
     if let Some(module_max_file_descriptors) = env.module_max_file_descriptors {
-        info!("Module max file descriptors overridden by ENV: {}", module_max_file_descriptors);
+        info!(
+            "Module max file descriptors overridden by ENV: {}",
+            module_max_file_descriptors
+        );
     }
     if let Some(module_max_child_processes) = env.module_max_child_processes {
-        info!("Module max child processes overridden by ENV: {}", module_max_child_processes);
+        info!(
+            "Module max child processes overridden by ENV: {}",
+            module_max_child_processes
+        );
     }
     if let Some(module_startup_wait_millis) = env.module_startup_wait_millis {
-        info!("Module startup wait millis overridden by ENV: {}", module_startup_wait_millis);
+        info!(
+            "Module startup wait millis overridden by ENV: {}",
+            module_startup_wait_millis
+        );
     }
     if let Some(module_socket_timeout) = env.module_socket_timeout {
-        info!("Module socket timeout overridden by ENV: {}", module_socket_timeout);
+        info!(
+            "Module socket timeout overridden by ENV: {}",
+            module_socket_timeout
+        );
     }
     if let Some(module_socket_check_interval) = env.module_socket_check_interval {
-        info!("Module socket check interval overridden by ENV: {}", module_socket_check_interval);
+        info!(
+            "Module socket check interval overridden by ENV: {}",
+            module_socket_check_interval
+        );
     }
     if let Some(module_socket_max_attempts) = env.module_socket_max_attempts {
-        info!("Module socket max attempts overridden by ENV: {}", module_socket_max_attempts);
+        info!(
+            "Module socket max attempts overridden by ENV: {}",
+            module_socket_max_attempts
+        );
     }
 }
 
@@ -784,13 +875,22 @@ fn apply_cli_advanced_config(_config: &mut NodeConfig, advanced: &AdvancedConfig
         // This would need to be added to NodeConfig if not already present
     }
     if let Some(async_request_timeout) = advanced.async_request_timeout {
-        info!("Async request timeout set via CLI: {}", async_request_timeout);
+        info!(
+            "Async request timeout set via CLI: {}",
+            async_request_timeout
+        );
     }
     if let Some(module_max_cpu_percent) = advanced.module_max_cpu_percent {
-        info!("Module max CPU percent set via CLI: {}", module_max_cpu_percent);
+        info!(
+            "Module max CPU percent set via CLI: {}",
+            module_max_cpu_percent
+        );
     }
     if let Some(module_max_memory_bytes) = advanced.module_max_memory_bytes {
-        info!("Module max memory bytes set via CLI: {}", module_max_memory_bytes);
+        info!(
+            "Module max memory bytes set via CLI: {}",
+            module_max_memory_bytes
+        );
     }
 }
 
@@ -808,7 +908,7 @@ async fn rpc_call_with_auth(
 ) -> Result<Value> {
     let url = format!("http://{}", rpc_addr);
     let client = reqwest::Client::new();
-    
+
     let request = json!({
         "jsonrpc": "2.0",
         "method": method,
@@ -817,7 +917,7 @@ async fn rpc_call_with_auth(
     });
 
     let mut req = client.post(&url).json(&request);
-    
+
     // Use provided credentials or defaults
     let rpc_user = user.unwrap_or("btc");
     let rpc_password = password.unwrap_or("");
@@ -833,8 +933,11 @@ async fn rpc_call_with_auth(
         anyhow::bail!("RPC request failed with status: {}", status);
     }
 
-    let json: Value = response.json().await.context("Failed to parse RPC response")?;
-    
+    let json: Value = response
+        .json()
+        .await
+        .context("Failed to parse RPC response")?;
+
     if let Some(error) = json.get("error") {
         anyhow::bail!("RPC error: {}", error);
     }
@@ -851,13 +954,40 @@ async fn handle_status(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()>
     let peer_info = rpc_call(rpc_addr, "getpeerinfo", json!([])).await?;
 
     println!("=== Node Status ===");
-    println!("Block Height: {}", chain_info.get("blocks").and_then(|v| v.as_u64()).unwrap_or(0));
-    println!("Chain: {}", chain_info.get("chain").and_then(|v| v.as_str()).unwrap_or("unknown"));
-    println!("Verification Progress: {:.2}%", 
-        chain_info.get("verificationprogress").and_then(|v| v.as_f64()).unwrap_or(0.0) * 100.0);
-    println!("Connected Peers: {}", peer_info.as_array().map(|a| a.len()).unwrap_or(0));
-    println!("Network Active: {}", network_info.get("networkactive").and_then(|v| v.as_bool()).unwrap_or(false));
-    
+    println!(
+        "Block Height: {}",
+        chain_info
+            .get("blocks")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0)
+    );
+    println!(
+        "Chain: {}",
+        chain_info
+            .get("chain")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+    );
+    println!(
+        "Verification Progress: {:.2}%",
+        chain_info
+            .get("verificationprogress")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0)
+            * 100.0
+    );
+    println!(
+        "Connected Peers: {}",
+        peer_info.as_array().map(|a| a.len()).unwrap_or(0)
+    );
+    println!(
+        "Network Active: {}",
+        network_info
+            .get("networkactive")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    );
+
     Ok(())
 }
 
@@ -877,7 +1007,7 @@ async fn handle_health(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()>
 fn handle_version() -> Result<()> {
     println!("BLLVM {}", env!("CARGO_PKG_VERSION"));
     println!("Repository: {}", env!("CARGO_PKG_REPOSITORY"));
-    
+
     // Try to get git info if available
     if let Ok(sha) = std::process::Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
@@ -887,26 +1017,43 @@ fn handle_version() -> Result<()> {
             println!("Git: {}", sha_str.trim());
         }
     }
-    
+
     // Show enabled features
     println!("\nFeatures:");
-    #[cfg(feature = "utxo-commitments")] println!("  ✓ utxo-commitments");
-    #[cfg(feature = "dandelion")] println!("  ✓ dandelion");
-    #[cfg(feature = "ctv")] println!("  ✓ ctv");
-    #[cfg(feature = "stratum-v2")] println!("  ✓ stratum-v2");
-    #[cfg(feature = "bip158")] println!("  ✓ bip158");
-    #[cfg(feature = "sigop")] println!("  ✓ sigop");
-    
+    #[cfg(feature = "utxo-commitments")]
+    println!("  ✓ utxo-commitments");
+    #[cfg(feature = "dandelion")]
+    println!("  ✓ dandelion");
+    #[cfg(feature = "ctv")]
+    println!("  ✓ ctv");
+    #[cfg(feature = "stratum-v2")]
+    println!("  ✓ stratum-v2");
+    #[cfg(feature = "bip158")]
+    println!("  ✓ bip158");
+    #[cfg(feature = "sigop")]
+    println!("  ✓ sigop");
+
     Ok(())
 }
 
 async fn handle_chain(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
     let info = rpc_call(rpc_addr, "getblockchaininfo", json!([])).await?;
-    
+
     println!("=== Blockchain Information ===");
-    println!("Chain: {}", info.get("chain").and_then(|v| v.as_str()).unwrap_or("unknown"));
-    println!("Blocks: {}", info.get("blocks").and_then(|v| v.as_u64()).unwrap_or(0));
-    println!("Headers: {}", info.get("headers").and_then(|v| v.as_u64()).unwrap_or(0));
+    println!(
+        "Chain: {}",
+        info.get("chain")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+    );
+    println!(
+        "Blocks: {}",
+        info.get("blocks").and_then(|v| v.as_u64()).unwrap_or(0)
+    );
+    println!(
+        "Headers: {}",
+        info.get("headers").and_then(|v| v.as_u64()).unwrap_or(0)
+    );
     if let Some(hash) = info.get("bestblockhash").and_then(|v| v.as_str()) {
         println!("Best Block: {}", hash);
     }
@@ -916,13 +1063,13 @@ async fn handle_chain(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
     if let Some(progress) = info.get("verificationprogress").and_then(|v| v.as_f64()) {
         println!("Verification Progress: {:.2}%", progress * 100.0);
     }
-    
+
     Ok(())
 }
 
 async fn handle_peers(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
     let peers = rpc_call(rpc_addr, "getpeerinfo", json!([])).await?;
-    
+
     println!("=== Connected Peers ===");
     if let Some(peer_array) = peers.as_array() {
         if peer_array.is_empty() {
@@ -942,17 +1089,30 @@ async fn handle_peers(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
             }
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_network(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
     let info = rpc_call(rpc_addr, "getnetworkinfo", json!([])).await?;
-    
+
     println!("=== Network Information ===");
-    println!("Version: {}", info.get("version").and_then(|v| v.as_u64()).unwrap_or(0));
-    println!("Subversion: {}", info.get("subversion").and_then(|v| v.as_str()).unwrap_or("unknown"));
-    println!("Network Active: {}", info.get("networkactive").and_then(|v| v.as_bool()).unwrap_or(false));
+    println!(
+        "Version: {}",
+        info.get("version").and_then(|v| v.as_u64()).unwrap_or(0)
+    );
+    println!(
+        "Subversion: {}",
+        info.get("subversion")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+    );
+    println!(
+        "Network Active: {}",
+        info.get("networkactive")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+    );
     if let Some(connections) = info.get("connections").and_then(|v| v.as_u64()) {
         println!("Connections: {}", connections);
     }
@@ -966,22 +1126,25 @@ async fn handle_network(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()
             }
         }
     }
-    
+
     Ok(())
 }
 
 async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
     let info = rpc_call(rpc_addr, "getblockchaininfo", json!([])).await?;
-    
+
     let blocks = info.get("blocks").and_then(|v| v.as_u64()).unwrap_or(0);
     let headers = info.get("headers").and_then(|v| v.as_u64()).unwrap_or(0);
-    let progress = info.get("verificationprogress").and_then(|v| v.as_f64()).unwrap_or(0.0);
-    
+    let progress = info
+        .get("verificationprogress")
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0);
+
     println!("=== Sync Status ===");
     println!("Blocks: {}", blocks);
     println!("Headers: {}", headers);
     println!("Progress: {:.2}%", progress * 100.0);
-    
+
     if blocks == headers && progress >= 1.0 {
         println!("Status: ✅ Fully synced");
     } else if headers > blocks {
@@ -989,31 +1152,34 @@ async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
     } else {
         println!("Status: ⏳ Verifying");
     }
-    
+
     Ok(())
 }
 
 fn handle_config_show(config: &NodeConfig) -> Result<()> {
-    println!("{}", toml::to_string_pretty(config).context("Failed to serialize config")?);
+    println!(
+        "{}",
+        toml::to_string_pretty(config).context("Failed to serialize config")?
+    );
     Ok(())
 }
 
 fn handle_config_validate(path: Option<PathBuf>, cli_config: &Option<PathBuf>) -> Result<()> {
-    let config_path = path.or_else(|| cli_config.clone()).or_else(|| find_config_file(cli_config));
-    
+    let config_path = path
+        .or_else(|| cli_config.clone())
+        .or_else(|| find_config_file(cli_config));
+
     match config_path {
-        Some(path) => {
-            match NodeConfig::from_file(&path) {
-                Ok(_) => {
-                    println!("✅ Configuration file is valid: {}", path.display());
-                    Ok(())
-                }
-                Err(e) => {
-                    eprintln!("❌ Configuration file is invalid: {}", e);
-                    std::process::exit(1);
-                }
+        Some(path) => match NodeConfig::from_file(&path) {
+            Ok(_) => {
+                println!("✅ Configuration file is valid: {}", path.display());
+                Ok(())
             }
-        }
+            Err(e) => {
+                eprintln!("❌ Configuration file is invalid: {}", e);
+                std::process::exit(1);
+            }
+        },
         None => {
             eprintln!("❌ No configuration file found");
             std::process::exit(1);
@@ -1031,9 +1197,13 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
     }
 }
 
-async fn handle_rpc(rpc_addr: SocketAddr, method: &str, params: Value, _config: &NodeConfig) -> Result<()> {
+async fn handle_rpc(
+    rpc_addr: SocketAddr,
+    method: &str,
+    params: Value,
+    _config: &NodeConfig,
+) -> Result<()> {
     let result = rpc_call(rpc_addr, method, params).await?;
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
 }
-
