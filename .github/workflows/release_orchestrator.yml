@@ -7,15 +7,16 @@ on:
         description: 'Ref/tag to use for all repos (optional, falls back to versions.toml)'
         required: false
         default: ''
-  repository_dispatch:
-    types: [build_consensus, build_protocol, build_node, build_sdk, build_governance, build_all]
-  workflow_run:
-    workflows: 
-      - "CI"
-      - "Build"
-      - "Release"
-    types: [completed]
-    branches: [main, master]
+  # DISABLED: Only ci.yml runs automatically
+  # repository_dispatch:
+  #   types: [build_consensus, build_protocol, build_node, build_sdk, build_governance, build_all]
+  # workflow_run:
+  #   workflows: 
+  #     - "CI"
+  #     - "Build"
+  #     - "Release"
+  #   types: [completed]
+  #   branches: [main, master]
 
 permissions:
   contents: read

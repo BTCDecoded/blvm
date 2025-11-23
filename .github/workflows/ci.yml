@@ -1,0 +1,720 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  repository_dispatch:
+    types: [build-chain, upstream-changed]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution and coverage steps'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: '1'
+  CARGO_INCREMENTAL: '1'
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]')))
+    outputs:
+      cache-key: ${{ steps.setup-cache.outputs.cache-key }}
+      node-cache-key: ${{ steps.setup-cache.outputs.node-cache-key }}
+      protocol-cache-key: ${{ steps.setup-cache.outputs.protocol-cache-key }}
+      consensus-cache-key: ${{ steps.setup-cache.outputs.consensus-cache-key }}
+    steps:
+      - name: Disk check
+        run: |
+          df -h
+          if [ $(df / | tail -1 | awk '{print $5}' | sed 's/%//') -gt 80 ]; then
+            find /tmp/runner-cache -maxdepth 2 -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+            df -h
+          fi
+
+      - uses: actions/checkout@v4
+      
+      - name: Checkout bllvm-node dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-node
+          path: _temp-bllvm-node
+      
+      - name: Checkout bllvm-protocol dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-protocol
+          path: _temp-protocol-engine
+      
+      - name: Checkout consensus
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-consensus
+          path: _temp-consensus-proof
+      
+      - name: Move dependencies to parent directory
+        run: |
+          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
+          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
+          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
+          mv _temp-bllvm-node ../bllvm-node
+          mv _temp-protocol-engine ../bllvm-protocol
+          mv _temp-consensus-proof ../bllvm-consensus
+      
+      - name: Cache
+        id: setup-cache
+        run: |
+          CACHE_ROOT="/tmp/runner-cache"
+          
+          # Generate cache keys from Cargo.lock hashes
+          DEPS_KEY=$(sha256sum Cargo.lock | cut -d' ' -f1)
+          NODE_DEPS_KEY=$(sha256sum ../bllvm-node/Cargo.lock | cut -d' ' -f1)
+          PROTOCOL_DEPS_KEY=$(sha256sum ../bllvm-protocol/Cargo.lock | cut -d' ' -f1)
+          CONSENSUS_DEPS_KEY=$(sha256sum ../bllvm-consensus/Cargo.lock | cut -d' ' -f1)
+          
+          # Include toolchain version in cache key
+          TOOLCHAIN=$(grep -E '^channel|rust-version' rust-toolchain.toml Cargo.toml 2>/dev/null | head -1 | sha256sum | cut -d' ' -f1 || echo "1.88.0")
+          
+          CACHE_KEY="${DEPS_KEY}-${TOOLCHAIN}"
+          NODE_CACHE_KEY="${NODE_DEPS_KEY}-${TOOLCHAIN}"
+          PROTOCOL_CACHE_KEY="${PROTOCOL_DEPS_KEY}-${TOOLCHAIN}"
+          CONSENSUS_CACHE_KEY="${CONSENSUS_DEPS_KEY}-${TOOLCHAIN}"
+          
+          # Set up cache directories
+          CARGO_CACHE_DIR="$CACHE_ROOT/cargo/$CACHE_KEY"
+          TARGET_CACHE_DIR="$CACHE_ROOT/target/$CACHE_KEY"
+          NODE_TARGET_DIR="$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY"
+          PROTOCOL_TARGET_DIR="$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY"
+          CONSENSUS_TARGET_DIR="$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY"
+          
+          echo "CARGO_CACHE_DIR=$CARGO_CACHE_DIR" >> $GITHUB_ENV
+          echo "TARGET_CACHE_DIR=$TARGET_CACHE_DIR" >> $GITHUB_ENV
+          echo "NODE_TARGET_DIR=$NODE_TARGET_DIR" >> $GITHUB_ENV
+          echo "PROTOCOL_TARGET_DIR=$PROTOCOL_TARGET_DIR" >> $GITHUB_ENV
+          echo "CONSENSUS_TARGET_DIR=$CONSENSUS_TARGET_DIR" >> $GITHUB_ENV
+          
+          echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+          echo "node-cache-key=$NODE_CACHE_KEY" >> $GITHUB_OUTPUT
+          echo "protocol-cache-key=$PROTOCOL_CACHE_KEY" >> $GITHUB_OUTPUT
+          echo "consensus-cache-key=$CONSENSUS_CACHE_KEY" >> $GITHUB_OUTPUT
+          
+          mkdir -p "$CARGO_CACHE_DIR"/{registry,git} "$TARGET_CACHE_DIR" "$NODE_TARGET_DIR" "$PROTOCOL_TARGET_DIR" "$CONSENSUS_TARGET_DIR"
+          
+          echo "  - Main: ${CACHE_KEY:0:16}..."
+          echo "  - Node: ${NODE_CACHE_KEY:0:16}..."
+          echo "  - Protocol: ${PROTOCOL_CACHE_KEY:0:16}..."
+          echo "  - Consensus: ${CONSENSUS_CACHE_KEY:0:16}..."
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+
+  test:
+    name: Test
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - name: Check if tests should be skipped
+        id: skip_check
+        run: |
+          SKIP="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true' }}"
+          if [ "$SKIP" = "true" ]; then
+            echo "⚠️  Tests skipped via workflow input"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Skip tests message
+        if: steps.skip_check.outputs.skip == 'true'
+        run: |
+          echo "✅ Test step skipped"
+          exit 0
+      
+      - uses: actions/checkout@v4
+        if: steps.skip_check.outputs.skip != 'true'
+      
+      - name: Checkout bllvm-node dependency
+        if: steps.skip_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-node
+          path: _temp-bllvm-node
+      
+      - name: Checkout bllvm-protocol dependency
+        if: steps.skip_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-protocol
+          path: _temp-protocol-engine
+      
+      - name: Checkout consensus
+        if: steps.skip_check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-consensus
+          path: _temp-consensus-proof
+      
+      - name: Move dependencies to parent directory
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
+          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
+          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
+          mv _temp-bllvm-node ../bllvm-node
+          mv _temp-protocol-engine ../bllvm-protocol
+          mv _temp-consensus-proof ../bllvm-consensus
+      
+      - name: Cache
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_KEY="${{ needs.setup.outputs.cache-key }}"
+          NODE_CACHE_KEY="${{ needs.setup.outputs.node-cache-key }}"
+          PROTOCOL_CACHE_KEY="${{ needs.setup.outputs.protocol-cache-key }}"
+          CONSENSUS_CACHE_KEY="${{ needs.setup.outputs.consensus-cache-key }}"
+          
+          echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
+          echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
+          echo "NODE_TARGET_DIR=$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
+          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
+          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
+      
+      - name: Restore registry
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/registry" ] && [ "$(ls -A $CARGO_CACHE_DIR/registry 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/registry"
+            rsync -a --delete "$CARGO_CACHE_DIR/registry/" "$HOME/.cargo/registry/" || true
+          else
+            echo "💿 No Cargo registry cache found"
+          fi
+      
+      - name: Restore git
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/git" ] && [ "$(ls -A $CARGO_CACHE_DIR/git 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/git"
+            rsync -a --delete "$CARGO_CACHE_DIR/git/" "$HOME/.cargo/git/" || true
+          else
+            echo "💿 No Cargo git cache found"
+          fi
+      
+      - name: Restore consensus
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$CONSENSUS_TARGET_DIR" ] && [ "$(ls -A $CONSENSUS_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-consensus/target
+            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../bllvm-consensus/target/ || true
+          else
+            echo "💿 No bllvm-consensus target cache found"
+          fi
+      
+      - name: Restore bllvm-protocol build artifacts
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$PROTOCOL_TARGET_DIR" ] && [ "$(ls -A $PROTOCOL_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-protocol/target
+            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../bllvm-protocol/target/ || true
+          else
+            echo "💿 No bllvm-protocol target cache found"
+          fi
+      
+      - name: Restore bllvm-node build artifacts
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$NODE_TARGET_DIR" ] && [ "$(ls -A $NODE_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-node/target
+            rsync -a --delete "$NODE_TARGET_DIR/" ../bllvm-node/target/ || true
+          else
+            echo "💿 No bllvm-node target cache found"
+          fi
+      
+      - name: Restore target
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          if [ -d "$TARGET_CACHE_DIR" ] && [ "$(ls -A $TARGET_CACHE_DIR 2>/dev/null)" ]; then
+            rsync -a --delete "$TARGET_CACHE_DIR/" ./target/ || true
+          else
+            echo "💿 No target cache found, will build from scratch"
+          fi
+      
+      - name: Install Rust
+        if: steps.skip_check.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+      
+      - name: Run tests
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          # Run tests in parallel (default) with all features
+          # Use --lib --bins --tests to ensure all test types run
+          cargo test --lib --bins --tests --all-features
+      
+      - name: Cache registry
+        if: always()
+        run: |
+          if [ -d "$HOME/.cargo/registry" ] && [ "$CARGO_CACHE_DIR" != "" ]; then
+            rsync -a --delete "$HOME/.cargo/registry/" "$CARGO_CACHE_DIR/registry/" || true
+          fi
+      
+      - name: Cache git
+        if: always()
+        run: |
+          if [ -d "$HOME/.cargo/git" ] && [ "$CARGO_CACHE_DIR" != "" ]; then
+            rsync -a --delete "$HOME/.cargo/git/" "$CARGO_CACHE_DIR/git/" || true
+          fi
+      
+      - name: Cache consensus
+        if: always()
+        run: |
+          if [ -d "../bllvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache bllvm-protocol build artifacts
+        if: always()
+        run: |
+          if [ -d "../bllvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache bllvm-node build artifacts
+        if: always()
+        run: |
+          if [ -d "../bllvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-node/target/ "$NODE_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache target
+        if: always()
+        run: |
+          if [ -d "./target" ] && [ "$TARGET_CACHE_DIR" != "" ]; then
+            rsync -a --delete ./target/ "$TARGET_CACHE_DIR/" || true
+          fi
+      
+      - name: Run tests with coverage
+        if: steps.skip_check.outputs.skip != 'true'
+        run: |
+          # Ensure cargo bin is in PATH (fixes exit code 127)
+          export PATH="$HOME/.cargo/bin:$PATH"
+          
+          # Verify cargo is available
+          if ! command -v cargo &> /dev/null; then
+            echo "ERROR: cargo not found in PATH"
+            echo "PATH: $PATH"
+            exit 1
+          fi
+          
+          # Install tarpaulin with error checking
+          if ! cargo install cargo-tarpaulin --version 0.27.0; then
+            echo "ERROR: Failed to install cargo-tarpaulin"
+            exit 1
+          fi
+          
+          # Verify tarpaulin is available
+          if ! command -v cargo-tarpaulin &> /dev/null; then
+            echo "ERROR: cargo-tarpaulin not found after installation"
+            echo "PATH: $PATH"
+            echo "Cargo bin dir: $HOME/.cargo/bin"
+            ls -la $HOME/.cargo/bin/ || true
+            exit 1
+          fi
+          
+          # Use --skip-clean to avoid rebuilding, --timeout to prevent hangs
+          cargo tarpaulin --out xml --output-dir coverage --skip-clean --timeout 120
+      
+      - name: Upload coverage to Codecov
+        if: steps.skip_check.outputs.skip != 'true'
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/cobertura.xml
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "🧹 Cleaning up old caches..."
+          CACHE_ROOT="/tmp/runner-cache"
+          # Keep last 5 Cargo caches
+          find "$CACHE_ROOT/cargo" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -5 | xargs rm -rf 2>/dev/null || true
+          # Keep last 3 target caches (larger)
+          find "$CACHE_ROOT/target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/bllvm-consensus-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/bllvm-protocol-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/bllvm-node-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+
+  clippy:
+    name: Clippy
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Checkout bllvm-node dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-node
+          path: _temp-bllvm-node
+      
+      - name: Checkout bllvm-protocol dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-protocol
+          path: _temp-protocol-engine
+      
+      - name: Checkout consensus
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-consensus
+          path: _temp-consensus-proof
+      
+      - name: Move dependencies to parent directory
+        run: |
+          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
+          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
+          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
+          mv _temp-bllvm-node ../bllvm-node
+          mv _temp-protocol-engine ../bllvm-protocol
+          mv _temp-consensus-proof ../bllvm-consensus
+      
+      - name: Cache
+        run: |
+          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_KEY="${{ needs.setup.outputs.cache-key }}"
+          echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
+          echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
+      
+      - name: Restore registry
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/registry" ] && [ "$(ls -A $CARGO_CACHE_DIR/registry 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/registry"
+            rsync -a --delete "$CARGO_CACHE_DIR/registry/" "$HOME/.cargo/registry/" || true
+          fi
+      
+      - name: Restore git
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/git" ] && [ "$(ls -A $CARGO_CACHE_DIR/git 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/git"
+            rsync -a --delete "$CARGO_CACHE_DIR/git/" "$HOME/.cargo/git/" || true
+          fi
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+          components: clippy
+      
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
+
+  fmt:
+    name: Format
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+          components: rustfmt
+      
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+  docs:
+    name: Docs
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Checkout bllvm-node dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-node
+          path: _temp-bllvm-node
+      
+      - name: Checkout bllvm-protocol dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-protocol
+          path: _temp-protocol-engine
+      
+      - name: Checkout consensus
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-consensus
+          path: _temp-consensus-proof
+      
+      - name: Move dependencies to parent directory
+        run: |
+          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
+          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
+          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
+          mv _temp-bllvm-node ../bllvm-node
+          mv _temp-protocol-engine ../bllvm-protocol
+          mv _temp-consensus-proof ../bllvm-consensus
+      
+      - name: Cache
+        run: |
+          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_KEY="${{ needs.setup.outputs.cache-key }}"
+          echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
+          echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
+      
+      - name: Restore registry
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/registry" ] && [ "$(ls -A $CARGO_CACHE_DIR/registry 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/registry"
+            rsync -a --delete "$CARGO_CACHE_DIR/registry/" "$HOME/.cargo/registry/" || true
+          fi
+      
+      - name: Restore git
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/git" ] && [ "$(ls -A $CARGO_CACHE_DIR/git 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/git"
+            rsync -a --delete "$CARGO_CACHE_DIR/git/" "$HOME/.cargo/git/" || true
+          fi
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+      
+      - name: Clean target to avoid dep info corruption
+        run: |
+          # Clean only the problematic dep info files, not the entire target
+          # This helps avoid race conditions with concurrent builds
+          if [ -d "./target" ]; then
+            find ./target -name "*.d" -type f -delete 2>/dev/null || true
+          fi
+      
+      - name: Build docs
+        run: cargo doc --no-deps
+      
+      - name: Check docs
+        run: cargo doc --no-deps --document-private-items
+
+  security:
+    name: Security
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+      
+      - name: Install cargo-audit
+        run: |
+          # Ensure cargo bin is in PATH (fixes exit code 127)
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo install cargo-audit --version 0.21.0 --locked
+      
+      - name: Run security audit
+        run: |
+          cargo audit || {
+            echo "⚠️  Security audit found vulnerabilities"
+            echo "Review the output above for details"
+            exit 0  # Don't fail CI for security audit (can be addressed separately)
+          }
+
+  build:
+    name: Build
+    needs: 
+      - setup
+      - test
+      - clippy
+      - fmt
+      - docs
+      - security
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'release' || github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch') &&
+      (github.event_name != 'push' || github.event.head_commit == null || 
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
+       (needs.test.result == 'success' && needs.clippy.result == 'success' && 
+        needs.fmt.result == 'success' && needs.docs.result == 'success' && 
+        needs.security.result == 'success'))
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Checkout bllvm-node dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-node
+          path: _temp-bllvm-node
+      
+      - name: Checkout bllvm-protocol dependency
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-protocol
+          path: _temp-protocol-engine
+      
+      - name: Checkout consensus
+        uses: actions/checkout@v4
+        with:
+          repository: BTCDecoded/bllvm-consensus
+          path: _temp-consensus-proof
+      
+      - name: Move dependencies to parent directory
+        run: |
+          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
+          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
+          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
+          mv _temp-bllvm-node ../bllvm-node
+          mv _temp-protocol-engine ../bllvm-protocol
+          mv _temp-consensus-proof ../bllvm-consensus
+      
+      - name: Cache
+        run: |
+          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_KEY="${{ needs.setup.outputs.cache-key }}"
+          NODE_CACHE_KEY="${{ needs.setup.outputs.node-cache-key }}"
+          PROTOCOL_CACHE_KEY="${{ needs.setup.outputs.protocol-cache-key }}"
+          CONSENSUS_CACHE_KEY="${{ needs.setup.outputs.consensus-cache-key }}"
+          
+          echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
+          echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
+          echo "NODE_TARGET_DIR=$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
+          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
+          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
+      
+      - name: Restore registry
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/registry" ] && [ "$(ls -A $CARGO_CACHE_DIR/registry 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/registry"
+            rsync -a --delete "$CARGO_CACHE_DIR/registry/" "$HOME/.cargo/registry/" || true
+          fi
+      
+      - name: Restore git
+        run: |
+          if [ -d "$CARGO_CACHE_DIR/git" ] && [ "$(ls -A $CARGO_CACHE_DIR/git 2>/dev/null)" ]; then
+            mkdir -p "$HOME/.cargo/git"
+            rsync -a --delete "$CARGO_CACHE_DIR/git/" "$HOME/.cargo/git/" || true
+          fi
+      
+      - name: Restore consensus
+        run: |
+          if [ -d "$CONSENSUS_TARGET_DIR" ] && [ "$(ls -A $CONSENSUS_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-consensus/target
+            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../bllvm-consensus/target/ || true
+          fi
+      
+      - name: Restore bllvm-protocol build artifacts
+        run: |
+          if [ -d "$PROTOCOL_TARGET_DIR" ] && [ "$(ls -A $PROTOCOL_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-protocol/target
+            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../bllvm-protocol/target/ || true
+          fi
+      
+      - name: Restore bllvm-node build artifacts
+        run: |
+          if [ -d "$NODE_TARGET_DIR" ] && [ "$(ls -A $NODE_TARGET_DIR 2>/dev/null)" ]; then
+            mkdir -p ../bllvm-node/target
+            rsync -a --delete "$NODE_TARGET_DIR/" ../bllvm-node/target/ || true
+          fi
+      
+      - name: Restore target
+        run: |
+          if [ -d "$TARGET_CACHE_DIR" ] && [ "$(ls -A $TARGET_CACHE_DIR 2>/dev/null)" ]; then
+            rsync -a --delete "$TARGET_CACHE_DIR/" ./target/ || true
+          fi
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.88.0
+      
+      - name: Build
+        run: cargo build --release
+      
+      - name: Build tests
+        run: cargo test --no-run --release --all-features
+      
+      - name: Cache consensus
+        if: always()
+        run: |
+          if [ -d "../bllvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache bllvm-protocol build artifacts
+        if: always()
+        run: |
+          if [ -d "../bllvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache bllvm-node build artifacts
+        if: always()
+        run: |
+          if [ -d "../bllvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../bllvm-node/target/ "$NODE_TARGET_DIR/" || true
+          fi
+      
+      - name: Cache target
+        if: always()
+        run: |
+          if [ -d "./target" ] && [ "$TARGET_CACHE_DIR" != "" ]; then
+            rsync -a --delete ./target/ "$TARGET_CACHE_DIR/" || true
+          fi
+

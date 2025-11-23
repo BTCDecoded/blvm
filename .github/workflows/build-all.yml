@@ -8,7 +8,8 @@ on:
         required: false
         default: 'dev'
         type: string
-  workflow_dispatch:
+  # DISABLED: Only ci.yml runs automatically
+  # workflow_dispatch:
     inputs:
       mode:
         description: 'Build mode'

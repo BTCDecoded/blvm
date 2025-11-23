@@ -1,13 +1,14 @@
 name: Official Release
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'docs/**'
+  # DISABLED: Only ci.yml runs automatically
+  # push:
+  #   branches:
+  #     - main
+  #   paths-ignore:
+  #     - '**.md'
+  #     - '.github/**'
+  #     - 'docs/**'
   workflow_dispatch:
     inputs:
       version_tag:

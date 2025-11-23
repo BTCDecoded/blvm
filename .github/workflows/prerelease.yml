@@ -12,7 +12,8 @@ on:
         required: false
         default: 'both'
         type: string
-  workflow_dispatch:
+  # DISABLED: Only ci.yml runs automatically
+  # workflow_dispatch:
     inputs:
       version_tag:
         description: 'Version tag for prerelease (e.g., v0.1.0-alpha.1)'
