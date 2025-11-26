@@ -8,8 +8,7 @@ on:
         required: false
         type: string
         default: ''
-  # DISABLED: Only ci.yml runs automatically
-  # workflow_dispatch:
+  workflow_dispatch:
     inputs:
       repo-name:
         description: 'Repository name to verify (empty for all)'
@@ -23,7 +22,7 @@ permissions:
 jobs:
   verify-versions:
     name: Verify Version Compatibility
-    runs-on: [self-hosted, Linux, X64, builds]
+    runs-on: [self-hosted, Linux, X64]
     
     steps:
       - name: Checkout commons

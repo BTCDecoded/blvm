@@ -14,7 +14,7 @@ Before creating an issue, please:
 
 1. **Search existing issues** to avoid duplicates
 2. **Check the documentation** to ensure it's not a usage question
-3. **Verify the issue** with the latest version
+3. **Verify the issue** with the current version
 
 For security issues, see [SECURITY.md](SECURITY.md).
 
