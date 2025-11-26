@@ -1,9 +1,10 @@
 name: Nightly Prerelease
 
 on:
-  schedule:
-    # Run at 2 AM UTC daily
-    - cron: '0 2 * * *'
+  # DISABLED: Only ci.yml runs automatically
+  # schedule:
+  #   # Run at 2 AM UTC daily
+  #   - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
@@ -13,7 +14,7 @@ permissions:
 jobs:
   create-nightly-prerelease:
     name: Create Nightly Prerelease
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, builds]
     timeout-minutes: 120
     
     steps:

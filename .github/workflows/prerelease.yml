@@ -12,7 +12,8 @@ on:
         required: false
         default: 'both'
         type: string
-  workflow_dispatch:
+  # DISABLED: Only ci.yml runs automatically
+  # workflow_dispatch:
     inputs:
       version_tag:
         description: 'Version tag for prerelease (e.g., v0.1.0-alpha.1)'
@@ -31,7 +32,7 @@ permissions:
 jobs:
   prerelease:
     name: Create Prerelease ${{ inputs.version_tag }}
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, builds]
     timeout-minutes: 120
     steps:
       - name: Checkout bllvm

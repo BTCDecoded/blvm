@@ -8,7 +8,8 @@ on:
         required: false
         default: 'dev'
         type: string
-  workflow_dispatch:
+  # DISABLED: Only ci.yml runs automatically
+  # workflow_dispatch:
     inputs:
       mode:
         description: 'Build mode'
@@ -26,7 +27,7 @@ permissions:
 jobs:
   build-all:
     name: Build All Repositories
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64, builds]
     
     steps:
       - name: Checkout commons
