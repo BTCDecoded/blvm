@@ -1,33 +1,18 @@
-# Contributing to Bitcoin Commons
+# Contributing to Bitcoin Commons (blvm)
 
-Thank you for your interest in contributing to the Bitcoin Commons build and release system! This document contains repo-specific guidelines. See the [BTCDecoded Contribution Guide](https://github.com/BTCDecoded/.github/blob/main/CONTRIBUTING.md) for general guidelines.
+Thank you for your interest in contributing to the Bitcoin Commons build and release system! This document contains **repo-specific guidelines only**. For comprehensive contributing guidelines, see the [BLVM Documentation](https://docs.thebitcoincommons.org/development/contributing.html).
+
+## Quick Links
+
+- **[Complete Contributing Guide](https://docs.thebitcoincommons.org/development/contributing.html)** - Full developer workflow
+- **[PR Process](https://docs.thebitcoincommons.org/development/pr-process.html)** - Governance tiers and review process
+- **[Release Process](https://docs.thebitcoincommons.org/development/release-process.html)** - Release workflow
 
 ## Code of Conduct
 
 This project follows the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct). By participating, you agree to uphold this code.
 
-## How to Contribute
-
-### Reporting Issues
-
-Before creating an issue, please:
-
-1. **Search existing issues** to avoid duplicates
-2. **Check the documentation** to ensure it's not a usage question
-3. **Verify the issue** with the current version
-
-For security issues, see [SECURITY.md](SECURITY.md).
-
-### Submitting Pull Requests
-
-1. **Fork the repository**
-2. **Create a feature branch** from `main`
-3. **Make your changes** following our guidelines
-4. **Test your changes** with the build system
-5. **Update documentation** as needed
-6. **Submit a pull request**
-
-## Development Guidelines
+## Repository-Specific Guidelines
 
 ### Build Script Changes
 
@@ -87,34 +72,6 @@ All scripts should:
 ./scripts/collect-artifacts.sh --test
 ```
 
-## Commit Message Format
-
-Use conventional commits:
-
-```
-type(scope): description
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `refactor`: Code refactoring
-- `ci`: CI/CD changes
-- `build`: Build system changes
-
-**Examples:**
-```
-feat(build): add support for cross-compilation
-fix(versions): correct dependency version parsing
-docs(readme): update build instructions
-ci(workflows): add version validation job
-```
-
 ## Review Process
 
 ### Pull Request Requirements
@@ -135,38 +92,11 @@ Reviewers will check:
 4. **Testing** - Are changes properly tested?
 5. **Security** - Any potential vulnerabilities?
 
-## Release Process
-
-### Versioning
-
-We use [Semantic Versioning](https://semver.org/):
-
-- **MAJOR**: Breaking changes to build system or workflows
-- **MINOR**: New features, backward compatible
-- **PATCH**: Bug fixes, backward compatible
-
-### Release Checklist
-
-- [ ] **All scripts tested**
-- [ ] **Documentation updated**
-- [ ] **Version coordination updated**
-- [ ] **Workflows verified**
-- [ ] **Release notes prepared**
-
 ## Getting Help
 
-- **Documentation**: Check the README and BUILD_SYSTEM.md
-- **Issues**: Search existing issues or create new ones
-- **Discussions**: Use GitHub Discussions for questions
+- **Documentation**: [docs.thebitcoincommons.org](https://docs.thebitcoincommons.org)
+- **Issues**: Use GitHub issues for bugs and feature requests
+- **Discussions**: Use GitHub discussions for questions
 - **Security**: See [SECURITY.md](SECURITY.md)
 
-## Questions?
-
-If you have questions about contributing, please:
-
-1. **Check this document** first
-2. **Search existing issues** for similar questions
-3. **Create a new issue** with the "question" label
-
-Thank you for contributing to Bitcoin Commons! 🚀
-
+Thank you for contributing to Bitcoin Commons!
