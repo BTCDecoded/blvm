@@ -1,0 +1,94 @@
+name: Provision Spot Runner
+
+on:
+  workflow_call:
+    inputs:
+      repo_name:
+        required: true
+        type: string
+        description: 'Repository name (e.g., blvm-consensus)'
+      runner_labels:
+        required: false
+        type: string
+        default: 'self-hosted, Linux, X64, spot, kani'
+        description: 'Comma-separated runner labels'
+      instance_type:
+        required: false
+        type: string
+        default: 'c6i.4xlarge'
+        description: 'EC2 instance type (c6i.4xlarge for proofs, c6i.8xlarge for benchmarks)'
+      ami_id:
+        required: true
+        type: string
+        description: 'AMI ID with Rust + Kani pre-installed'
+      workload_type:
+        required: false
+        type: string
+        default: 'kani'
+        description: 'Type of workload (kani or benchmark)'
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
+      AWS_SUBNET_ID:
+        required: true
+      AWS_SECURITY_GROUP_ID:
+        required: true
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  provision:
+    name: Provision Spot Runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      runner_label: ${{ steps.runner.outputs.label }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Start EC2 Spot Runner
+        uses: machulav/ec2-github-runner@v2
+        id: runner
+        with:
+          mode: start
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ec2-image-id: ${{ inputs.ami_id }}
+          ec2-instance-type: ${{ inputs.instance_type }}
+          ec2-region: us-east-1
+          market-type: spot
+          subnet-id: ${{ secrets.AWS_SUBNET_ID }}
+          security-group-id: ${{ secrets.AWS_SECURITY_GROUP_ID }}
+          runner-labels: ${{ inputs.runner_labels }}
+          runner-group: Default
+          disable-auto-update: true
+          aws-resource-tags: |
+            [
+              {
+                "Key": "Purpose",
+                "Value": "${{ inputs.workload_type == 'benchmark' && 'Benchmark Runner' || 'Kani Proof Runner' }}"
+              },
+              {
+                "Key": "Repository",
+                "Value": "${{ inputs.repo_name }}"
+              },
+              {
+                "Key": "WorkloadType",
+                "Value": "${{ inputs.workload_type }}"
+              },
+              {
+                "Key": "ManagedBy",
+                "Value": "GitHub Actions"
+              }
+            ]
+
