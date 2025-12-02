@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       skip_tests:
-        description: 'Skip test execution and coverage steps'
+        description: 'Skip test execution steps'
         required: false
         type: boolean
         default: false
@@ -51,32 +51,32 @@ jobs:
 
       - uses: actions/checkout@v4
       
-      - name: Checkout bllvm-node dependency
+      - name: Checkout blvm-node dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-node
-          path: _temp-bllvm-node
+          repository: BTCDecoded/blvm-node
+          path: _temp-blvm-node
       
-      - name: Checkout bllvm-protocol dependency
+      - name: Checkout blvm-protocol dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-protocol
+          repository: BTCDecoded/blvm-protocol
           path: _temp-protocol-engine
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-consensus
+          repository: BTCDecoded/blvm-consensus
           path: _temp-consensus-proof
       
       - name: Move dependencies to parent directory
         run: |
-          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
-          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
-          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
-          mv _temp-bllvm-node ../bllvm-node
-          mv _temp-protocol-engine ../bllvm-protocol
-          mv _temp-consensus-proof ../bllvm-consensus
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          mv _temp-blvm-node ../blvm-node
+          mv _temp-protocol-engine ../blvm-protocol
+          mv _temp-consensus-proof ../blvm-consensus
       
       - name: Cache
         id: setup-cache
@@ -85,9 +85,9 @@ jobs:
           
           # Generate cache keys from Cargo.lock hashes
           DEPS_KEY=$(sha256sum Cargo.lock | cut -d' ' -f1)
-          NODE_DEPS_KEY=$(sha256sum ../bllvm-node/Cargo.lock | cut -d' ' -f1)
-          PROTOCOL_DEPS_KEY=$(sha256sum ../bllvm-protocol/Cargo.lock | cut -d' ' -f1)
-          CONSENSUS_DEPS_KEY=$(sha256sum ../bllvm-consensus/Cargo.lock | cut -d' ' -f1)
+          NODE_DEPS_KEY=$(sha256sum ../blvm-node/Cargo.lock | cut -d' ' -f1)
+          PROTOCOL_DEPS_KEY=$(sha256sum ../blvm-protocol/Cargo.lock | cut -d' ' -f1)
+          CONSENSUS_DEPS_KEY=$(sha256sum ../blvm-consensus/Cargo.lock | cut -d' ' -f1)
           
           # Include toolchain version in cache key
           TOOLCHAIN=$(grep -E '^channel|rust-version' rust-toolchain.toml Cargo.toml 2>/dev/null | head -1 | sha256sum | cut -d' ' -f1 || echo "1.88.0")
@@ -100,9 +100,9 @@ jobs:
           # Set up cache directories
           CARGO_CACHE_DIR="$CACHE_ROOT/cargo/$CACHE_KEY"
           TARGET_CACHE_DIR="$CACHE_ROOT/target/$CACHE_KEY"
-          NODE_TARGET_DIR="$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY"
-          PROTOCOL_TARGET_DIR="$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY"
-          CONSENSUS_TARGET_DIR="$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY"
+          NODE_TARGET_DIR="$CACHE_ROOT/blvm-node-target/$NODE_CACHE_KEY"
+          PROTOCOL_TARGET_DIR="$CACHE_ROOT/blvm-protocol-target/$PROTOCOL_CACHE_KEY"
+          CONSENSUS_TARGET_DIR="$CACHE_ROOT/blvm-consensus-target/$CONSENSUS_CACHE_KEY"
           
           echo "CARGO_CACHE_DIR=$CARGO_CACHE_DIR" >> $GITHUB_ENV
           echo "TARGET_CACHE_DIR=$TARGET_CACHE_DIR" >> $GITHUB_ENV
@@ -158,36 +158,36 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.skip_check.outputs.skip != 'true'
       
-      - name: Checkout bllvm-node dependency
+      - name: Checkout blvm-node dependency
         if: steps.skip_check.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-node
-          path: _temp-bllvm-node
+          repository: BTCDecoded/blvm-node
+          path: _temp-blvm-node
       
-      - name: Checkout bllvm-protocol dependency
+      - name: Checkout blvm-protocol dependency
         if: steps.skip_check.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-protocol
+          repository: BTCDecoded/blvm-protocol
           path: _temp-protocol-engine
       
       - name: Checkout consensus
         if: steps.skip_check.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-consensus
+          repository: BTCDecoded/blvm-consensus
           path: _temp-consensus-proof
       
       - name: Move dependencies to parent directory
         if: steps.skip_check.outputs.skip != 'true'
         run: |
-          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
-          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
-          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
-          mv _temp-bllvm-node ../bllvm-node
-          mv _temp-protocol-engine ../bllvm-protocol
-          mv _temp-consensus-proof ../bllvm-consensus
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          mv _temp-blvm-node ../blvm-node
+          mv _temp-protocol-engine ../blvm-protocol
+          mv _temp-consensus-proof ../blvm-consensus
       
       - name: Cache
         if: steps.skip_check.outputs.skip != 'true'
@@ -200,9 +200,9 @@ jobs:
           
           echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
           echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
-          echo "NODE_TARGET_DIR=$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
-          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
-          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
+          echo "NODE_TARGET_DIR=$CACHE_ROOT/blvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
+          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/blvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
+          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/blvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
       
       - name: Restore registry
         if: steps.skip_check.outputs.skip != 'true'
@@ -228,30 +228,30 @@ jobs:
         if: steps.skip_check.outputs.skip != 'true'
         run: |
           if [ -d "$CONSENSUS_TARGET_DIR" ] && [ "$(ls -A $CONSENSUS_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-consensus/target
-            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../bllvm-consensus/target/ || true
+            mkdir -p ../blvm-consensus/target
+            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../blvm-consensus/target/ || true
           else
-            echo "💿 No bllvm-consensus target cache found"
+            echo "💿 No blvm-consensus target cache found"
           fi
       
-      - name: Restore bllvm-protocol build artifacts
+      - name: Restore blvm-protocol build artifacts
         if: steps.skip_check.outputs.skip != 'true'
         run: |
           if [ -d "$PROTOCOL_TARGET_DIR" ] && [ "$(ls -A $PROTOCOL_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-protocol/target
-            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../bllvm-protocol/target/ || true
+            mkdir -p ../blvm-protocol/target
+            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../blvm-protocol/target/ || true
           else
-            echo "💿 No bllvm-protocol target cache found"
+            echo "💿 No blvm-protocol target cache found"
           fi
       
-      - name: Restore bllvm-node build artifacts
+      - name: Restore blvm-node build artifacts
         if: steps.skip_check.outputs.skip != 'true'
         run: |
           if [ -d "$NODE_TARGET_DIR" ] && [ "$(ls -A $NODE_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-node/target
-            rsync -a --delete "$NODE_TARGET_DIR/" ../bllvm-node/target/ || true
+            mkdir -p ../blvm-node/target
+            rsync -a --delete "$NODE_TARGET_DIR/" ../blvm-node/target/ || true
           else
-            echo "💿 No bllvm-node target cache found"
+            echo "💿 No blvm-node target cache found"
           fi
       
       - name: Restore target
@@ -293,22 +293,22 @@ jobs:
       - name: Cache consensus
         if: always()
         run: |
-          if [ -d "../bllvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
+          if [ -d "../blvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
           fi
       
-      - name: Cache bllvm-protocol build artifacts
+      - name: Cache blvm-protocol build artifacts
         if: always()
         run: |
-          if [ -d "../bllvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
+          if [ -d "../blvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
           fi
       
-      - name: Cache bllvm-node build artifacts
+      - name: Cache blvm-node build artifacts
         if: always()
         run: |
-          if [ -d "../bllvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-node/target/ "$NODE_TARGET_DIR/" || true
+          if [ -d "../blvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-node/target/ "$NODE_TARGET_DIR/" || true
           fi
       
       - name: Cache target
@@ -318,42 +318,12 @@ jobs:
             rsync -a --delete ./target/ "$TARGET_CACHE_DIR/" || true
           fi
       
-      - name: Run tests with coverage
+      - name: Run tests
         if: steps.skip_check.outputs.skip != 'true'
         run: |
-          # Ensure cargo bin is in PATH (fixes exit code 127)
-          export PATH="$HOME/.cargo/bin:$PATH"
-          
-          # Verify cargo is available
-          if ! command -v cargo &> /dev/null; then
-            echo "ERROR: cargo not found in PATH"
-            echo "PATH: $PATH"
-            exit 1
-          fi
-          
-          # Install tarpaulin with error checking
-          if ! cargo install cargo-tarpaulin --version 0.27.0; then
-            echo "ERROR: Failed to install cargo-tarpaulin"
-            exit 1
-          fi
-          
-          # Verify tarpaulin is available
-          if ! command -v cargo-tarpaulin &> /dev/null; then
-            echo "ERROR: cargo-tarpaulin not found after installation"
-            echo "PATH: $PATH"
-            echo "Cargo bin dir: $HOME/.cargo/bin"
-            ls -la $HOME/.cargo/bin/ || true
-            exit 1
-          fi
-          
-          # Use --skip-clean to avoid rebuilding, --timeout to prevent hangs
-          cargo tarpaulin --out xml --output-dir coverage --skip-clean --timeout 120
-      
-      - name: Upload coverage to Codecov
-        if: steps.skip_check.outputs.skip != 'true'
-        uses: codecov/codecov-action@v3
-        with:
-          file: coverage/cobertura.xml
+          # Run tests only (no coverage) for fast PR feedback
+          # Coverage runs separately in coverage.yml workflow
+          cargo test --lib --bins --tests --all-features
       
       - name: Cleanup
         if: always()
@@ -364,9 +334,9 @@ jobs:
           find "$CACHE_ROOT/cargo" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -5 | xargs rm -rf 2>/dev/null || true
           # Keep last 3 target caches (larger)
           find "$CACHE_ROOT/target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
-          find "$CACHE_ROOT/bllvm-consensus-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
-          find "$CACHE_ROOT/bllvm-protocol-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
-          find "$CACHE_ROOT/bllvm-node-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/blvm-consensus-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/blvm-protocol-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
+          find "$CACHE_ROOT/blvm-node-target" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -3 | xargs rm -rf 2>/dev/null || true
 
   clippy:
     name: Clippy
@@ -381,32 +351,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Checkout bllvm-node dependency
+      - name: Checkout blvm-node dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-node
-          path: _temp-bllvm-node
+          repository: BTCDecoded/blvm-node
+          path: _temp-blvm-node
       
-      - name: Checkout bllvm-protocol dependency
+      - name: Checkout blvm-protocol dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-protocol
+          repository: BTCDecoded/blvm-protocol
           path: _temp-protocol-engine
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-consensus
+          repository: BTCDecoded/blvm-consensus
           path: _temp-consensus-proof
       
       - name: Move dependencies to parent directory
         run: |
-          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
-          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
-          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
-          mv _temp-bllvm-node ../bllvm-node
-          mv _temp-protocol-engine ../bllvm-protocol
-          mv _temp-consensus-proof ../bllvm-consensus
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          mv _temp-blvm-node ../blvm-node
+          mv _temp-protocol-engine ../blvm-protocol
+          mv _temp-consensus-proof ../blvm-consensus
       
       - name: Cache
         run: |
@@ -473,32 +443,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Checkout bllvm-node dependency
+      - name: Checkout blvm-node dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-node
-          path: _temp-bllvm-node
+          repository: BTCDecoded/blvm-node
+          path: _temp-blvm-node
       
-      - name: Checkout bllvm-protocol dependency
+      - name: Checkout blvm-protocol dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-protocol
+          repository: BTCDecoded/blvm-protocol
           path: _temp-protocol-engine
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-consensus
+          repository: BTCDecoded/blvm-consensus
           path: _temp-consensus-proof
       
       - name: Move dependencies to parent directory
         run: |
-          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
-          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
-          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
-          mv _temp-bllvm-node ../bllvm-node
-          mv _temp-protocol-engine ../bllvm-protocol
-          mv _temp-consensus-proof ../bllvm-consensus
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          mv _temp-blvm-node ../blvm-node
+          mv _temp-protocol-engine ../blvm-protocol
+          mv _temp-consensus-proof ../blvm-consensus
       
       - name: Cache
         run: |
@@ -597,32 +567,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Checkout bllvm-node dependency
+      - name: Checkout blvm-node dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-node
-          path: _temp-bllvm-node
+          repository: BTCDecoded/blvm-node
+          path: _temp-blvm-node
       
-      - name: Checkout bllvm-protocol dependency
+      - name: Checkout blvm-protocol dependency
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-protocol
+          repository: BTCDecoded/blvm-protocol
           path: _temp-protocol-engine
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm-consensus
+          repository: BTCDecoded/blvm-consensus
           path: _temp-consensus-proof
       
       - name: Move dependencies to parent directory
         run: |
-          if [ -d "../bllvm-node" ]; then rm -rf ../bllvm-node; fi
-          if [ -d "../bllvm-protocol" ]; then rm -rf ../bllvm-protocol; fi
-          if [ -d "../bllvm-consensus" ]; then rm -rf ../bllvm-consensus; fi
-          mv _temp-bllvm-node ../bllvm-node
-          mv _temp-protocol-engine ../bllvm-protocol
-          mv _temp-consensus-proof ../bllvm-consensus
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          mv _temp-blvm-node ../blvm-node
+          mv _temp-protocol-engine ../blvm-protocol
+          mv _temp-consensus-proof ../blvm-consensus
       
       - name: Cache
         run: |
@@ -634,9 +604,9 @@ jobs:
           
           echo "CARGO_CACHE_DIR=$CACHE_ROOT/cargo/$CACHE_KEY" >> $GITHUB_ENV
           echo "TARGET_CACHE_DIR=$CACHE_ROOT/target/$CACHE_KEY" >> $GITHUB_ENV
-          echo "NODE_TARGET_DIR=$CACHE_ROOT/bllvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
-          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/bllvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
-          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/bllvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
+          echo "NODE_TARGET_DIR=$CACHE_ROOT/blvm-node-target/$NODE_CACHE_KEY" >> $GITHUB_ENV
+          echo "PROTOCOL_TARGET_DIR=$CACHE_ROOT/blvm-protocol-target/$PROTOCOL_CACHE_KEY" >> $GITHUB_ENV
+          echo "CONSENSUS_TARGET_DIR=$CACHE_ROOT/blvm-consensus-target/$CONSENSUS_CACHE_KEY" >> $GITHUB_ENV
       
       - name: Restore registry
         run: |
@@ -655,22 +625,22 @@ jobs:
       - name: Restore consensus
         run: |
           if [ -d "$CONSENSUS_TARGET_DIR" ] && [ "$(ls -A $CONSENSUS_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-consensus/target
-            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../bllvm-consensus/target/ || true
+            mkdir -p ../blvm-consensus/target
+            rsync -a --delete "$CONSENSUS_TARGET_DIR/" ../blvm-consensus/target/ || true
           fi
       
-      - name: Restore bllvm-protocol build artifacts
+      - name: Restore blvm-protocol build artifacts
         run: |
           if [ -d "$PROTOCOL_TARGET_DIR" ] && [ "$(ls -A $PROTOCOL_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-protocol/target
-            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../bllvm-protocol/target/ || true
+            mkdir -p ../blvm-protocol/target
+            rsync -a --delete "$PROTOCOL_TARGET_DIR/" ../blvm-protocol/target/ || true
           fi
       
-      - name: Restore bllvm-node build artifacts
+      - name: Restore blvm-node build artifacts
         run: |
           if [ -d "$NODE_TARGET_DIR" ] && [ "$(ls -A $NODE_TARGET_DIR 2>/dev/null)" ]; then
-            mkdir -p ../bllvm-node/target
-            rsync -a --delete "$NODE_TARGET_DIR/" ../bllvm-node/target/ || true
+            mkdir -p ../blvm-node/target
+            rsync -a --delete "$NODE_TARGET_DIR/" ../blvm-node/target/ || true
           fi
       
       - name: Restore target
@@ -693,22 +663,22 @@ jobs:
       - name: Cache consensus
         if: always()
         run: |
-          if [ -d "../bllvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
+          if [ -d "../blvm-consensus/target" ] && [ "$CONSENSUS_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-consensus/target/ "$CONSENSUS_TARGET_DIR/" || true
           fi
       
-      - name: Cache bllvm-protocol build artifacts
+      - name: Cache blvm-protocol build artifacts
         if: always()
         run: |
-          if [ -d "../bllvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
+          if [ -d "../blvm-protocol/target" ] && [ "$PROTOCOL_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-protocol/target/ "$PROTOCOL_TARGET_DIR/" || true
           fi
       
-      - name: Cache bllvm-node build artifacts
+      - name: Cache blvm-node build artifacts
         if: always()
         run: |
-          if [ -d "../bllvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
-            rsync -a --delete ../bllvm-node/target/ "$NODE_TARGET_DIR/" || true
+          if [ -d "../blvm-node/target" ] && [ "$NODE_TARGET_DIR" != "" ]; then
+            rsync -a --delete ../blvm-node/target/ "$NODE_TARGET_DIR/" || true
           fi
       
       - name: Cache target
