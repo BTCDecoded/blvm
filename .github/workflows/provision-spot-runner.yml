@@ -31,8 +31,6 @@ on:
         required: true
       AWS_SECRET_ACCESS_KEY:
         required: true
-      GITHUB_TOKEN:
-        required: true
       AWS_SUBNET_ID:
         required: true
       AWS_SECURITY_GROUP_ID:
@@ -62,7 +60,7 @@ jobs:
         id: runner
         with:
           mode: start
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           ec2-image-id: ${{ inputs.ami_id }}
           ec2-instance-type: ${{ inputs.instance_type }}
           ec2-region: us-east-1
