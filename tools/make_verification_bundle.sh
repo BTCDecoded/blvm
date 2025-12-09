@@ -146,20 +146,20 @@ EOF
 echo "Bundle metadata: ${BUNDLE_METADATA}"
 
 # Optional: Sign bundle metadata if bllvm-sign-binary is available
-if command -v bllvm-sign-binary >/dev/null 2>&1 && [[ -n "${BLLVM_SIGN_KEY:-}" ]]; then
+if command -v bllvm-sign-binary >/dev/null 2>&1 && [[ -n "${BLVM_SIGN_KEY:-}" ]]; then
   echo "=== Signing bundle metadata ==="
   BUNDLE_SIG="${BUNDLE_METADATA}.sig"
   if bllvm-sign-binary bundle \
     --file "${BUNDLE_PATH}" \
     --source-hash "${SOURCE_HASH}" \
-    --key "${BLLVM_SIGN_KEY}" \
+    --key "${BLVM_SIGN_KEY}" \
     --output "${BUNDLE_SIG}" 2>/dev/null; then
     echo "Bundle signed: ${BUNDLE_SIG}"
   else
     echo "Warning: Failed to sign bundle metadata (key may not be set)"
   fi
 else
-  echo "Note: Bundle metadata not signed (set BLLVM_SIGN_KEY to enable signing)"
+  echo "Note: Bundle metadata not signed (set BLVM_SIGN_KEY to enable signing)"
 fi
 
 echo "Done. Bundle: ${BUNDLE_PATH}"

@@ -1,8 +1,8 @@
-# BLLVM Configuration Guide
+# BLVM Configuration Guide
 
 ## Overview
 
-BLLVM supports multiple configuration methods with a clear hierarchy:
+BLVM supports multiple configuration methods with a clear hierarchy:
 
 **Priority (highest to lowest):**
 1. **CLI Arguments** - Always wins
@@ -18,16 +18,16 @@ Common operations can be controlled via command-line flags:
 
 ```bash
 # Basic usage
-bllvm --network mainnet --data-dir /var/lib/bllvm
+blvm --network mainnet --data-dir /var/lib/blvm
 
 # With feature flags
-bllvm --enable-stratum-v2 --enable-dandelion
+blvm --enable-stratum-v2 --enable-dandelion
 
 # With config file
-bllvm --config /etc/bllvm/bllvm.toml
+blvm --config /etc/blvm/blvm.toml
 
 # Override config file with CLI
-bllvm --config /etc/bllvm/bllvm.toml --network testnet
+blvm --config /etc/blvm/blvm.toml --network testnet
 ```
 
 **Available CLI flags:**
@@ -48,55 +48,55 @@ Environment variables are ideal for deployment scenarios, especially in containe
 
 ```bash
 # Deployment-critical settings
-export BLLVM_DATA_DIR="/var/lib/bllvm"
-export BLLVM_NETWORK="mainnet"
-export BLLVM_LISTEN_ADDR="0.0.0.0:8333"
-export BLLVM_RPC_ADDR="127.0.0.1:8332"
-export BLLVM_LOG_LEVEL="info"
+export BLVM_DATA_DIR="/var/lib/blvm"
+export BLVM_NETWORK="mainnet"
+export BLVM_LISTEN_ADDR="0.0.0.0:8333"
+export BLVM_RPC_ADDR="127.0.0.1:8332"
+export BLVM_LOG_LEVEL="info"
 
 # Node settings
-export BLLVM_NODE_MAX_PEERS="200"
-export BLLVM_NODE_TRANSPORT="tcp_only"
+export BLVM_NODE_MAX_PEERS="200"
+export BLVM_NODE_TRANSPORT="tcp_only"
 
 # Feature flags
-export BLLVM_NODE_FEATURES_STRATUM_V2="true"
-export BLLVM_NODE_FEATURES_DANDELION="true"
-export BLLVM_NODE_FEATURES_BIP158="true"
-export BLLVM_NODE_FEATURES_SIGOP="true"
+export BLVM_NODE_FEATURES_STRATUM_V2="true"
+export BLVM_NODE_FEATURES_DANDELION="true"
+export BLVM_NODE_FEATURES_BIP158="true"
+export BLVM_NODE_FEATURES_SIGOP="true"
 
 # Run node
-bllvm
+blvm
 ```
 
 **Available Environment Variables:**
 
 **Deployment-Critical:**
-- `BLLVM_DATA_DIR` - Data directory
-- `BLLVM_NETWORK` - Network (regtest/testnet/mainnet)
-- `BLLVM_LISTEN_ADDR` - P2P listen address
-- `BLLVM_RPC_ADDR` - RPC server address
-- `BLLVM_LOG_LEVEL` - Logging level (trace/debug/info/warn/error)
+- `BLVM_DATA_DIR` - Data directory
+- `BLVM_NETWORK` - Network (regtest/testnet/mainnet)
+- `BLVM_LISTEN_ADDR` - P2P listen address
+- `BLVM_RPC_ADDR` - RPC server address
+- `BLVM_LOG_LEVEL` - Logging level (trace/debug/info/warn/error)
 
 **Node Settings:**
-- `BLLVM_NODE_MAX_PEERS` - Maximum peer connections
-- `BLLVM_NODE_TRANSPORT` - Transport preference (tcp_only/iroh_only/hybrid)
+- `BLVM_NODE_MAX_PEERS` - Maximum peer connections
+- `BLVM_NODE_TRANSPORT` - Transport preference (tcp_only/iroh_only/hybrid)
 
 **Feature Flags:**
-- `BLLVM_NODE_FEATURES_STRATUM_V2` - Enable/disable Stratum V2 (true/false)
-- `BLLVM_NODE_FEATURES_DANDELION` - Enable/disable Dandelion++ (true/false)
-- `BLLVM_NODE_FEATURES_BIP158` - Enable/disable BIP158 (true/false)
-- `BLLVM_NODE_FEATURES_SIGOP` - Enable/disable Sigop counting (true/false)
+- `BLVM_NODE_FEATURES_STRATUM_V2` - Enable/disable Stratum V2 (true/false)
+- `BLVM_NODE_FEATURES_DANDELION` - Enable/disable Dandelion++ (true/false)
+- `BLVM_NODE_FEATURES_BIP158` - Enable/disable BIP158 (true/false)
+- `BLVM_NODE_FEATURES_SIGOP` - Enable/disable Sigop counting (true/false)
 
 ### 3. Config File
 
 Config files support complex nested configurations. Config files are searched in this order:
 
 1. `--config` flag path (if specified)
-2. `./bllvm.toml` (current directory)
-3. `~/.config/bllvm/bllvm.toml` (user config)
-4. `/etc/bllvm/bllvm.toml` (system config)
+2. `./blvm.toml` (current directory)
+3. `~/.config/blvm/blvm.toml` (user config)
+4. `/etc/blvm/blvm.toml` (system config)
 
-**Example config file (`bllvm.toml`):**
+**Example config file (`blvm.toml`):**
 
 ```toml
 # Network listening address
@@ -166,23 +166,23 @@ enable_self_advertisement = true
 
 ```bash
 # Config file has: network = "testnet"
-# ENV has: BLLVM_NETWORK="mainnet"
+# ENV has: BLVM_NETWORK="mainnet"
 # CLI: --network regtest
 
 # Result: network = regtest (CLI wins)
-bllvm --config bllvm.toml --network regtest
+blvm --config blvm.toml --network regtest
 ```
 
 ### Example 2: ENV Overrides Config File
 
 ```bash
 # Config file has: max_peers = 50
-# ENV has: BLLVM_NODE_MAX_PEERS="200"
+# ENV has: BLVM_NODE_MAX_PEERS="200"
 # CLI: (not specified)
 
 # Result: max_peers = 200 (ENV overrides config file)
-export BLLVM_NODE_MAX_PEERS="200"
-bllvm --config bllvm.toml
+export BLVM_NODE_MAX_PEERS="200"
+blvm --config blvm.toml
 ```
 
 ### Example 3: Config File Overrides Defaults
@@ -194,18 +194,18 @@ bllvm --config bllvm.toml
 # CLI: (not specified)
 
 # Result: max_peers = 200 (config file overrides default)
-bllvm --config bllvm.toml
+blvm --config blvm.toml
 ```
 
 ### Example 4: Feature Flags via ENV
 
 ```bash
 # Enable features via environment variables
-export BLLVM_NODE_FEATURES_STRATUM_V2="true"
-export BLLVM_NODE_FEATURES_DANDELION="true"
+export BLVM_NODE_FEATURES_STRATUM_V2="true"
+export BLVM_NODE_FEATURES_DANDELION="true"
 
 # Run node (features enabled via ENV)
-bllvm
+blvm
 ```
 
 ## Deployment Examples
@@ -214,31 +214,31 @@ bllvm
 
 ```bash
 # Use environment variables for configuration
-docker run -e BLLVM_NETWORK=mainnet \
-           -e BLLVM_DATA_DIR=/data \
-           -e BLLVM_LISTEN_ADDR=0.0.0.0:8333 \
-           -e BLLVM_RPC_ADDR=0.0.0.0:8332 \
-           -e BLLVM_NODE_MAX_PEERS=200 \
-           bllvm:latest
+docker run -e BLVM_NETWORK=mainnet \
+           -e BLVM_DATA_DIR=/data \
+           -e BLVM_LISTEN_ADDR=0.0.0.0:8333 \
+           -e BLVM_RPC_ADDR=0.0.0.0:8332 \
+           -e BLVM_NODE_MAX_PEERS=200 \
+           blvm:latest
 ```
 
 ### Systemd Service
 
 ```ini
 [Service]
-Environment="BLLVM_NETWORK=mainnet"
-Environment="BLLVM_DATA_DIR=/var/lib/bllvm"
-Environment="BLLVM_LISTEN_ADDR=0.0.0.0:8333"
-Environment="BLLVM_RPC_ADDR=127.0.0.1:8332"
-Environment="BLLVM_LOG_LEVEL=info"
-ExecStart=/usr/bin/bllvm
+Environment="BLVM_NETWORK=mainnet"
+Environment="BLVM_DATA_DIR=/var/lib/blvm"
+Environment="BLVM_LISTEN_ADDR=0.0.0.0:8333"
+Environment="BLVM_RPC_ADDR=127.0.0.1:8332"
+Environment="BLVM_LOG_LEVEL=info"
+ExecStart=/usr/bin/blvm
 ```
 
 ### Development
 
 ```bash
 # Use config file for development
-bllvm --config ./bllvm.toml --network regtest --verbose
+blvm --config ./blvm.toml --network regtest --verbose
 ```
 
 ## Notes

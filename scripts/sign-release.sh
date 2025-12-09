@@ -9,11 +9,11 @@
 #   sign-release.sh --version v0.1.0 --commit abc123 [--key maintainer-key.json] [--threshold 6-of-7]
 #
 # Environment variables:
-#   BLLVM_RELEASE_VERSION - Version string
-#   BLLVM_RELEASE_COMMIT - Git commit hash
-#   BLLVM_SIGN_KEY - Path to maintainer key file
-#   BLLVM_SIGN_THRESHOLD - Signature threshold (e.g., "6-of-7")
-#   BLLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
+#   BLVM_RELEASE_VERSION - Version string
+#   BLVM_RELEASE_COMMIT - Git commit hash
+#   BLVM_SIGN_KEY - Path to maintainer key file
+#   BLVM_SIGN_THRESHOLD - Signature threshold (e.g., "6-of-7")
+#   BLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
 
 set -euo pipefail
 
@@ -23,10 +23,10 @@ ARTIFACTS_DIR="${REPO_ROOT}/artifacts"
 SIGNATURES_DIR="${ARTIFACTS_DIR}/signatures"
 
 # Defaults
-VERSION="${BLLVM_RELEASE_VERSION:-}"
-COMMIT="${BLLVM_RELEASE_COMMIT:-}"
-SIGN_KEY="${BLLVM_SIGN_KEY:-}"
-THRESHOLD="${BLLVM_SIGN_THRESHOLD:-6-of-7}"
+VERSION="${BLVM_RELEASE_VERSION:-}"
+COMMIT="${BLVM_RELEASE_COMMIT:-}"
+SIGN_KEY="${BLVM_SIGN_KEY:-}"
+THRESHOLD="${BLVM_SIGN_THRESHOLD:-6-of-7}"
 BINARY_TYPE="application"
 
 print_usage() {
@@ -44,17 +44,17 @@ Options:
   --help               Show this help message
 
 Environment variables:
-  BLLVM_RELEASE_VERSION - Release version
-  BLLVM_RELEASE_COMMIT - Git commit hash
-  BLLVM_SIGN_KEY - Path to maintainer key file
-  BLLVM_SIGN_THRESHOLD - Signature threshold
-  BLLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
+  BLVM_RELEASE_VERSION - Release version
+  BLVM_RELEASE_COMMIT - Git commit hash
+  BLVM_SIGN_KEY - Path to maintainer key file
+  BLVM_SIGN_THRESHOLD - Signature threshold
+  BLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
 
 Examples:
   # Sign with environment variables
-  export BLLVM_RELEASE_VERSION=v0.1.0
-  export BLLVM_RELEASE_COMMIT=abc123
-  export BLLVM_SIGN_KEY=./maintainer-key.json
+  export BLVM_RELEASE_VERSION=v0.1.0
+  export BLVM_RELEASE_COMMIT=abc123
+  export BLVM_SIGN_KEY=./maintainer-key.json
   ./sign-release.sh
 
   # Sign with command-line arguments
@@ -99,17 +99,17 @@ done
 
 # Validate required arguments
 if [[ -z "$VERSION" ]]; then
-    echo "Error: --version or BLLVM_RELEASE_VERSION required" >&2
+    echo "Error: --version or BLVM_RELEASE_VERSION required" >&2
     exit 1
 fi
 
 if [[ -z "$COMMIT" ]]; then
-    echo "Error: --commit or BLLVM_RELEASE_COMMIT required" >&2
+    echo "Error: --commit or BLVM_RELEASE_COMMIT required" >&2
     exit 1
 fi
 
 if [[ -z "$SIGN_KEY" ]]; then
-    echo "Warning: --key or BLLVM_SIGN_KEY not set, skipping signing" >&2
+    echo "Warning: --key or BLVM_SIGN_KEY not set, skipping signing" >&2
     echo "Note: This script will create signature files but won't sign them" >&2
 fi
 
@@ -200,7 +200,7 @@ if [[ -d "${ARTIFACTS_DIR}" ]]; then
 fi
 
 # Aggregate signatures if multiple maintainers signed
-if [[ -n "${BLLVM_MAINTAINER_KEYS:-}" ]] && command -v bllvm-aggregate-signatures >/dev/null 2>&1; then
+if [[ -n "${BLVM_MAINTAINER_KEYS:-}" ]] && command -v bllvm-aggregate-signatures >/dev/null 2>&1; then
     echo ""
     echo "=== Aggregating Signatures ==="
     
@@ -217,7 +217,7 @@ if [[ -n "${BLLVM_MAINTAINER_KEYS:-}" ]] && command -v bllvm-aggregate-signature
                 bllvm-aggregate-signatures \
                     --signatures "$type_sigs" \
                     --threshold "$THRESHOLD" \
-                    --pubkeys "${BLLVM_MAINTAINER_KEYS}" \
+                    --pubkeys "${BLVM_MAINTAINER_KEYS}" \
                     --output "$aggregated" || {
                     echo "Warning: Failed to aggregate ${sig_type} signatures" >&2
                 }

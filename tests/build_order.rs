@@ -7,15 +7,15 @@ use tempfile::TempDir;
 /// Test that build order respects dependencies
 #[test]
 fn test_build_order_respects_dependencies() {
-    // Given: bllvm-node depends on bllvm-protocol and bllvm-consensus
+    // Given: blvm-node depends on blvm-protocol and blvm-consensus
     // When: calculating build order
-    // Then: bllvm-consensus and bllvm-protocol should come before bllvm-node
+    // Then: blvm-consensus and blvm-protocol should come before blvm-node
 
     let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protocol=0.1.0", "bllvm-consensus=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=0.1.0", "blvm-consensus=0.1.0"] }
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -30,21 +30,21 @@ bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protoco
     // Verify order
     let consensus_pos = build_order
         .iter()
-        .position(|r| r == "bllvm-consensus")
+        .position(|r| r == "blvm-consensus")
         .unwrap();
     let protocol_pos = build_order
         .iter()
-        .position(|r| r == "bllvm-protocol")
+        .position(|r| r == "blvm-protocol")
         .unwrap();
-    let node_pos = build_order.iter().position(|r| r == "bllvm-node").unwrap();
+    let node_pos = build_order.iter().position(|r| r == "blvm-node").unwrap();
 
     assert!(
         consensus_pos < protocol_pos,
-        "bllvm-consensus should come before bllvm-protocol"
+        "blvm-consensus should come before blvm-protocol"
     );
     assert!(
         protocol_pos < node_pos,
-        "bllvm-protocol should come before bllvm-node"
+        "blvm-protocol should come before blvm-node"
     );
 }
 
@@ -77,9 +77,9 @@ B = { version = "0.1.0", git_tag = "v0.1.0", requires = ["A=0.1.0"] }
 fn test_parallel_builds() {
     let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
 bllvm-sdk = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -91,28 +91,28 @@ bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-con
         .build_order()
         .expect("Should calculate build order");
 
-    // bllvm-consensus and bllvm-sdk have no dependencies, so they can be built in parallel
-    // bllvm-protocol depends on bllvm-consensus, so consensus must come before protocol
+    // blvm-consensus and bllvm-sdk have no dependencies, so they can be built in parallel
+    // blvm-protocol depends on blvm-consensus, so consensus must come before protocol
     // bllvm-sdk has no dependencies, so its position relative to protocol is non-deterministic
     let consensus_pos = build_order
         .iter()
-        .position(|r| r == "bllvm-consensus")
+        .position(|r| r == "blvm-consensus")
         .unwrap();
     let protocol_pos = build_order
         .iter()
-        .position(|r| r == "bllvm-protocol")
+        .position(|r| r == "blvm-protocol")
         .unwrap();
 
     // Consensus must come before protocol (it's a dependency)
     assert!(
         consensus_pos < protocol_pos,
-        "bllvm-consensus should come before bllvm-protocol (it's a dependency)"
+        "blvm-consensus should come before blvm-protocol (it's a dependency)"
     );
 
     // Verify all repos are present (order between independent repos is non-deterministic)
-    assert!(build_order.contains(&"bllvm-consensus".to_string()));
+    assert!(build_order.contains(&"blvm-consensus".to_string()));
     assert!(build_order.contains(&"bllvm-sdk".to_string()));
-    assert!(build_order.contains(&"bllvm-protocol".to_string()));
+    assert!(build_order.contains(&"blvm-protocol".to_string()));
     assert_eq!(
         build_order.len(),
         3,

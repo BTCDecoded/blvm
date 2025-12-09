@@ -24,20 +24,20 @@ if [[ "$PLATFORM" == *"windows"* ]]; then
     TARGET_DIR="target/x86_64-pc-windows-gnu/release"
     BIN_EXT=".exe"
     if [ "$VARIANT" = "base" ]; then
-        BLLVM_DIR="${ARTIFACTS_DIR}/bllvm-windows"
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-windows"
         GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-windows"
     else
-        BLLVM_DIR="${ARTIFACTS_DIR}/bllvm-experimental-windows"
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-experimental-windows"
         GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-experimental-windows"
     fi
 else
     TARGET_DIR="target/release"
     BIN_EXT=""
     if [ "$VARIANT" = "base" ]; then
-        BLLVM_DIR="${ARTIFACTS_DIR}/bllvm-linux"
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-linux"
         GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-linux"
     else
-        BLLVM_DIR="${ARTIFACTS_DIR}/bllvm-experimental-linux"
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-experimental-linux"
         GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-experimental-linux"
     fi
 fi
@@ -66,10 +66,10 @@ collect_bllvm_binary() {
     local binary="bllvm"
     local bin_path="${repo_path}/${TARGET_DIR}/${binary}${BIN_EXT}"
     
-    mkdir -p "$BLLVM_DIR"
+    mkdir -p "$BLVM_DIR"
     
     if [ -f "$bin_path" ]; then
-        cp "$bin_path" "${BLLVM_DIR}/"
+        cp "$bin_path" "${BLVM_DIR}/"
         log_success "Collected: ${binary}${BIN_EXT}"
         
         # Include governance tools in both base and experimental bllvm archives
@@ -79,9 +79,9 @@ collect_bllvm_binary() {
         # Copy governance tools into the bllvm archive
         if [ -d "$GOVERNANCE_DIR" ] && [ "$(ls -A "$GOVERNANCE_DIR" 2>/dev/null)" ]; then
             log_info "Including governance tools in bllvm archive..."
-            cp -r "$GOVERNANCE_DIR"/* "${BLLVM_DIR}/" 2>/dev/null || true
-            log_info "Contents of ${BLLVM_DIR} after adding governance tools:"
-            ls -lh "${BLLVM_DIR}" || true
+            cp -r "$GOVERNANCE_DIR"/* "${BLVM_DIR}/" 2>/dev/null || true
+            log_info "Contents of ${BLVM_DIR} after adding governance tools:"
+            ls -lh "${BLVM_DIR}" || true
         else
             log_warn "Governance directory is empty or missing: ${GOVERNANCE_DIR}"
         fi
@@ -211,26 +211,26 @@ main() {
     # Collect bllvm binary separately (only bllvm has variants)
     if collect_bllvm_binary; then
         # Generate checksum for bllvm binary
-        local bllvm_checksum
+        local blvm_checksum
         if [ "$VARIANT" = "base" ]; then
-            bllvm_checksum="${ARTIFACTS_DIR}/SHA256SUMS-bllvm-${PLATFORM}"
+            blvm_checksum="${ARTIFACTS_DIR}/SHA256SUMS-blvm-${PLATFORM}"
         else
-            bllvm_checksum="${ARTIFACTS_DIR}/SHA256SUMS-bllvm-experimental-${PLATFORM}"
+            blvm_checksum="${ARTIFACTS_DIR}/SHA256SUMS-blvm-experimental-${PLATFORM}"
         fi
-        generate_checksums "$BLLVM_DIR" "$bllvm_checksum"
+        generate_checksums "$BLVM_DIR" "$blvm_checksum"
         
-        # Create archives for bllvm binary (both tar.gz and zip for all platforms)
-        local bllvm_archive_tgz
-        local bllvm_archive_zip
+        # Create archives for blvm binary (both tar.gz and zip for all platforms)
+        local blvm_archive_tgz
+        local blvm_archive_zip
         if [ "$VARIANT" = "base" ]; then
-            bllvm_archive_tgz="bllvm-${PLATFORM}.tar.gz"
-            bllvm_archive_zip="bllvm-${PLATFORM}.zip"
+            blvm_archive_tgz="blvm-${PLATFORM}.tar.gz"
+            blvm_archive_zip="blvm-${PLATFORM}.zip"
         else
-            bllvm_archive_tgz="bllvm-experimental-${PLATFORM}.tar.gz"
-            bllvm_archive_zip="bllvm-experimental-${PLATFORM}.zip"
+            blvm_archive_tgz="blvm-experimental-${PLATFORM}.tar.gz"
+            blvm_archive_zip="blvm-experimental-${PLATFORM}.zip"
         fi
-        create_archive "$BLLVM_DIR" "$bllvm_archive_tgz" "$bllvm_checksum"
-        create_archive "$BLLVM_DIR" "$bllvm_archive_zip" "$bllvm_checksum"
+        create_archive "$BLVM_DIR" "$blvm_archive_tgz" "$blvm_checksum"
+        create_archive "$BLVM_DIR" "$blvm_archive_zip" "$blvm_checksum"
     fi
     
     # Governance tools are now included in the bllvm archives (collected in collect_bllvm_binary)

@@ -9,9 +9,9 @@ use tempfile::TempDir;
 fn test_parse_valid_versions_toml() {
     let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protocol=0.1.0", "bllvm-consensus=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=0.1.0", "blvm-consensus=0.1.0"] }
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -20,9 +20,9 @@ bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protoco
 
     let manifest = VersionsManifest::from_file(&versions_path).expect("Should parse valid TOML");
     assert_eq!(manifest.versions.len(), 3);
-    assert!(manifest.versions.contains_key("bllvm-consensus"));
-    assert!(manifest.versions.contains_key("bllvm-protocol"));
-    assert!(manifest.versions.contains_key("bllvm-node"));
+    assert!(manifest.versions.contains_key("blvm-consensus"));
+    assert!(manifest.versions.contains_key("blvm-protocol"));
+    assert!(manifest.versions.contains_key("blvm-node"));
 }
 
 /// Test dependency resolution
@@ -30,9 +30,9 @@ bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protoco
 fn test_dependency_resolution() {
     let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protocol=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=0.1.0"] }
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -41,16 +41,16 @@ bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protoco
 
     let manifest = VersionsManifest::from_file(&versions_path).expect("Should parse");
 
-    // Verify bllvm-protocol requires bllvm-consensus
-    let protocol = manifest.versions.get("bllvm-protocol").unwrap();
+    // Verify blvm-protocol requires blvm-consensus
+    let protocol = manifest.versions.get("blvm-protocol").unwrap();
     assert!(protocol
         .requires
         .iter()
-        .any(|r| r.contains("bllvm-consensus")));
+        .any(|r| r.contains("blvm-consensus")));
 
-    // Verify bllvm-node requires bllvm-protocol
-    let node = manifest.versions.get("bllvm-node").unwrap();
-    assert!(node.requires.iter().any(|r| r.contains("bllvm-protocol")));
+    // Verify blvm-node requires blvm-protocol
+    let node = manifest.versions.get("blvm-node").unwrap();
+    assert!(node.requires.iter().any(|r| r.contains("blvm-protocol")));
 }
 
 /// Test version format validation
@@ -129,8 +129,8 @@ B = { version = "0.1.0", git_tag = "v0.1.0", requires = ["A=0.1.0"] }
 fn test_missing_dependency_detection() {
     let content = r#"
 [versions]
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-# bllvm-consensus is missing!
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+# blvm-consensus is missing!
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -146,7 +146,7 @@ bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-con
     assert!(validation
         .errors()
         .iter()
-        .any(|e| e.contains("bllvm-consensus")));
+        .any(|e| e.contains("blvm-consensus")));
 }
 
 /// Test build order calculation
@@ -154,9 +154,9 @@ bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-con
 fn test_build_order() {
     let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protocol=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=0.1.0"] }
 "#;
 
     let temp_dir = TempDir::new().unwrap();
@@ -168,17 +168,17 @@ bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protoco
         .build_order()
         .expect("Should calculate build order");
 
-    let consensus_pos = order.iter().position(|r| r == "bllvm-consensus").unwrap();
-    let protocol_pos = order.iter().position(|r| r == "bllvm-protocol").unwrap();
-    let node_pos = order.iter().position(|r| r == "bllvm-node").unwrap();
+    let consensus_pos = order.iter().position(|r| r == "blvm-consensus").unwrap();
+    let protocol_pos = order.iter().position(|r| r == "blvm-protocol").unwrap();
+    let node_pos = order.iter().position(|r| r == "blvm-node").unwrap();
 
     assert!(
         consensus_pos < protocol_pos,
-        "bllvm-consensus should come before bllvm-protocol"
+        "blvm-consensus should come before blvm-protocol"
     );
     assert!(
         protocol_pos < node_pos,
-        "bllvm-protocol should come before bllvm-node"
+        "blvm-protocol should come before blvm-node"
     );
 }
 

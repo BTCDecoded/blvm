@@ -1,12 +1,12 @@
-//! BLLVM - Bitcoin Low-Level Virtual Machine Node
+//! BLVM - Bitcoin Low-Level Virtual Machine Node
 //!
-//! Main entry point for the Bitcoin Commons BLLVM node binary.
-//! This binary starts a full Bitcoin node using the bllvm-node library.
+//! Main entry point for the Bitcoin Commons BLVM node binary.
+//! This binary starts a full Bitcoin node using the blvm-node library.
 
 use anyhow::{Context, Result};
-use bllvm_node::config::NodeConfig;
-use bllvm_node::node::Node as ReferenceNode;
-use bllvm_node::ProtocolVersion;
+use blvm_node::config::NodeConfig;
+use blvm_node::node::Node as ReferenceNode;
+use blvm_node::ProtocolVersion;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{json, Value};
 use std::env;
@@ -16,8 +16,8 @@ use tokio::signal;
 use tracing::{error, info, warn};
 
 #[derive(Parser)]
-#[command(name = "bllvm")]
-#[command(about = "Bitcoin Commons BLLVM - Bitcoin Low-Level Virtual Machine Node", long_about = None)]
+#[command(name = "blvm")]
+#[command(about = "Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine Node", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -211,9 +211,9 @@ async fn main() -> Result<()> {
 
     // Initialize tracing (minimal for subcommands, full for start)
     let filter = if cli.verbose {
-        "bllvm=debug,bllvm_node=debug"
+        "blvm=debug,blvm_node=debug"
     } else {
-        "bllvm=info,bllvm_node=info"
+        "blvm=info,blvm_node=info"
     };
 
     tracing_subscriber::fmt()
@@ -280,7 +280,7 @@ async fn main() -> Result<()> {
             // Start node (default behavior)
             let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli);
 
-            info!("Starting Bitcoin Commons BLLVM Node");
+            info!("Starting Bitcoin Commons BLVM Node");
             info!("Network: {:?}", network);
             info!("RPC address: {}", rpc_addr);
             info!("P2P listen address: {}", listen_addr);
@@ -328,7 +328,7 @@ async fn main() -> Result<()> {
                     }
                 }
                 _ = signal::ctrl_c() => {
-                    info!("Shutting down BLLVM node...");
+                    info!("Shutting down BLVM node...");
                     info!("Node stopped");
                 }
             }
@@ -377,76 +377,76 @@ impl EnvOverrides {
     /// Load configuration from environment variables
     fn from_env() -> Self {
         Self {
-            data_dir: env::var("BLLVM_DATA_DIR").ok(),
-            network: env::var("BLLVM_NETWORK").ok(),
-            listen_addr: env::var("BLLVM_LISTEN_ADDR")
+            data_dir: env::var("BLVM_DATA_DIR").ok(),
+            network: env::var("BLVM_NETWORK").ok(),
+            listen_addr: env::var("BLVM_LISTEN_ADDR")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            rpc_addr: env::var("BLLVM_RPC_ADDR").ok().and_then(|s| s.parse().ok()),
-            log_level: env::var("BLLVM_LOG_LEVEL").ok(),
-            max_peers: env::var("BLLVM_NODE_MAX_PEERS")
+            rpc_addr: env::var("BLVM_RPC_ADDR").ok().and_then(|s| s.parse().ok()),
+            log_level: env::var("BLVM_LOG_LEVEL").ok(),
+            max_peers: env::var("BLVM_NODE_MAX_PEERS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            transport: env::var("BLLVM_NODE_TRANSPORT").ok(),
+            transport: env::var("BLVM_NODE_TRANSPORT").ok(),
             // Feature flags
-            stratum_v2: env::var("BLLVM_NODE_FEATURES_STRATUM_V2")
+            stratum_v2: env::var("BLVM_NODE_FEATURES_STRATUM_V2")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            dandelion: env::var("BLLVM_NODE_FEATURES_DANDELION")
+            dandelion: env::var("BLVM_NODE_FEATURES_DANDELION")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            bip158: env::var("BLLVM_NODE_FEATURES_BIP158")
+            bip158: env::var("BLVM_NODE_FEATURES_BIP158")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            sigop: env::var("BLLVM_NODE_FEATURES_SIGOP")
+            sigop: env::var("BLVM_NODE_FEATURES_SIGOP")
                 .ok()
                 .and_then(|s| s.parse().ok()),
             // Network timing config
-            target_peer_count: env::var("BLLVM_NETWORK_TARGET_PEER_COUNT")
+            target_peer_count: env::var("BLVM_NETWORK_TARGET_PEER_COUNT")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            peer_connection_delay: env::var("BLLVM_NETWORK_PEER_CONNECTION_DELAY")
+            peer_connection_delay: env::var("BLVM_NETWORK_PEER_CONNECTION_DELAY")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            max_addresses_from_dns: env::var("BLLVM_NETWORK_MAX_ADDRESSES_FROM_DNS")
+            max_addresses_from_dns: env::var("BLVM_NETWORK_MAX_ADDRESSES_FROM_DNS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
             // Request timeout config
-            async_request_timeout: env::var("BLLVM_REQUEST_ASYNC_TIMEOUT")
+            async_request_timeout: env::var("BLVM_REQUEST_ASYNC_TIMEOUT")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            utxo_commitment_timeout: env::var("BLLVM_REQUEST_UTXO_COMMITMENT_TIMEOUT")
+            utxo_commitment_timeout: env::var("BLVM_REQUEST_UTXO_COMMITMENT_TIMEOUT")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            request_cleanup_interval: env::var("BLLVM_REQUEST_CLEANUP_INTERVAL")
+            request_cleanup_interval: env::var("BLVM_REQUEST_CLEANUP_INTERVAL")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            pending_request_max_age: env::var("BLLVM_REQUEST_PENDING_MAX_AGE")
+            pending_request_max_age: env::var("BLVM_REQUEST_PENDING_MAX_AGE")
                 .ok()
                 .and_then(|s| s.parse().ok()),
             // Module resource limits config
-            module_max_cpu_percent: env::var("BLLVM_MODULE_MAX_CPU_PERCENT")
+            module_max_cpu_percent: env::var("BLVM_MODULE_MAX_CPU_PERCENT")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_max_memory_bytes: env::var("BLLVM_MODULE_MAX_MEMORY_BYTES")
+            module_max_memory_bytes: env::var("BLVM_MODULE_MAX_MEMORY_BYTES")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_max_file_descriptors: env::var("BLLVM_MODULE_MAX_FILE_DESCRIPTORS")
+            module_max_file_descriptors: env::var("BLVM_MODULE_MAX_FILE_DESCRIPTORS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_max_child_processes: env::var("BLLVM_MODULE_MAX_CHILD_PROCESSES")
+            module_max_child_processes: env::var("BLVM_MODULE_MAX_CHILD_PROCESSES")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_startup_wait_millis: env::var("BLLVM_MODULE_STARTUP_WAIT_MILLIS")
+            module_startup_wait_millis: env::var("BLVM_MODULE_STARTUP_WAIT_MILLIS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_socket_timeout: env::var("BLLVM_MODULE_SOCKET_TIMEOUT")
+            module_socket_timeout: env::var("BLVM_MODULE_SOCKET_TIMEOUT")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_socket_check_interval: env::var("BLLVM_MODULE_SOCKET_CHECK_INTERVAL")
+            module_socket_check_interval: env::var("BLVM_MODULE_SOCKET_CHECK_INTERVAL")
                 .ok()
                 .and_then(|s| s.parse().ok()),
-            module_socket_max_attempts: env::var("BLLVM_MODULE_SOCKET_MAX_ATTEMPTS")
+            module_socket_max_attempts: env::var("BLVM_MODULE_SOCKET_MAX_ATTEMPTS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
         }
@@ -463,21 +463,21 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
     }
 
     // 2. Current directory
-    let current_dir = Path::new("./bllvm.toml");
+    let current_dir = Path::new("./blvm.toml");
     if current_dir.exists() {
         return Some(current_dir.to_path_buf());
     }
 
     // 3. User config directory
     if let Ok(home) = env::var("HOME") {
-        let user_config = Path::new(&home).join(".config/bllvm/bllvm.toml");
+        let user_config = Path::new(&home).join(".config/blvm/blvm.toml");
         if user_config.exists() {
             return Some(user_config);
         }
     }
 
     // 4. System config directory
-    let system_config = Path::new("/etc/bllvm/bllvm.toml");
+    let system_config = Path::new("/etc/blvm/blvm.toml");
     if system_config.exists() {
         return Some(system_config.to_path_buf());
     }
@@ -534,16 +534,16 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
         match transport.to_lowercase().as_str() {
             "tcp_only" | "tcp" => {
                 config.transport_preference =
-                    bllvm_node::config::TransportPreferenceConfig::TcpOnly;
+                    blvm_node::config::TransportPreferenceConfig::TcpOnly;
             }
             #[cfg(feature = "iroh")]
             "iroh_only" | "iroh" => {
                 config.transport_preference =
-                    bllvm_node::config::TransportPreferenceConfig::IrohOnly;
+                    blvm_node::config::TransportPreferenceConfig::IrohOnly;
             }
             #[cfg(feature = "iroh")]
             "hybrid" => {
-                config.transport_preference = bllvm_node::config::TransportPreferenceConfig::Hybrid;
+                config.transport_preference = blvm_node::config::TransportPreferenceConfig::Hybrid;
             }
             _ => {
                 warn!(
@@ -1005,7 +1005,7 @@ async fn handle_health(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()>
 }
 
 fn handle_version() -> Result<()> {
-    println!("BLLVM {}", env!("CARGO_PKG_VERSION"));
+    println!("blvm {}", env!("CARGO_PKG_VERSION"));
     println!("Repository: {}", env!("CARGO_PKG_REPOSITORY"));
 
     // Try to get git info if available

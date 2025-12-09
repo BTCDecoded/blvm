@@ -9,12 +9,12 @@
 [versions]
 
 # Libraries (no binaries)
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["bllvm-consensus=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-consensus=0.1.0"] }
 
 # Binaries
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["bllvm-protocol=0.1.0", "bllvm-consensus=0.1.0"] }
-bllvm = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["bllvm-node=0.1.0"], binaries = ["bllvm"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-protocol=0.1.0", "blvm-consensus=0.1.0"] }
+blvm = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-node=0.1.0"], binaries = ["blvm"] }
 bllvm-sdk = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", binaries = ["bllvm-keygen", "bllvm-sign", "bllvm-verify"] }
 governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["bllvm-sdk=0.1.0"], binaries = ["governance-app", "key-manager", "test-content-hash", "test-content-hash-standalone"] }
 
