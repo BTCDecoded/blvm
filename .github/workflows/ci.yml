@@ -518,8 +518,7 @@ jobs:
       (github.event_name != 'push' || github.event.head_commit == null || 
        (!contains(github.event.head_commit.message, '[skip ci]') &&
         !contains(github.event.head_commit.message, '[ci skip]') &&
-        !contains(github.event.head_commit.message, '[no ci]'))) &&
-      ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true' }}
+        !contains(github.event.head_commit.message, '[no ci]')))
     steps:
       - uses: actions/checkout@v4
       
@@ -535,12 +534,7 @@ jobs:
           cargo install cargo-audit --version 0.21.0 --locked
       
       - name: Run security audit
-        run: |
-          cargo audit || {
-            echo "⚠️  Security audit found vulnerabilities"
-            echo "Review the output above for details"
-            exit 0  # Don't fail CI for security audit (can be addressed separately)
-          }
+        run: cargo audit
 
   build:
     name: Build

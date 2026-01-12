@@ -1,0 +1,11 @@
+# Local development overrides
+# This file is for local development only and should not be committed
+# CI/CD will create this automatically when needed
+
+[build]
+# Use local path dependencies for development
+paths = [
+    "../blvm-node",
+    "../blvm-protocol",
+    "../blvm-consensus",
+]

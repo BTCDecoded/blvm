@@ -140,7 +140,7 @@ blvm health --rpc-addr 127.0.0.1:8332
 
 ## Configuration
 
-BLLVM supports multiple configuration methods with a clear hierarchy. Configuration is applied in this order (highest to lowest priority):
+BLVM supports multiple configuration methods with a clear hierarchy. Configuration is applied in this order (highest to lowest priority):
 
 1. **CLI Arguments** - Always wins
 2. **Environment Variables** - Override config file
@@ -863,7 +863,7 @@ Create `/etc/systemd/system/blvm.service`:
 
 ```ini
 [Unit]
-Description=BLLVM Bitcoin Node
+Description=BLVM Bitcoin Node
 After=network.target
 
 [Service]
