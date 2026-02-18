@@ -39,9 +39,11 @@ blvm-protocol = { path = "../blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus" }
 
 [features]
-default = []
+default = ["blvm-node/rocksdb"]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
+# Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
+profile = ["blvm-node/profile"]
 # Experimental features (passed through from blvm-node)
 utxo-commitments = ["blvm-node/utxo-commitments"]
 dandelion = ["blvm-node/dandelion"]
@@ -65,3 +67,8 @@ codegen-units = 1
 strip = true
 panic = "abort"
 
+# IBD profiling: release optimizations + frame pointers for perf/flamegraph
+[profile.release-perf]
+inherits = "release"
+debug = 1
+strip = false

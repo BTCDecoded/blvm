@@ -560,21 +560,25 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
     // Apply ENV overrides for new config options
     apply_env_config_overrides(&mut config, &env_overrides);
 
-    // 4. Determine final values (CLI overrides everything)
-    // For network, parse ENV override if present, but CLI still wins
+    // 4. Determine final values (CLI > ENV > Config file > Defaults)
+    // For network: CLI wins if explicitly passed; else ENV; else config file; else regtest default
     let network = if let Some(network_str) = &env_overrides.network {
-        // Try to parse ENV network, but CLI will override if provided
         match network_str.to_lowercase().as_str() {
             "regtest" => Network::Regtest,
             "testnet" => Network::Testnet,
             "mainnet" => Network::Mainnet,
             _ => {
-                warn!(
-                    "Unknown network in ENV: {}. Using CLI/default.",
-                    network_str
-                );
+                warn!("Unknown network in ENV: {}. Using config/CLI.", network_str);
                 cli.network.clone()
             }
+        }
+    } else if let Some(pv) = &config.protocol_version {
+        // Config file protocol_version: BitcoinV1/Mainnet => mainnet, etc.
+        match pv.to_lowercase().as_str() {
+            "bitcoinv1" | "mainnet" => Network::Mainnet,
+            "testnet" => Network::Testnet,
+            "regtest" => Network::Regtest,
+            _ => cli.network.clone(),
         }
     } else {
         cli.network.clone()
