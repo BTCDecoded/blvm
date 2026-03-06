@@ -62,13 +62,26 @@ predicates = "3.0"
 
 [profile.release]
 opt-level = 3
-lto = "fat"
-codegen-units = 1
+lto = false        # off: fastest iteration; use thin/fat for production/CI
+codegen-units = 256  # max parallelism
 strip = true
 panic = "abort"
 
-# IBD profiling: release optimizations + frame pointers for perf/flamegraph
+# IBD profiling: MUST use same codegen as release to avoid block 546 consensus divergence.
+# release-perf with debug=0/strip=false caused "Invalid script at transaction 1" — different codegen.
+# Use release profile for profile builds; binary still outputs to target/release-perf/.
 [profile.release-perf]
+inherits = "release"
+
+# Faster builds for profile iteration (BLVM_FAST_BUILD=1): thin LTO, parallel codegen
+[profile.release-perf-fast]
 inherits = "release"
 debug = 1
 strip = false
+lto = "thin"
+codegen-units = 16
+
+# Fast release: opt-level 2 ~2-3x faster compile, ~5-10% slower runtime. Use for iteration.
+[profile.release-fast]
+inherits = "release"
+opt-level = 2
