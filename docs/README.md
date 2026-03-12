@@ -6,25 +6,18 @@ This directory contains all documentation for the BTCDecoded commons repository.
 
 ### `/build/` - Build System Documentation
 - **BUILD_CHAINING_GUIDE.md** - Complete guide to chaining builds across repositories
-- **BUILD_VERIFICATION_SUMMARY.md** - Summary of build system verification
 - **LOCAL_BUILD_VERIFICATION.md** - Local build verification and quick start
 - **BUILD_POLICY.md** - Build policy and guidelines
 - **BUILD_SYSTEM.md** - Detailed build system documentation
 
 ### `/workflows/` - Workflow Documentation
 - **WORKFLOW_METHODOLOGY.md** - Core workflow methodology
-- **WORKFLOW_PATTERNS_ANALYSIS.md** - Analysis of workflow patterns from MyBitcoinFuture
-- **WORKFLOW_ENHANCEMENTS.md** - Workflow enhancements summary
-- **WORKFLOW_LEARNINGS.md** - Comprehensive catalog of workflow learnings
 
 ### `/testing/` - Testing Documentation
-- **VALIDATION_REPORT.md** - Complete validation report
-- **TEST_PLAN.md** - Testing plan and strategy
 - **TEST_SEEDS.md** - Test seed information
 
 ### `/guides/` - Quick Reference Guides
 - **QUICK_START.md** - Quick start guide for local builds
-- **RUNNER_IMPROVEMENTS.md** - Runner and script improvements
 
 ## Quick Links
 
@@ -39,12 +32,9 @@ This directory contains all documentation for the BTCDecoded commons repository.
 
 ### Workflows
 - [Workflow Methodology](./workflows/WORKFLOW_METHODOLOGY.md) - Core methodology
-- [Workflow Enhancements](./workflows/WORKFLOW_ENHANCEMENTS.md) - Enhancements
-- [Workflow Patterns Analysis](./workflows/WORKFLOW_PATTERNS_ANALYSIS.md) - Pattern analysis
 
 ### Testing
-- [Validation Report](./testing/VALIDATION_REPORT.md) - Validation results
-- [Test Plan](./testing/TEST_PLAN.md) - Testing strategy
+- [Test Seeds](./testing/TEST_SEEDS.md) - Test seed information
 
 ## Root Documentation
 
@@ -66,12 +56,6 @@ Operations documentation is in the `ops/` directory:
 Scripts documentation is in the `scripts/` directory:
 - **scripts/README.md** - Complete script documentation
 
-## Workflow Documentation
-
-Workflow-specific documentation is in `.github/workflows/`:
-- **.github/workflows/WORKFLOW_OPTIONS.md** - Workflow options reference
-- **.github/workflows/OPTIONS_CONSISTENCY.md** - Options consistency guide
-
 ## Documentation Updates
 
 When adding new documentation:
@@ -85,7 +69,6 @@ When adding new documentation:
 
 ## See Also
 
-- [BTCDecoded System Overview](../../SYSTEM_OVERVIEW.md) - Complete system overview
 - [Workflow Methodology](./workflows/WORKFLOW_METHODOLOGY.md) - Workflow details
 - [Build System](./build/BUILD_SYSTEM.md) - Build system details
 

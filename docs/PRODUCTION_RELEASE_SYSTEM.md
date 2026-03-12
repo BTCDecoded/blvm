@@ -133,19 +133,19 @@ Generates integration manifest for unified release.
 ### Component Manifest
 ```json
 {
-  "component": "bllvm-node",
+  "component": "blvm-node",
   "version": "v0.1.0",
   "commit": "abc123...",
   "build_date": "2025-11-16T12:00:00Z",
   "platform": "linux-x86_64",
   "source": {
-    "repo": "BTCDecoded/bllvm-node",
+    "repo": "BTCDecoded/blvm-node",
     "tag": "v0.1.0",
     "commit": "abc123...",
-    "url": "https://github.com/BTCDecoded/bllvm-node/releases/tag/v0.1.0"
+    "url": "https://github.com/BTCDecoded/blvm-node/releases/tag/v0.1.0"
   },
   "binary": {
-    "name": "bllvm-node",
+    "name": "blvm-node",
     "hash": "def456...",
     "size": 12345678
   },
@@ -157,17 +157,17 @@ Generates integration manifest for unified release.
 ### Integration Manifest
 ```json
 {
-  "bllvm_release": "v0.1.0",
+  "blvm_release": "v0.1.0",
   "release_date": "2025-11-16T12:00:00Z",
   "integration_commit": "xyz789...",
   "components": {
-    "bllvm-consensus": {
+    "blvm-consensus": {
       "version": "v0.1.0",
       "commit": "abc123...",
       "source": {...},
       "binary": {...}
     },
-    "bllvm-node": {
+    "blvm-node": {
       "version": "v0.1.0",
       "commit": "def456...",
       "source": {...},
@@ -175,7 +175,7 @@ Generates integration manifest for unified release.
     }
   },
   "package": {
-    "name": "bllvm-v0.1.0-linux-x86_64.tar.gz",
+    "name": "blvm-v0.1.0-linux-x86_64.tar.gz",
     "hash": "final789...",
     "size": 45678901
   },

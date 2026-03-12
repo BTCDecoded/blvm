@@ -32,11 +32,11 @@ PACKAGE_SIZE=0
 PACKAGE_NAME=""
 
 # Find the main release package
-if [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
-    PACKAGE_NAME="bllvm-${VERSION_TAG}-linux-x86_64.tar.gz"
+if [ -f "${ARTIFACTS_DIR}/blvm-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
+    PACKAGE_NAME="blvm-${VERSION_TAG}-linux-x86_64.tar.gz"
     PACKAGE_PATH="${ARTIFACTS_DIR}/${PACKAGE_NAME}"
-elif [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-windows-x86_64.zip" ]; then
-    PACKAGE_NAME="bllvm-${VERSION_TAG}-windows-x86_64.zip"
+elif [ -f "${ARTIFACTS_DIR}/blvm-${VERSION_TAG}-windows-x86_64.zip" ]; then
+    PACKAGE_NAME="blvm-${VERSION_TAG}-windows-x86_64.zip"
     PACKAGE_PATH="${ARTIFACTS_DIR}/${PACKAGE_NAME}"
 fi
 
@@ -76,7 +76,7 @@ COMPONENTS_JSON="${COMPONENTS_JSON}}"
 # Generate integration manifest
 cat > "$OUTPUT_FILE" <<EOF
 {
-  "bllvm_release": "${VERSION_TAG}",
+  "blvm_release": "${VERSION_TAG}",
   "release_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "integration_commit": "${INTEGRATION_COMMIT}",
   "components": ${COMPONENTS_JSON},

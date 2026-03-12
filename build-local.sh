@@ -86,7 +86,7 @@ chmod +x build.sh
 if [ $CLEAN -eq 1 ]; then
     log_info "Cleaning previous builds..."
     PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-    for repo in consensus-proof protocol-engine reference-node developer-sdk governance-app; do
+    for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk governance-app; do
         if [ -d "$PARENT_DIR/$repo" ]; then
             log_info "Cleaning $repo..."
             (cd "$PARENT_DIR/$repo" && cargo clean 2>/dev/null || true)

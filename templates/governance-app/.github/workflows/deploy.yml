@@ -27,13 +27,13 @@ jobs:
         if: ${{ !github.event.client_payload.image }}
         run: |
           cargo build --release --locked
-          sudo systemctl restart bllvm-commons || true
+          sudo systemctl restart blvm-commons || true
 
       - name: Pull and restart container (if image provided)
         if: ${{ github.event.client_payload.image }}
         run: |
           IMAGE="${{ github.event.client_payload.image }}"
           docker pull "$IMAGE"
-          docker stop bllvm-commons || true
-          docker rm bllvm-commons || true
-          docker run -d --name bllvm-commons --restart=always -p 8080:8080 "$IMAGE"
+          docker stop blvm-commons || true
+          docker rm blvm-commons || true
+          docker run -d --name blvm-commons --restart=always -p 8080:8080 "$IMAGE"

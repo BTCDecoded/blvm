@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Create Debian package for bllvm binary
+# Create Debian package for blvm binary
 #
 
 set -euo pipefail
@@ -11,7 +11,7 @@ PARENT_DIR="$(dirname "$COMMONS_DIR")"
 VERSION="${1:-0.1.0}"
 ARCH="${2:-amd64}"
 
-PACKAGE_NAME="bllvm"
+PACKAGE_NAME="blvm"
 PACKAGE_DIR="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-${ARCH}"
 DEBIAN_DIR="${PACKAGE_DIR}/DEBIAN"
 BINARY_DIR="${PACKAGE_DIR}/usr/bin"
@@ -31,12 +31,12 @@ mkdir -p "${DEBIAN_DIR}"
 mkdir -p "${BINARY_DIR}"
 
 # Copy binary
-if [ -f "${PARENT_DIR}/bllvm/target/release/bllvm" ]; then
-    cp "${PARENT_DIR}/bllvm/target/release/bllvm" "${BINARY_DIR}/"
-    chmod +x "${BINARY_DIR}/bllvm"
+if [ -f "${PARENT_DIR}/blvm/target/release/blvm" ]; then
+    cp "${PARENT_DIR}/blvm/target/release/blvm" "${BINARY_DIR}/"
+    chmod +x "${BINARY_DIR}/blvm"
     log_success "Copied binary"
 else
-    echo "Error: Binary not found at ${PARENT_DIR}/bllvm/target/release/bllvm"
+    echo "Error: Binary not found at ${PARENT_DIR}/blvm/target/release/blvm"
     exit 1
 fi
 
@@ -48,9 +48,9 @@ Section: net
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: Bitcoin Commons Team <team@btcdecoded.org>
-Description: Bitcoin Commons BLLVM - Bitcoin Low-Level Virtual Machine Node
+Description: Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine Node
  Bitcoin Commons BLLVM is a minimal, production-ready Bitcoin node
- implementation that uses protocol abstraction and consensus-proof for
+ implementation that uses protocol abstraction and blvm-consensus for
  all consensus decisions.
 Homepage: https://btcdecoded.org
 EOF

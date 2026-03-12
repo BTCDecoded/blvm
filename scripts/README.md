@@ -15,7 +15,6 @@ This directory contains build, CI, and release scripts for the Bitcoin Commons b
 - `monitor-workflows.sh` - Monitor GitHub workflows
 - `cancel-old-jobs.sh` - Cancel old CI jobs
 - `ci-healer.sh` - CI health monitoring
-- `download-workflow-logs.sh` - Download workflow logs
 - `runner-status.sh` - Check runner status
 - `start-runner.sh` - Start CI runner
 
@@ -34,5 +33,5 @@ See [commons/README.md](../README.md) for build system documentation and usage i
 ## Related Scripts
 
 - `../tools/` - Build tools (bootstrap_runner.sh, run_suite.sh, etc.)
-- `../../scripts/` - Benchmarking and analysis scripts
+- `blvm-commons/scripts/download_workflow_logs.sh` - Download workflow logs (blvm-spec, blvm-consensus, etc.)
 - Component-specific scripts in component directories

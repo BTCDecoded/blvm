@@ -1,6 +1,5 @@
 # Build Script Chaining Guide
 
-**Date:** 2025-01-XX  
 **Status:** Complete Guide
 
 ## Overview
@@ -12,19 +11,19 @@ This guide explains how to chain build scripts across all BTCDecoded repositorie
 ### Dependency Graph
 
 ```
-bllvm-consensus (L2) ──┐
-                       ├──→ bllvm-protocol (L3) ──→ bllvm-node (L4)
-bllvm-sdk ─────────┘
+blvm-consensus (L2) ──┐
+                       ├──→ blvm-protocol (L3) ──→ blvm-node (L4)
+blvm-sdk ─────────┘
                        └──→ governance-app
 ```
 
 ### Build Order
 
-1. **bllvm-consensus** (parallel with bllvm-sdk)
-2. **bllvm-sdk** (parallel with bllvm-consensus)
-3. **bllvm-protocol** (depends on bllvm-consensus)
-4. **bllvm-node** (depends on bllvm-protocol + bllvm-consensus)
-5. **governance-app** (depends on bllvm-sdk)
+1. **blvm-consensus** (parallel with blvm-sdk)
+2. **blvm-sdk** (parallel with blvm-consensus)
+3. **blvm-protocol** (depends on blvm-consensus)
+4. **blvm-node** (depends on blvm-protocol + blvm-consensus)
+5. **governance-app** (depends on blvm-sdk)
 
 ## Approach 1: Using GitHub Actions Workflows (Recommended)
 
@@ -39,11 +38,11 @@ gh workflow run release_orchestrator.yml
 
 **What it does:**
 1. Reads `versions.toml` to get version tags for each repo
-2. Verifies bllvm-consensus (with Kani if enabled)
-3. Builds bllvm-protocol (depends on bllvm-consensus)
-4. Builds bllvm-node (depends on bllvm-protocol)
-5. Builds bllvm-sdk
-6. Builds governance-app Docker image (depends on bllvm-sdk)
+2. Verifies blvm-consensus (tests + spec-lock)
+3. Builds blvm-protocol (depends on blvm-consensus)
+4. Builds blvm-node (depends on blvm-protocol)
+5. Builds blvm-sdk
+6. Builds governance-app Docker image (depends on blvm-sdk)
 7. Signals deployment
 
 **Benefits:**
@@ -73,10 +72,10 @@ cd /path/to/BTCDecoded/commons
 # Ensure all repos are cloned in parent directory
 # BTCDecoded/
 #   ├── commons/
-#   ├── bllvm-consensus/
-#   ├── bllvm-protocol/
-#   ├── bllvm-node/
-#   ├── bllvm-sdk/
+#   ├── blvm-consensus/
+#   ├── blvm-protocol/
+#   ├── blvm-node/
+#   ├── blvm-sdk/
 #   └── governance-app/
 
 # Build all repos in dependency order
@@ -102,10 +101,10 @@ cd /path/to/BTCDecoded/commons
 # Ensure all repos are cloned in BASE directory
 # BASE=/path/to/checkouts
 # BASE/
-#   ├── bllvm-consensus/
-#   ├── bllvm-protocol/
-#   ├── bllvm-node/
-#   ├── bllvm-sdk/
+#   ├── blvm-consensus/
+#   ├── blvm-protocol/
+#   ├── blvm-node/
+#   ├── blvm-sdk/
 #   └── governance-app/
 
 # Build release set
@@ -125,7 +124,7 @@ cd /path/to/BTCDecoded/commons
 **What it does:**
 1. Reads `versions.toml` to get version tags
 2. Checks out each repo to the specified tag
-3. Builds bllvm-consensus → bllvm-protocol → bllvm-node → bllvm-sdk
+3. Builds blvm-consensus → blvm-protocol → blvm-node → blvm-sdk
 4. Optionally builds governance-app (source and/or Docker)
 5. Generates SHA256SUMS for each repo
 6. Optionally creates MANIFEST.json with all hashes
@@ -137,21 +136,21 @@ cd /path/to/BTCDecoded/commons
 Each repository can be built individually using `det_build.sh`:
 
 ```bash
-# Build bllvm-consensus
-cd /path/to/bllvm-consensus
+# Build blvm-consensus
+cd /path/to/blvm-consensus
 ../commons/tools/det_build.sh --repo .
 
-# Build bllvm-protocol (after bllvm-consensus)
-cd /path/to/bllvm-protocol
-../commons/tools/det_build.sh --repo . --package bllvm-protocol
+# Build blvm-protocol (after blvm-consensus)
+cd /path/to/blvm-protocol
+../commons/tools/det_build.sh --repo . --package blvm-protocol
 
-# Build bllvm-node (after bllvm-protocol)
-cd /path/to/bllvm-node
-../commons/tools/det_build.sh --repo . --package bllvm-node
+# Build blvm-node (after blvm-protocol)
+cd /path/to/blvm-node
+../commons/tools/det_build.sh --repo . --package blvm-node
 
-# Build bllvm-sdk
-cd /path/to/bllvm-sdk
-../commons/tools/det_build.sh --repo . --package bllvm-sdk
+# Build blvm-sdk
+cd /path/to/blvm-sdk
+../commons/tools/det_build.sh --repo . --package blvm-sdk
 
 # Build governance-app
 cd /path/to/governance-app
@@ -299,8 +298,8 @@ echo "Artifacts: $COMMONS_DIR/artifacts/"
 **Output:**
 - `artifacts/binaries/` - All binaries
 - `artifacts/SHA256SUMS` - Checksums
-- `artifacts/bitcoin-commons-bllvm-<platform>.tar.gz`
-- `artifacts/bitcoin-commons-bllvm-<platform>.zip`
+- `artifacts/bitcoin-commons-blvm-<platform>.tar.gz`
+- `artifacts/bitcoin-commons-blvm-<platform>.zip`
 
 ### `create-release.sh` - Release Package Creator
 
@@ -357,7 +356,7 @@ cd "$COMMONS_DIR"
 mkdir -p "$BASE_DIR"
 ./scripts/setup-build-env.sh --tag "$VERSION_TAG" || {
   # If setup fails, manually clone repos
-  for repo in bllvm-consensus bllvm-protocol bllvm-node bllvm-sdk governance-app; do
+  for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk governance-app; do
     if [ ! -d "$BASE_DIR/$repo" ]; then
       git clone "https://github.com/BTCDecoded/$repo.git" "$BASE_DIR/$repo"
     fi
@@ -407,10 +406,10 @@ gh workflow run release_orchestrator.yml
 
 **Workflow chain:**
 1. `read-versions` → Reads `versions.toml`
-2. `verify-consensus` → Verifies bllvm-consensus
-3. `build-bllvm-protocol` → Builds bllvm-protocol
-4. `build-bllvm-node` → Builds bllvm-node
-5. `build-bllvm-sdk` → Builds bllvm-sdk
+2. `verify-consensus` → Verifies blvm-consensus
+3. `build-blvm-protocol` → Builds blvm-protocol
+4. `build-blvm-node` → Builds blvm-node
+5. `build-blvm-sdk` → Builds blvm-sdk
 6. `build-governance-app-image` → Builds Docker image
 7. `deploy-signal` → Signals deployment
 
@@ -432,7 +431,7 @@ jobs:
   build-all:
     uses: BTCDecoded/commons/.github/workflows/build_lib_cached.yml
     with:
-      repo: bllvm-consensus
+      repo: blvm-consensus
       ref: ${{ inputs.version_tag }}
       use_cache: true
   
@@ -444,10 +443,10 @@ jobs:
 ### `versions.toml` - Single Source of Truth
 
 ```toml
-bllvm-consensus = "v0.1.0"
-bllvm-protocol = "v0.1.0"
-bllvm-node = "v0.1.0"
-bllvm-sdk = "v0.1.0"
+blvm-consensus = "v0.1.0"
+blvm-protocol = "v0.1.0"
+blvm-node = "v0.1.0"
+blvm-sdk = "v0.1.0"
 governance-app = "v0.1.0"
 ```
 
@@ -457,14 +456,14 @@ All build scripts read from this file to determine which versions to build toget
 
 ### Binaries Collected
 
-- **bllvm-node**: `bllvm-node`
-- **bllvm-sdk**: `bllvm-keygen`, `bllvm-sign`, `bllvm-verify`
+- **blvm-node**: `blvm-node`
+- **blvm-sdk**: `blvm-keygen`, `blvm-sign`, `blvm-verify`
 - **governance-app**: `governance-app`, `key-manager`, `test-content-hash*`
 
 ### Libraries (No Binaries)
 
-- **bllvm-consensus**: Library only
-- **bllvm-protocol**: Library only
+- **blvm-consensus**: Library only
+- **blvm-protocol**: Library only
 
 ## Troubleshooting
 

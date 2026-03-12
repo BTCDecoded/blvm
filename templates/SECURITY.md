@@ -8,8 +8,8 @@
 - Do not open public issues for sensitive reports.
 
 ## Scope
-- Consensus-critical code in `consensus-proof` has highest priority.
+- Consensus-critical code in `blvm-consensus` has highest priority.
 - No wallet code or key management in public repos.
 
 ## Verification
-- Consensus verification (tests + optional Kani) must pass before releases.
+- Consensus verification (tests + spec-lock) must pass before releases.

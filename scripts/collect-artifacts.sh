@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Collect all built binaries into release artifacts
-# Creates separate archives for bllvm binary and governance tools
+# Creates separate archives for blvm binary and governance tools
 #
 
 set -euo pipefail
@@ -44,9 +44,9 @@ fi
 
 # Binary mapping
 declare -A REPO_BINARIES
-REPO_BINARIES[bllvm]="bllvm"
-REPO_BINARIES[bllvm-sdk]="bllvm-keygen bllvm-sign bllvm-verify"
-REPO_BINARIES[bllvm-commons]="bllvm-commons key-manager test-content-hash test-content-hash-standalone"
+REPO_BINARIES[blvm]="blvm"
+REPO_BINARIES[blvm-sdk]="blvm-keygen blvm-sign blvm-verify"
+REPO_BINARIES[blvm-commons]="blvm-commons key-manager test-content-hash test-content-hash-standalone"
 
 log_info() {
     echo "[INFO] $1"
@@ -60,10 +60,10 @@ log_warn() {
     echo "[WARN] $1"
 }
 
-collect_bllvm_binary() {
-    local repo="bllvm"
+collect_blvm_binary() {
+    local repo="blvm"
     local repo_path="${PARENT_DIR}/${repo}"
-    local binary="bllvm"
+    local binary="blvm"
     local bin_path="${repo_path}/${TARGET_DIR}/${binary}${BIN_EXT}"
     
     mkdir -p "$BLVM_DIR"
@@ -72,13 +72,13 @@ collect_bllvm_binary() {
         cp "$bin_path" "${BLVM_DIR}/"
         log_success "Collected: ${binary}${BIN_EXT}"
         
-        # Include governance tools in both base and experimental bllvm archives
+        # Include governance tools in both base and experimental blvm archives
         # Always collect governance tools to ensure they're fresh
         collect_governance_binaries
         
-        # Copy governance tools into the bllvm archive
+        # Copy governance tools into the blvm archive
         if [ -d "$GOVERNANCE_DIR" ] && [ "$(ls -A "$GOVERNANCE_DIR" 2>/dev/null)" ]; then
-            log_info "Including governance tools in bllvm archive..."
+            log_info "Including governance tools in blvm archive..."
             cp -r "$GOVERNANCE_DIR"/* "${BLVM_DIR}/" 2>/dev/null || true
             log_info "Contents of ${BLVM_DIR} after adding governance tools:"
             ls -lh "${BLVM_DIR}" || true
@@ -96,8 +96,8 @@ collect_bllvm_binary() {
 collect_governance_binaries() {
     mkdir -p "$GOVERNANCE_DIR"
     
-    # Collect bllvm-sdk binaries
-    local repo="bllvm-sdk"
+    # Collect blvm-sdk binaries
+    local repo="blvm-sdk"
     local repo_path="${PARENT_DIR}/${repo}"
     local binaries="${REPO_BINARIES[$repo]}"
     
@@ -111,13 +111,13 @@ collect_governance_binaries() {
         fi
     done
     
-    # Collect bllvm-commons binaries (Linux only, Windows cross-compile doesn't build it yet)
+    # Collect blvm-commons binaries (Linux only, Windows cross-compile doesn't build it yet)
     if [[ "$PLATFORM" != *"windows"* ]]; then
-        local repo="bllvm-commons"
+        local repo="blvm-commons"
         local repo_path="${PARENT_DIR}/${repo}"
         local binaries="${REPO_BINARIES[$repo]}"
         
-        log_info "Collecting bllvm-commons binaries from: ${repo_path}/${TARGET_DIR}"
+        log_info "Collecting blvm-commons binaries from: ${repo_path}/${TARGET_DIR}"
         
         for binary in $binaries; do
             local bin_path="${repo_path}/${TARGET_DIR}/${binary}${BIN_EXT}"
@@ -134,7 +134,7 @@ collect_governance_binaries() {
             fi
         done
     else
-        log_info "Skipping bllvm-commons for Windows (not yet cross-compiled)"
+        log_info "Skipping blvm-commons for Windows (not yet cross-compiled)"
     fi
 }
 
@@ -208,9 +208,9 @@ create_archive() {
 main() {
     log_info "Collecting artifacts for ${PLATFORM} (variant: ${VARIANT})..."
     
-    # Collect bllvm binary separately (only bllvm has variants)
-    if collect_bllvm_binary; then
-        # Generate checksum for bllvm binary
+    # Collect blvm binary separately (only blvm has variants)
+    if collect_blvm_binary; then
+        # Generate checksum for blvm binary
         local blvm_checksum
         if [ "$VARIANT" = "base" ]; then
             blvm_checksum="${ARTIFACTS_DIR}/SHA256SUMS-blvm-${PLATFORM}"
@@ -233,7 +233,7 @@ main() {
         create_archive "$BLVM_DIR" "$blvm_archive_zip" "$blvm_checksum"
     fi
     
-    # Governance tools are now included in the bllvm archives (collected in collect_bllvm_binary)
+    # Governance tools are now included in the blvm archives (collected in collect_blvm_binary)
     # No separate governance archive needed
     
     log_success "Artifacts collected in: ${ARTIFACTS_DIR}"

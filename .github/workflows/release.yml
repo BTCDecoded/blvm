@@ -44,11 +44,11 @@ jobs:
       version_number: ${{ steps.version.outputs.version_number }}
       release_set_id: ${{ steps.version.outputs.release_set_id }}
     steps:
-      - name: Checkout bllvm
+      - name: Checkout blvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm
-          path: bllvm
+          repository: BTCDecoded/blvm
+          path: blvm
           ref: main
           fetch-depth: 0
       
@@ -67,16 +67,16 @@ jobs:
           fi
           
           # Otherwise, read from versions.toml and auto-increment patch
-          VERSIONS_FILE="bllvm/versions.toml"
+          VERSIONS_FILE="blvm/versions.toml"
           
           if [ ! -f "$VERSIONS_FILE" ]; then
             echo "ERROR: versions.toml not found"
             exit 1
           fi
           
-          # Extract current version from versions.toml (look for bllvm-consensus as base)
-          # Format: bllvm-consensus = { version = "0.1.0", ... }
-          CURRENT_VERSION=$(grep -A 1 "bllvm-consensus" "$VERSIONS_FILE" | grep "version" | sed -E 's/.*version = "([^"]+)".*/\1/' | head -1)
+          # Extract current version from versions.toml (look for blvm-consensus as base)
+          # Format: blvm-consensus = { version = "0.1.0", ... }
+          CURRENT_VERSION=$(grep -A 1 "blvm-consensus" "$VERSIONS_FILE" | grep "version" | sed -E 's/.*version = "([^"]+)".*/\1/' | head -1)
           
           if [ -z "$CURRENT_VERSION" ]; then
             echo "ERROR: Could not determine current version from versions.toml"
@@ -108,11 +108,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64, builds]
     timeout-minutes: 180
     steps:
-      - name: Checkout bllvm
+      - name: Checkout blvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm
-          path: bllvm
+          repository: BTCDecoded/blvm
+          path: blvm
           ref: main
           fetch-depth: 0
       
@@ -183,8 +183,8 @@ jobs:
       
       - name: Checkout all repos at main
         run: |
-          chmod +x bllvm/scripts/*.sh
-          bllvm/scripts/setup-build-env.sh
+          chmod +x blvm/scripts/*.sh
+          blvm/scripts/setup-build-env.sh
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           PARENT_DIR: ${{ github.workspace }}
@@ -196,8 +196,8 @@ jobs:
           PARENT_DIR="${GITHUB_WORKSPACE}"
           
           # Publishing order: dependencies first, then dependents
-          # bllvm-sdk depends on bllvm-node (composition framework), so must come after
-          PUBLISH_ORDER=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm-sdk")
+          # blvm-sdk depends on blvm-node (composition framework), so must come after
+          PUBLISH_ORDER=("blvm-consensus" "blvm-protocol" "blvm-node" "blvm-sdk")
           
           echo "=== Publishing Dependencies to crates.io ==="
           echo "Version: ${VERSION_NUMBER}"
@@ -225,13 +225,13 @@ jobs:
             cd "$REPO_PATH"
             
             # Update dependencies to use published crates before publishing
-            # bllvm-sdk depends on bllvm-node (composition framework)
-            if [ "$repo" = "bllvm-sdk" ]; then
-              echo "Updating bllvm-sdk dependencies to use published crates..."
+            # blvm-sdk depends on blvm-node (composition framework)
+            if [ "$repo" = "blvm-sdk" ]; then
+              echo "Updating blvm-sdk dependencies to use published crates..."
               if [ -f "Cargo.toml" ]; then
-                # Update bllvm-node dependency to use published version
-                sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${VERSION_NUMBER}"'"|g' Cargo.toml
-                echo "✅ Updated bllvm-sdk/Cargo.toml to use published bllvm-node"
+                # Update blvm-node dependency to use published version
+                sed -i 's|blvm-node = { path = "\.\./blvm-node"|blvm-node = "='"${VERSION_NUMBER}"'"|g' Cargo.toml
+                echo "✅ Updated blvm-sdk/Cargo.toml to use published blvm-node"
               fi
             fi
             
@@ -324,10 +324,10 @@ jobs:
           echo "=== Getting latest versions from crates.io ==="
           
           # Get latest versions from crates.io
-          CONSENSUS_VER=$(cargo search bllvm-consensus --limit 1 2>/dev/null | head -1 | sed -E 's/^bllvm-consensus = "([^"]+)".*/\1/' || echo "0.1.0")
-          PROTOCOL_VER=$(cargo search bllvm-protocol --limit 1 2>/dev/null | head -1 | sed -E 's/^bllvm-protocol = "([^"]+)".*/\1/' || echo "0.1.0")
-          NODE_VER=$(cargo search bllvm-node --limit 1 2>/dev/null | head -1 | sed -E 's/^bllvm-node = "([^"]+)".*/\1/' || echo "0.1.0")
-          SDK_VER=$(cargo search bllvm-sdk --limit 1 2>/dev/null | head -1 | sed -E 's/^bllvm-sdk = "([^"]+)".*/\1/' || echo "0.1.0")
+          CONSENSUS_VER=$(cargo search blvm-consensus --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-consensus = "([^"]+)".*/\1/' || echo "0.1.0")
+          PROTOCOL_VER=$(cargo search blvm-protocol --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-protocol = "([^"]+)".*/\1/' || echo "0.1.0")
+          NODE_VER=$(cargo search blvm-node --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-node = "([^"]+)".*/\1/' || echo "0.1.0")
+          SDK_VER=$(cargo search blvm-sdk --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-sdk = "([^"]+)".*/\1/' || echo "0.1.0")
           
           echo "consensus=${CONSENSUS_VER}" >> $GITHUB_OUTPUT
           echo "protocol=${PROTOCOL_VER}" >> $GITHUB_OUTPUT
@@ -359,37 +359,37 @@ jobs:
           
           PARENT_DIR="${GITHUB_WORKSPACE}"
           
-          # Update bllvm-protocol to use published bllvm-consensus
-          if [ -f "${PARENT_DIR}/bllvm-protocol/Cargo.toml" ]; then
-            echo "Updating bllvm-protocol/Cargo.toml..."
-            sed -i 's|bllvm-consensus = { path = "\.\./bllvm-consensus"|bllvm-consensus = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-protocol/Cargo.toml"
+          # Update blvm-protocol to use published blvm-consensus
+          if [ -f "${PARENT_DIR}/blvm-protocol/Cargo.toml" ]; then
+            echo "Updating blvm-protocol/Cargo.toml..."
+            sed -i 's|blvm-consensus = { path = "\.\./blvm-consensus"|blvm-consensus = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-protocol/Cargo.toml"
           fi
           
-          # Update bllvm-node to use published bllvm-protocol
-          if [ -f "${PARENT_DIR}/bllvm-node/Cargo.toml" ]; then
-            echo "Updating bllvm-node/Cargo.toml..."
-            sed -i 's|bllvm-protocol = { path = "\.\./bllvm-protocol"|bllvm-protocol = "='"${PROTOCOL_VER}"'"|g' "${PARENT_DIR}/bllvm-node/Cargo.toml"
+          # Update blvm-node to use published blvm-protocol
+          if [ -f "${PARENT_DIR}/blvm-node/Cargo.toml" ]; then
+            echo "Updating blvm-node/Cargo.toml..."
+            sed -i 's|blvm-protocol = { path = "\.\./blvm-protocol"|blvm-protocol = "='"${PROTOCOL_VER}"'"|g' "${PARENT_DIR}/blvm-node/Cargo.toml"
           fi
           
-          # Update bllvm to use published bllvm-node
-          if [ -f "${PARENT_DIR}/bllvm/Cargo.toml" ]; then
-            echo "Updating bllvm/Cargo.toml..."
-            sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/bllvm/Cargo.toml"
+          # Update blvm to use published blvm-node
+          if [ -f "${PARENT_DIR}/blvm/Cargo.toml" ]; then
+            echo "Updating blvm/Cargo.toml..."
+            sed -i 's|blvm-node = { path = "\.\./blvm-node"|blvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/blvm/Cargo.toml"
           fi
           
-          # Update bllvm-sdk to use published bllvm-node (for composition framework)
-          if [ -f "${PARENT_DIR}/bllvm-sdk/Cargo.toml" ]; then
-            echo "Updating bllvm-sdk/Cargo.toml..."
-            sed -i 's|bllvm-node = { path = "\.\./bllvm-node"|bllvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/bllvm-sdk/Cargo.toml"
+          # Update blvm-sdk to use published blvm-node (for composition framework)
+          if [ -f "${PARENT_DIR}/blvm-sdk/Cargo.toml" ]; then
+            echo "Updating blvm-sdk/Cargo.toml..."
+            sed -i 's|blvm-node = { path = "\.\./blvm-node"|blvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/blvm-sdk/Cargo.toml"
           fi
           
-          # Update bllvm-commons to use published bllvm-sdk and bllvm-protocol
-          if [ -f "${PARENT_DIR}/bllvm-commons/Cargo.toml" ]; then
-            echo "Updating bllvm-commons/Cargo.toml..."
-            # Update bllvm-sdk dependency
-            sed -i 's|bllvm-sdk = { path = "\.\./\.\./bllvm-sdk"|bllvm-sdk = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-commons/Cargo.toml"
-            # Update bllvm-protocol dependency
-            sed -i 's|bllvm-protocol = { path = "\.\./\.\./bllvm-protocol"|bllvm-protocol = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/bllvm-commons/Cargo.toml"
+          # Update blvm-commons to use published blvm-sdk and blvm-protocol
+          if [ -f "${PARENT_DIR}/blvm-commons/Cargo.toml" ]; then
+            echo "Updating blvm-commons/Cargo.toml..."
+            # Update blvm-sdk dependency
+            sed -i 's|blvm-sdk = { path = "\.\./\.\./blvm-sdk"|blvm-sdk = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-commons/Cargo.toml"
+            # Update blvm-protocol dependency
+            sed -i 's|blvm-protocol = { path = "\.\./\.\./blvm-protocol"|blvm-protocol = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-commons/Cargo.toml"
           fi
           
           echo "✅ Cargo.toml files updated to use published crates"
@@ -405,33 +405,33 @@ jobs:
           fi
           
           echo "=== Building final binaries using published crates ==="
-          echo "Dependencies (bllvm-consensus, bllvm-protocol, bllvm-node) are already published"
-          echo "Building only: bllvm, bllvm-sdk, bllvm-commons"
+          echo "Dependencies (blvm-consensus, blvm-protocol, blvm-node) are already published"
+          echo "Building only: blvm, blvm-sdk, blvm-commons"
           
           PARENT_DIR="${GITHUB_WORKSPACE}"
           RUSTFLAGS="${RUSTFLAGS:-} -C debuginfo=0"
           
-          # Build bllvm (uses published bllvm-node)
-          echo "Building bllvm (base variant)..."
-          cd "${PARENT_DIR}/bllvm"
+          # Build blvm (uses published blvm-node)
+          echo "Building blvm (base variant)..."
+          cd "${PARENT_DIR}/blvm"
           cargo build --release --locked --features production
           
-          # Build bllvm-sdk binaries (uses published bllvm-node)
-          echo "Building bllvm-sdk binaries..."
-          cd "${PARENT_DIR}/bllvm-sdk"
+          # Build blvm-sdk binaries (uses published blvm-node)
+          echo "Building blvm-sdk binaries..."
+          cd "${PARENT_DIR}/blvm-sdk"
           cargo build --release --locked --bins
           
-          # Build bllvm-commons (uses published bllvm-sdk and bllvm-protocol)
-          echo "Building bllvm-commons..."
-          cd "${PARENT_DIR}/bllvm-commons"
-          cargo build --release --locked --bins || echo "⚠️  bllvm-commons build failed (optional in Phase 1)"
+          # Build blvm-commons (uses published blvm-sdk and blvm-protocol)
+          echo "Building blvm-commons..."
+          cd "${PARENT_DIR}/blvm-commons"
+          cargo build --release --locked --bins || echo "⚠️  blvm-commons build failed (optional in Phase 1)"
           
           echo "✅ Final binaries built using published crates"
           
           # Save hashes from first build for deterministic verification
           echo "Saving hashes from first build for deterministic verification..."
           cd ${{ github.workspace }}
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "$repo" ] && [ -d "$repo/target/release" ]; then
               cd "$repo"
               find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
@@ -459,20 +459,20 @@ jobs:
           PARENT_DIR="${GITHUB_WORKSPACE}"
           RUSTFLAGS="${RUSTFLAGS:-} -C debuginfo=0"
           
-          # Build bllvm (experimental - all features)
-          echo "Building bllvm (experimental variant)..."
-          cd "${PARENT_DIR}/bllvm"
+          # Build blvm (experimental - all features)
+          echo "Building blvm (experimental variant)..."
+          cd "${PARENT_DIR}/blvm"
           cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh
           
-          # Build bllvm-sdk binaries
-          echo "Building bllvm-sdk binaries (experimental)..."
-          cd "${PARENT_DIR}/bllvm-sdk"
+          # Build blvm-sdk binaries
+          echo "Building blvm-sdk binaries (experimental)..."
+          cd "${PARENT_DIR}/blvm-sdk"
           cargo build --release --locked --bins --all-features
           
-          # Build bllvm-commons
-          echo "Building bllvm-commons (experimental)..."
-          cd "${PARENT_DIR}/bllvm-commons"
-          cargo build --release --locked --bins --all-features || echo "⚠️  bllvm-commons build failed (optional)"
+          # Build blvm-commons
+          echo "Building blvm-commons (experimental)..."
+          cd "${PARENT_DIR}/blvm-commons"
+          cargo build --release --locked --bins --all-features || echo "⚠️  blvm-commons build failed (optional)"
           
           echo "✅ Experimental binaries built using published crates"
         env:
@@ -488,28 +488,28 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          # Build bllvm for Windows (uses published bllvm-node)
-          if [ -d "bllvm" ]; then
-            echo "Building bllvm for Windows (base variant)..."
-            cd bllvm
+          # Build blvm for Windows (uses published blvm-node)
+          if [ -d "blvm" ]; then
+            echo "Building blvm for Windows (base variant)..."
+            cd blvm
             if cargo build --release --locked --target x86_64-pc-windows-gnu --features production; then
-              echo "✅ Successfully built bllvm for Windows (base)"
+              echo "✅ Successfully built blvm for Windows (base)"
             else
-              echo "❌ Windows build failed for bllvm (base variant)"
-              FAILED_REPOS+=("bllvm")
+              echo "❌ Windows build failed for blvm (base variant)"
+              FAILED_REPOS+=("blvm")
             fi
             cd ..
           fi
           
-          # Build bllvm-sdk binaries for Windows (uses published bllvm-node)
-          if [ -d "bllvm-sdk" ]; then
-            echo "Building bllvm-sdk for Windows (base variant)..."
-            cd bllvm-sdk
+          # Build blvm-sdk binaries for Windows (uses published blvm-node)
+          if [ -d "blvm-sdk" ]; then
+            echo "Building blvm-sdk for Windows (base variant)..."
+            cd blvm-sdk
             if cargo build --release --locked --target x86_64-pc-windows-gnu --bins; then
-              echo "✅ Successfully built bllvm-sdk for Windows (base)"
+              echo "✅ Successfully built blvm-sdk for Windows (base)"
             else
-              echo "❌ Windows build failed for bllvm-sdk (base variant)"
-              FAILED_REPOS+=("bllvm-sdk")
+              echo "❌ Windows build failed for blvm-sdk (base variant)"
+              FAILED_REPOS+=("blvm-sdk")
             fi
               cd ..
           fi
@@ -532,28 +532,28 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          # Build bllvm for Windows (experimental - all features)
-          if [ -d "bllvm" ]; then
-            echo "Building bllvm for Windows (experimental variant)..."
-            cd bllvm
+          # Build blvm for Windows (experimental - all features)
+          if [ -d "blvm" ]; then
+            echo "Building blvm for Windows (experimental variant)..."
+            cd blvm
             if cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
-              echo "✅ Successfully built bllvm for Windows (experimental)"
+              echo "✅ Successfully built blvm for Windows (experimental)"
             else
-              echo "❌ Windows build failed for bllvm (experimental variant)"
-              FAILED_REPOS+=("bllvm")
+              echo "❌ Windows build failed for blvm (experimental variant)"
+              FAILED_REPOS+=("blvm")
             fi
             cd ..
           fi
           
-          # Build bllvm-sdk binaries for Windows (experimental)
-          if [ -d "bllvm-sdk" ]; then
-            echo "Building bllvm-sdk for Windows (experimental variant)..."
-            cd bllvm-sdk
+          # Build blvm-sdk binaries for Windows (experimental)
+          if [ -d "blvm-sdk" ]; then
+            echo "Building blvm-sdk for Windows (experimental variant)..."
+            cd blvm-sdk
             if cargo build --release --locked --target x86_64-pc-windows-gnu --bins --all-features; then
-              echo "✅ Successfully built bllvm-sdk for Windows (experimental)"
+              echo "✅ Successfully built blvm-sdk for Windows (experimental)"
             else
-              echo "❌ Windows build failed for bllvm-sdk (experimental variant)"
-              FAILED_REPOS+=("bllvm-sdk")
+              echo "❌ Windows build failed for blvm-sdk (experimental variant)"
+              FAILED_REPOS+=("blvm-sdk")
             fi
             cd ..
           fi
@@ -577,7 +577,7 @@ jobs:
           PARENT_DIR="${GITHUB_WORKSPACE}"
           FAILED_REPOS=()
           
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "${PARENT_DIR}/${repo}" ] && [ -f "/tmp/${repo}-build1-hashes.txt" ]; then
               echo "Verifying deterministic build for ${repo} (base variant)..."
               cd "${PARENT_DIR}/${repo}"
@@ -585,7 +585,7 @@ jobs:
               cargo clean
               export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
               
-              if [ "$repo" = "bllvm" ] || [ "$repo" = "bllvm-consensus" ] || [ "$repo" = "bllvm-protocol" ] || [ "$repo" = "bllvm-node" ]; then
+              if [ "$repo" = "blvm" ] || [ "$repo" = "blvm-consensus" ] || [ "$repo" = "blvm-protocol" ] || [ "$repo" = "blvm-node" ]; then
                 BUILD_CMD="cargo build --release --locked --features production"
               else
                 BUILD_CMD="cargo build --release --locked"
@@ -629,7 +629,7 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          for repo in bllvm-consensus bllvm-protocol bllvm-node bllvm-sdk; do
+          for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk; do
             if [ -d "$repo" ]; then
               echo "=========================================="
               echo "Running tests in $repo..."
@@ -690,7 +690,7 @@ jobs:
           fi
           
           for platform in $PLATFORM_FLAG; do
-            bllvm/scripts/collect-artifacts.sh $platform base
+            blvm/scripts/collect-artifacts.sh $platform base
           done
       
       - name: Collect artifacts (experimental variant)
@@ -704,23 +704,23 @@ jobs:
           fi
           
           for platform in $PLATFORM_FLAG; do
-            bllvm/scripts/collect-artifacts.sh $platform experimental
+            blvm/scripts/collect-artifacts.sh $platform experimental
           done
       
       - name: Create release package
         run: |
-          bllvm/scripts/create-release.sh ${{ needs.determine-version.outputs.version_tag }}
+          blvm/scripts/create-release.sh ${{ needs.determine-version.outputs.version_tag }}
       
       - name: Verify versions
         run: |
-          bllvm/scripts/verify-versions.sh
+          blvm/scripts/verify-versions.sh
       
       - name: Tag all repositories
         if: ${{ !inputs.skip_tagging }}
         run: |
           VERSION_TAG="${{ needs.determine-version.outputs.version_tag }}"
           ORG="BTCDecoded"
-          REPOS=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm" "bllvm-sdk" "bllvm-commons")
+          REPOS=("blvm-consensus" "blvm-protocol" "blvm-node" "blvm" "blvm-sdk" "blvm-commons")
           
           for repo in "${REPOS[@]}"; do
             REPO_PATH="${PARENT_DIR}/${repo}"
@@ -754,14 +754,14 @@ jobs:
         with:
           tag_name: ${{ needs.determine-version.outputs.version_tag }}
           name: Bitcoin Commons ${{ needs.determine-version.outputs.version_tag }}
-          body_path: bllvm/artifacts/RELEASE_NOTES.md
+          body_path: blvm/artifacts/RELEASE_NOTES.md
           files: |
-            bllvm/artifacts/bllvm-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
-            bllvm/artifacts/bllvm-${{ needs.determine-version.outputs.version_tag }}-*.zip
-            bllvm/artifacts/bllvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
-            bllvm/artifacts/bllvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.zip
-            bllvm/artifacts/SHA256SUMS-bllvm-*
-            bllvm/artifacts/SHA256SUMS-bllvm-experimental-*
+            blvm/artifacts/blvm-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
+            blvm/artifacts/blvm-${{ needs.determine-version.outputs.version_tag }}-*.zip
+            blvm/artifacts/blvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
+            blvm/artifacts/blvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.zip
+            blvm/artifacts/SHA256SUMS-blvm-*
+            blvm/artifacts/SHA256SUMS-blvm-experimental-*
           draft: false
           prerelease: false
         env:

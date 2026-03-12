@@ -24,20 +24,19 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 case "$PHASE" in
   L2)
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/consensus-proof" --suite cp-unit
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/consensus-proof" --suite cp-prop || true
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/consensus-proof" --suite cp-kani || true
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/consensus-proof" --suite cp-int || true ;;
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-consensus" --suite cp-unit
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-consensus" --suite cp-prop || true
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-consensus" --suite cp-int || true ;;
   L3)
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/protocol-engine" --suite pe-all ;;
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-protocol" --suite pe-all ;;
   L4)
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/reference-node" --suite rn-storage
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/reference-node" --suite rn-network
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/reference-node" --suite rn-rpc
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/reference-node" --suite rn-node
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/reference-node" --suite rn-quic || true ;;
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-node" --suite rn-storage
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-node" --suite rn-network
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-node" --suite rn-rpc
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-node" --suite rn-node
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-node" --suite rn-quic || true ;;
   SDK)
-    "$ROOT_DIR/run_suite.sh" --repo "$BASE/developer-sdk" --suite ds-all ;;
+    "$ROOT_DIR/run_suite.sh" --repo "$BASE/blvm-sdk" --suite ds-all ;;
   GA)
     "$ROOT_DIR/run_suite.sh" --repo "$BASE/governance-app" --suite ga-all ;;
   *) echo "Unknown phase: $PHASE" >&2; exit 2 ;;

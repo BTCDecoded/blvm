@@ -4,45 +4,45 @@ version: '3.8'
 # Usage: docker-compose -f docker-compose.build.yml build
 
 services:
-  # Build consensus-proof (library only)
-  consensus-proof:
+  # Build blvm-consensus (library only)
+  blvm-consensus:
     build:
-      context: ../consensus-proof
+      context: ../blvm-consensus
       dockerfile: Dockerfile
-    image: btcdecoded/consensus-proof:latest
+    image: btcdecoded/blvm-consensus:latest
     
-  # Build protocol-engine (library only, depends on consensus-proof)
-  protocol-engine:
+  # Build blvm-protocol (library only, depends on blvm-consensus)
+  blvm-protocol:
     build:
-      context: ../protocol-engine
+      context: ../blvm-protocol
       dockerfile: Dockerfile
-    image: btcdecoded/protocol-engine:latest
+    image: btcdecoded/blvm-protocol:latest
     depends_on:
-      - consensus-proof
+      - blvm-consensus
     
-  # Build reference-node (binary)
-  reference-node:
+  # Build blvm-node (binary)
+  blvm-node:
     build:
-      context: ../reference-node
+      context: ../blvm-node
       dockerfile: Dockerfile
-    image: btcdecoded/reference-node:latest
+    image: btcdecoded/blvm-node:latest
     depends_on:
-      - consensus-proof
-      - protocol-engine
+      - blvm-consensus
+      - blvm-protocol
     
-  # Build developer-sdk (CLI binaries)
-  developer-sdk:
+  # Build blvm-sdk (CLI binaries)
+  blvm-sdk:
     build:
-      context: ../developer-sdk
+      context: ../blvm-sdk
       dockerfile: Dockerfile
-    image: btcdecoded/developer-sdk:latest
+    image: btcdecoded/blvm-sdk:latest
     
-  # Build bllvm-commons (binaries)
-  bllvm-commons:
+  # Build blvm-commons (binaries)
+  blvm-commons:
     build:
-      context: ../bllvm-commons
+      context: ../blvm-commons
       dockerfile: Dockerfile
-    image: btcdecoded/bllvm-commons:latest
+    image: btcdecoded/blvm-commons:latest
     depends_on:
-      - developer-sdk
+      - blvm-sdk
 

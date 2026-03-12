@@ -61,13 +61,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-protocol
-          path: _temp-protocol-engine
+          path: _temp-blvm-protocol
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-consensus
-          path: _temp-consensus-proof
+          path: _temp-blvm-consensus
       
       - name: Checkout blvm-spec-lock (consensus path dep)
         uses: actions/checkout@v4
@@ -82,8 +82,8 @@ jobs:
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
-          mv _temp-protocol-engine ../blvm-protocol
-          mv _temp-consensus-proof ../blvm-consensus
+          mv _temp-blvm-protocol ../blvm-protocol
+          mv _temp-blvm-consensus ../blvm-consensus
           mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
@@ -178,14 +178,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-protocol
-          path: _temp-protocol-engine
+          path: _temp-blvm-protocol
       
       - name: Checkout consensus
         if: steps.skip_check.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-consensus
-          path: _temp-consensus-proof
+          path: _temp-blvm-consensus
       
       - name: Checkout blvm-spec-lock (consensus path dep)
         if: steps.skip_check.outputs.skip != 'true'
@@ -202,8 +202,8 @@ jobs:
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
-          mv _temp-protocol-engine ../blvm-protocol
-          mv _temp-consensus-proof ../blvm-consensus
+          mv _temp-blvm-protocol ../blvm-protocol
+          mv _temp-blvm-consensus ../blvm-consensus
           mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
@@ -378,13 +378,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-protocol
-          path: _temp-protocol-engine
+          path: _temp-blvm-protocol
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-consensus
-          path: _temp-consensus-proof
+          path: _temp-blvm-consensus
       
       - name: Checkout blvm-spec-lock (consensus path dep)
         uses: actions/checkout@v4
@@ -399,8 +399,8 @@ jobs:
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
-          mv _temp-protocol-engine ../blvm-protocol
-          mv _temp-consensus-proof ../blvm-consensus
+          mv _temp-blvm-protocol ../blvm-protocol
+          mv _temp-blvm-consensus ../blvm-consensus
           mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
@@ -478,13 +478,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-protocol
-          path: _temp-protocol-engine
+          path: _temp-blvm-protocol
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-consensus
-          path: _temp-consensus-proof
+          path: _temp-blvm-consensus
       
       - name: Checkout blvm-spec-lock (consensus path dep)
         uses: actions/checkout@v4
@@ -499,8 +499,8 @@ jobs:
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
-          mv _temp-protocol-engine ../blvm-protocol
-          mv _temp-consensus-proof ../blvm-consensus
+          mv _temp-blvm-protocol ../blvm-protocol
+          mv _temp-blvm-consensus ../blvm-consensus
           mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
@@ -604,13 +604,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-protocol
-          path: _temp-protocol-engine
+          path: _temp-blvm-protocol
       
       - name: Checkout consensus
         uses: actions/checkout@v4
         with:
           repository: BTCDecoded/blvm-consensus
-          path: _temp-consensus-proof
+          path: _temp-blvm-consensus
       
       - name: Checkout blvm-spec-lock (consensus path dep)
         uses: actions/checkout@v4
@@ -625,8 +625,8 @@ jobs:
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
-          mv _temp-protocol-engine ../blvm-protocol
-          mv _temp-consensus-proof ../blvm-consensus
+          mv _temp-blvm-protocol ../blvm-protocol
+          mv _temp-blvm-consensus ../blvm-consensus
           mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache

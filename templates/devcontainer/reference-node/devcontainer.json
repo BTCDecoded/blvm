@@ -1,5 +1,5 @@
 {
-  "name": "reference-node-dev",
+  "name": "blvm-node-dev",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "customizations": {
     "vscode": {

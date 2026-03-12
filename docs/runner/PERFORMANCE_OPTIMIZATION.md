@@ -1,6 +1,5 @@
 # Self-Hosted Runner Performance Optimization Guide
 
-**Date:** 2025-11-14  
 **Status:** Active Recommendations
 
 ## Overview
@@ -160,7 +159,7 @@ For git-based dependencies, pre-clone them:
 
 ```bash
 # Pre-clone common git dependencies
-git clone https://github.com/BTCDecoded/bllvm-consensus.git /tmp/bllvm-consensus
+git clone https://github.com/BTCDecoded/blvm-consensus.git /tmp/blvm-consensus
 # Cargo will use cached git checkouts
 ```
 

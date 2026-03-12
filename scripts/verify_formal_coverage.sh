@@ -6,11 +6,11 @@ set -e
 echo "=== Formal Verification Coverage Report ==="
 echo ""
 
-cd "$(dirname "$0")/../bllvm-consensus" || exit 1
+cd "$(dirname "$0")/../blvm-consensus" || exit 1
 
-echo "1. Kani Proofs:"
-kani_count=$(grep -r "kani::proof" src/ 2>/dev/null | wc -l || echo "0")
-echo "   Found: $kani_count proofs"
+echo "1. Spec-lock verified functions:"
+spec_count=$(grep -r "spec_locked" src/ 2>/dev/null | wc -l || echo "0")
+echo "   Found: $spec_count #[spec_locked] annotations"
 
 echo ""
 echo "2. Property-Based Tests (proptest):"
@@ -29,7 +29,7 @@ echo "   Found: $todo_count TODOs (may indicate incomplete verification)"
 
 echo ""
 echo "=== Coverage Status ==="
-echo "Kani Proofs: $kani_count (Target: 30+)"
+echo "Spec-lock annotations: $spec_count"
 echo "Property Tests: $proptest_count (Target: 100+)"
 echo "Test Files: $test_files"
 echo ""

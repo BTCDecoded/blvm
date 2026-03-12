@@ -79,16 +79,16 @@ jobs:
           cargo test --release --verbose
       
       - name: Collect binaries
-        if: contains(fromJSON('["reference-node", "developer-sdk", "governance-app"]'), inputs.repo-name)
+        if: contains(fromJSON('["blvm-node", "blvm-sdk", "governance-app"]'), inputs.repo-name)
         run: |
           mkdir -p artifacts/binaries
           # Copy binaries based on repo
           case "${{ inputs.repo-name }}" in
-            reference-node)
-              cp ${{ inputs.repo-name }}/target/release/reference-node artifacts/binaries/ 2>/dev/null || true
+            blvm-node)
+              cp ${{ inputs.repo-name }}/target/release/blvm artifacts/binaries/ 2>/dev/null || true
               ;;
-            developer-sdk)
-              cp ${{ inputs.repo-name }}/target/release/btcdecoded-* artifacts/binaries/ 2>/dev/null || true
+            blvm-sdk)
+              cp ${{ inputs.repo-name }}/target/release/blvm-* artifacts/binaries/ 2>/dev/null || true
               ;;
             governance-app)
               cp ${{ inputs.repo-name }}/target/release/governance-app artifacts/binaries/ 2>/dev/null || true
@@ -98,7 +98,7 @@ jobs:
           esac
       
       - name: Upload artifacts
-        if: contains(fromJSON('["reference-node", "developer-sdk", "governance-app"]'), inputs.repo-name)
+        if: contains(fromJSON('["blvm-node", "blvm-sdk", "governance-app"]'), inputs.repo-name)
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.repo-name }}-binaries

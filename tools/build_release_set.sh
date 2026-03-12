@@ -20,7 +20,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$BASE" ]]; then
-  echo "--base /path/to/checkouts required (contains consensus-proof/, protocol-engine/, reference-node/, developer-sdk/, governance-app/)" >&2
+  echo "--base /path/to/checkouts required (contains blvm-consensus/, blvm-protocol/, blvm-node/, blvm-sdk/, governance-app/)" >&2
   exit 2
 fi
 
@@ -29,18 +29,18 @@ VERS_FILE="$ROOT_DIR/versions.toml"
 
 if [[ ! -f "$VERS_FILE" ]]; then echo "versions.toml not found: $VERS_FILE" >&2; exit 2; fi
 
-CP_TAG=$(grep -E '^consensus-proof' "$VERS_FILE" | awk -F '="' '{print $2}' | tr -d '"')
-PE_TAG=$(grep -E '^protocol-engine' "$VERS_FILE" | awk -F '="' '{print $2}' | tr -d '"')
-RN_TAG=$(grep -E '^reference-node' "$VERS_FILE" | awk -F '="' '{print $2}' | tr -d '"')
-DS_TAG=$(grep -E '^developer-sdk' "$VERS_FILE" | awk -F '="' '{print $2}' | tr -d '"')
-GA_TAG=$(grep -E '^governance-app' "$VERS_FILE" | awk -F '="' '{print $2}' | tr -d '"')
+CP_TAG=$(grep -E '^blvm-consensus' "$VERS_FILE" | grep -oE 'git_tag = "[^"]+"' | sed 's/git_tag = "\(.*\)"/\1/')
+PE_TAG=$(grep -E '^blvm-protocol' "$VERS_FILE" | grep -oE 'git_tag = "[^"]+"' | sed 's/git_tag = "\(.*\)"/\1/')
+RN_TAG=$(grep -E '^blvm-node' "$VERS_FILE" | grep -oE 'git_tag = "[^"]+"' | sed 's/git_tag = "\(.*\)"/\1/')
+DS_TAG=$(grep -E '^blvm-sdk' "$VERS_FILE" | grep -oE 'git_tag = "[^"]+"' | sed 's/git_tag = "\(.*\)"/\1/')
+GA_TAG=$(grep -E '^governance-app' "$VERS_FILE" | grep -oE 'git_tag = "[^"]+"' | sed 's/git_tag = "\(.*\)"/\1/')
 
 echo "Release set:"
-echo "  consensus-proof: $CP_TAG"
-echo "  protocol-engine : $PE_TAG"
-echo "  reference-node  : $RN_TAG"
-echo "  developer-sdk   : $DS_TAG"
-echo "  governance-app  : $GA_TAG"
+echo "  blvm-consensus: $CP_TAG"
+echo "  blvm-protocol : $PE_TAG"
+echo "  blvm-node     : $RN_TAG"
+echo "  blvm-sdk      : $DS_TAG"
+echo "  governance-app: $GA_TAG"
 
 git_checkout() {
   local dir="$1"; local tag="$2"
@@ -77,10 +77,10 @@ build_governance_docker() {
 }
 
 # L2 → L3 → L4 → dev-sdk
-build_repo consensus-proof "$CP_TAG"
-build_repo protocol-engine "$PE_TAG"
-build_repo reference-node "$RN_TAG"
-build_repo developer-sdk "$DS_TAG"
+build_repo blvm-consensus "$CP_TAG"
+build_repo blvm-protocol "$PE_TAG"
+build_repo blvm-node "$RN_TAG"
+build_repo blvm-sdk "$DS_TAG"
 
 # Governance-app (optional)
 if [[ $GOV_SOURCE -eq 1 ]]; then
@@ -95,7 +95,7 @@ if [[ -n "$MANIFEST_DIR" ]]; then
   mkdir -p "$MANIFEST_DIR"
   MANIFEST_PATH="$MANIFEST_DIR/MANIFEST.json"
   echo "{" > "$MANIFEST_PATH"
-  for name in consensus-proof protocol-engine reference-node developer-sdk; do
+  for name in blvm-consensus blvm-protocol blvm-node blvm-sdk; do
     dir="$BASE/$name"
     if [[ -f "$dir/SHA256SUMS" ]]; then
       sums=$(python3 - <<'PY'

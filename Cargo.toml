@@ -30,6 +30,7 @@ toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "=1.0.108"
 reqwest = { version = "0.12", features = ["json"], default-features = false }
+hex = "0.4"
 
 # Local development: Use [patch.crates-io] to override with local paths
 # For production/CI, these patches are removed and crates.io versions are used

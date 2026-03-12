@@ -36,45 +36,45 @@ Release date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
 This release includes the following components:
 
-- **bllvm-consensus** - Direct mathematical implementation of Bitcoin consensus rules
-- **bllvm-protocol** - Bitcoin protocol abstraction layer
-- **bllvm-node** - Minimal Bitcoin node implementation
-- **bllvm-sdk** - Governance infrastructure and CLI tools
-- **bllvm-commons** - GitHub App for cryptographic governance enforcement
+- **blvm-consensus** - Direct mathematical implementation of Bitcoin consensus rules
+- **blvm-protocol** - Bitcoin protocol abstraction layer
+- **blvm-node** - Minimal Bitcoin node implementation
+- **blvm-sdk** - Governance infrastructure and CLI tools
+- **blvm-commons** - GitHub App for cryptographic governance enforcement
 
 ## Cargo Registry
 
 All library dependencies are published to [crates.io](https://crates.io):
 
-- \`bllvm-consensus = "${VERSION_TAG#v}"\`
-- \`bllvm-protocol = "${VERSION_TAG#v}"\`
-- \`bllvm-node = "${VERSION_TAG#v}"\`
-- \`bllvm-sdk = "${VERSION_TAG#v}"\`
+- \`blvm-consensus = "${VERSION_TAG#v}"\`
+- \`blvm-protocol = "${VERSION_TAG#v}"\`
+- \`blvm-node = "${VERSION_TAG#v}"\`
+- \`blvm-sdk = "${VERSION_TAG#v}"\`
 
 You can depend on these crates directly in your \`Cargo.toml\`:
 
 \`\`\`toml
 [dependencies]
-bllvm-consensus = "=${VERSION_TAG#v}"
-bllvm-protocol = "=${VERSION_TAG#v}"
-bllvm-node = "=${VERSION_TAG#v}"
+blvm-consensus = "=${VERSION_TAG#v}"
+blvm-protocol = "=${VERSION_TAG#v}"
+blvm-node = "=${VERSION_TAG#v}"
 \`\`\`
 
 ## Build Variants
 
 This release includes two build variants:
 
-### Base Variant (\`bllvm-{version}-{platform}.tar.gz\`)
+### Base Variant (\`blvm-{version}-{platform}.tar.gz\`)
 **Purpose**: Stable, minimal release with core functionality only
 
 **Features**:
-- Core \`bllvm\` binary
+- Core \`blvm\` binary
 - Production optimizations
 - Standard storage backends
 
 **Use this variant for**: Production deployments, stability priority
 
-### Experimental Variant (\`bllvm-experimental-{version}-{platform}.tar.gz\`)
+### Experimental Variant (\`blvm-experimental-{version}-{platform}.tar.gz\`)
 **Purpose**: Full-featured build with all experimental features
 
 **Features**:
@@ -91,11 +91,11 @@ This release includes two build variants:
 ## Binaries Included
 
 Both variants include:
-- \`bllvm\` - Bitcoin reference node
-- \`bllvm-keygen\` - Key generation tool
-- \`bllvm-sign\` - Message signing tool
-- \`bllvm-verify\` - Signature verification tool
-- \`bllvm-commons\` - Governance application server
+- \`blvm\` - Bitcoin reference node
+- \`blvm-keygen\` - Key generation tool
+- \`blvm-sign\` - Message signing tool
+- \`blvm-verify\` - Signature verification tool
+- \`blvm-commons\` - Governance application server
 - \`key-manager\` - Key management utility
 - \`test-content-hash\` - Content hash testing tool
 - \`test-content-hash-standalone\` - Standalone content hash test
@@ -104,13 +104,13 @@ Both variants include:
 
 ### Base Variant
 \`\`\`bash
-tar -xzf bllvm-${VERSION_TAG}-linux-x86_64.tar.gz
+tar -xzf blvm-${VERSION_TAG}-linux-x86_64.tar.gz
 sudo mv binaries/* /usr/local/bin/
 \`\`\`
 
 ### Experimental Variant
 \`\`\`bash
-tar -xzf bllvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz
+tar -xzf blvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz
 sudo mv binaries-experimental/* /usr/local/bin/
 \`\`\`
 
@@ -160,27 +160,27 @@ rename_archives() {
     
     # Rename all archives to include version tag
     for platform in linux-x86_64 windows-x86_64; do
-        # Base variant bllvm binary
+        # Base variant blvm binary
         for ext in tar.gz zip; do
-            if [ -f "bllvm-${platform}.${ext}" ]; then
-                mv "bllvm-${platform}.${ext}" "bllvm-${VERSION_TAG}-${platform}.${ext}"
-                log_success "Renamed: bllvm-${platform}.${ext} -> bllvm-${VERSION_TAG}-${platform}.${ext}"
+            if [ -f "blvm-${platform}.${ext}" ]; then
+                mv "blvm-${platform}.${ext}" "blvm-${VERSION_TAG}-${platform}.${ext}"
+                log_success "Renamed: blvm-${platform}.${ext} -> blvm-${VERSION_TAG}-${platform}.${ext}"
             fi
         done
         
-        # Experimental variant bllvm binary
+        # Experimental variant blvm binary
         for ext in tar.gz zip; do
-            if [ -f "bllvm-experimental-${platform}.${ext}" ]; then
-                mv "bllvm-experimental-${platform}.${ext}" "bllvm-experimental-${VERSION_TAG}-${platform}.${ext}"
-                log_success "Renamed: bllvm-experimental-${platform}.${ext} -> bllvm-experimental-${VERSION_TAG}-${platform}.${ext}"
+            if [ -f "blvm-experimental-${platform}.${ext}" ]; then
+                mv "blvm-experimental-${platform}.${ext}" "blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
+                log_success "Renamed: blvm-experimental-${platform}.${ext} -> blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
             fi
         done
         
         # Governance tools (single variant - same for both base and experimental)
         for ext in tar.gz zip; do
-            if [ -f "bllvm-governance-${platform}.${ext}" ]; then
-                mv "bllvm-governance-${platform}.${ext}" "bllvm-governance-${VERSION_TAG}-${platform}.${ext}"
-                log_success "Renamed: bllvm-governance-${platform}.${ext} -> bllvm-governance-${VERSION_TAG}-${platform}.${ext}"
+            if [ -f "blvm-governance-${platform}.${ext}" ]; then
+                mv "blvm-governance-${platform}.${ext}" "blvm-governance-${VERSION_TAG}-${platform}.${ext}"
+                log_success "Renamed: blvm-governance-${platform}.${ext} -> blvm-governance-${VERSION_TAG}-${platform}.${ext}"
             fi
         done
     done

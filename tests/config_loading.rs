@@ -1,6 +1,6 @@
 //! Tests for configuration loading and hierarchy
 
-use bllvm_node::config::NodeConfig;
+use blvm_node::config::NodeConfig;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -10,7 +10,7 @@ use tempfile::TempDir;
 #[test]
 fn test_toml_config_file_loading() {
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("bllvm.toml");
+    let config_path = temp_dir.path().join("blvm.toml");
 
     let config_content = r#"
 max_peers = 50
@@ -43,7 +43,7 @@ socket_dir = "data/modules/sockets"
 #[test]
 fn test_json_config_file_loading() {
     let temp_dir = TempDir::new().unwrap();
-    let config_path = temp_dir.path().join("bllvm.json");
+    let config_path = temp_dir.path().join("blvm.json");
 
     let config_content = r#"{
   "max_peers": 50,

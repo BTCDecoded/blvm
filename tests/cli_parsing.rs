@@ -6,7 +6,7 @@ use predicates::prelude::*;
 /// Test that --help works
 #[test]
 fn test_help_flag() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--help");
     cmd.assert()
         .success()
@@ -17,7 +17,7 @@ fn test_help_flag() {
 #[test]
 fn test_network_argument_valid() {
     for network in &["regtest", "testnet", "mainnet"] {
-        let mut cmd = Command::cargo_bin("bllvm").unwrap();
+        let mut cmd = Command::cargo_bin("blvm").unwrap();
         cmd.arg("--network").arg(network);
         // Should parse successfully (will fail later when trying to start node, but parsing should work)
         // We use timeout to prevent hanging
@@ -31,7 +31,7 @@ fn test_network_argument_valid() {
 /// Test that invalid network is rejected
 #[test]
 fn test_invalid_network() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--network").arg("invalid");
     cmd.assert()
         .failure()
@@ -41,7 +41,7 @@ fn test_invalid_network() {
 /// Test verbose flag parsing
 #[test]
 fn test_verbose_flag() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--verbose");
     cmd.timeout(std::time::Duration::from_secs(1));
     // Should parse successfully (will fail when starting node, but parsing works)
@@ -63,7 +63,7 @@ fn test_feature_flags() {
     ];
 
     for flag in &flags {
-        let mut cmd = Command::cargo_bin("bllvm").unwrap();
+        let mut cmd = Command::cargo_bin("blvm").unwrap();
         cmd.arg(flag);
         cmd.timeout(std::time::Duration::from_secs(1));
         // Should parse successfully
@@ -74,7 +74,7 @@ fn test_feature_flags() {
 /// Test RPC address parsing
 #[test]
 fn test_rpc_addr_parsing() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--rpc-addr").arg("127.0.0.1:18332");
     cmd.timeout(std::time::Duration::from_secs(1));
     // Should parse successfully
@@ -84,7 +84,7 @@ fn test_rpc_addr_parsing() {
 /// Test listen address parsing
 #[test]
 fn test_listen_addr_parsing() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--listen-addr").arg("0.0.0.0:8333");
     cmd.timeout(std::time::Duration::from_secs(1));
     // Should parse successfully
@@ -94,8 +94,9 @@ fn test_listen_addr_parsing() {
 /// Test data directory argument
 #[test]
 fn test_data_dir_parsing() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
-    cmd.arg("--data-dir").arg("/tmp/test-data");
+    let data_dir = std::env::temp_dir().join("blvm_test-data");
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
+    cmd.arg("--data-dir").arg(data_dir);
     cmd.timeout(std::time::Duration::from_secs(1));
     // Should parse successfully
     let _ = cmd.assert();
@@ -104,7 +105,7 @@ fn test_data_dir_parsing() {
 /// Test advanced configuration options
 #[test]
 fn test_advanced_config_options() {
-    let mut cmd = Command::cargo_bin("bllvm").unwrap();
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--target-peer-count").arg("10");
     cmd.arg("--async-request-timeout").arg("300");
     cmd.arg("--module-max-cpu-percent").arg("50");

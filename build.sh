@@ -56,30 +56,30 @@ fi
 
 # Repository configuration
 declare -A REPOS
-REPOS[bllvm-consensus]="library"
-REPOS[bllvm-protocol]="library|bllvm-consensus"
-REPOS[bllvm-node]="library|bllvm-protocol,bllvm-consensus"
-REPOS[bllvm]="binary|bllvm-node"
-REPOS[bllvm-sdk]="binary"
-REPOS[bllvm-commons]="binary|bllvm-sdk"
+REPOS[blvm-consensus]="library"
+REPOS[blvm-protocol]="library|blvm-consensus"
+REPOS[blvm-node]="library|blvm-protocol,blvm-consensus"
+REPOS[blvm]="binary|blvm-node"
+REPOS[blvm-sdk]="binary"
+REPOS[blvm-commons]="binary|blvm-sdk"
 
 # Dependency graph (using directory names for paths, package names in Cargo.toml are updated)
 declare -A DEPS
-DEPS[bllvm-consensus]=""
-DEPS[bllvm-protocol]="bllvm-consensus"
-DEPS[bllvm-node]="bllvm-protocol bllvm-consensus"
-DEPS[bllvm]="bllvm-node"
-DEPS[bllvm-sdk]=""
-DEPS[bllvm-commons]="bllvm-sdk"
+DEPS[blvm-consensus]=""
+DEPS[blvm-protocol]="blvm-consensus"
+DEPS[blvm-node]="blvm-protocol blvm-consensus"
+DEPS[blvm]="blvm-node"
+DEPS[blvm-sdk]=""
+DEPS[blvm-commons]="blvm-sdk"
 
 # Binary names
 declare -A BINARIES
-BINARIES[bllvm-consensus]=""
-BINARIES[bllvm-protocol]=""
-BINARIES[bllvm-node]=""
-BINARIES[bllvm]="bllvm"
-BINARIES[bllvm-sdk]="bllvm-keygen bllvm-sign bllvm-verify"
-BINARIES[bllvm-commons]="bllvm-commons key-manager test-content-hash test-content-hash-standalone"
+BINARIES[blvm-consensus]=""
+BINARIES[blvm-protocol]=""
+BINARIES[blvm-node]=""
+BINARIES[blvm]="blvm"
+BINARIES[blvm-sdk]="blvm-keygen blvm-sign blvm-verify"
+BINARIES[blvm-commons]="blvm-commons key-manager test-content-hash test-content-hash-standalone"
 
 check_rust_toolchain() {
     log_info "Checking Rust toolchain..."
@@ -153,16 +153,16 @@ build_repo() {
             # Base variant: core infrastructure + production optimizations + differentiators
             # Includes: infrastructure (sysinfo, redb, nix, libc), production, governance, zmq
             case "$repo" in
-                bllvm-consensus|bllvm-protocol)
+                blvm-consensus|blvm-protocol)
                     # Consensus and protocol layers: production only
                     features="production"
                     ;;
-                bllvm-node|bllvm)
+                blvm-node|blvm)
                     # Node layer: infrastructure + production + governance + zmq (differentiator)
                     features="sysinfo,redb,nix,libc,production,governance,zmq"
                     ;;
                 *)
-                    # Other repos (bllvm-sdk, bllvm-commons) use default features
+                    # Other repos (blvm-sdk, blvm-commons) use default features
                     features=""
                     ;;
             esac
@@ -170,23 +170,23 @@ build_repo() {
         experimental)
             # Experimental variant: all features
             case "$repo" in
-                bllvm-consensus)
+                blvm-consensus)
                     features="production,utxo-commitments,ctv"
                     ;;
-                bllvm-protocol)
-                    # Pass through ctv from bllvm-consensus
+                blvm-protocol)
+                    # Pass through ctv from blvm-consensus
                     features="production,utxo-commitments,ctv"
                     ;;
-                bllvm-node)
+                blvm-node)
                     # All base features + all experimental features
                     features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh,quinn"
                     ;;
-                bllvm)
-                    # bllvm binary inherits from bllvm-node, include all features
+                blvm)
+                    # blvm binary inherits from blvm-node, include all features
                     features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh,quinn"
                     ;;
                 *)
-                    # Other repos (bllvm-sdk, bllvm-commons) use default features
+                    # Other repos (blvm-sdk, blvm-commons) use default features
                     features=""
                     ;;
             esac
@@ -227,8 +227,8 @@ build_repo() {
     # If unset or empty, cargo will use all cores by default
     if [ -n "${CARGO_BUILD_JOBS:-}" ] && [ "${CARGO_BUILD_JOBS}" != "0" ]; then
         if ! ${build_cmd} --jobs "${CARGO_BUILD_JOBS}" 2>&1 | tee "/tmp/${repo}-build.log"; then
-            # In Phase 1 prerelease, bllvm-commons is optional (governance not activated)
-            if [ "$repo" == "bllvm-commons" ] && [ "$MODE" == "release" ]; then
+            # In Phase 1 prerelease, blvm-commons is optional (governance not activated)
+            if [ "$repo" == "blvm-commons" ] && [ "$MODE" == "release" ]; then
                 log_warn "Build failed for ${repo} (optional in Phase 1 prerelease)"
                 log_info "Skipping ${repo} - governance not yet activated"
                 popd > /dev/null
@@ -241,8 +241,8 @@ build_repo() {
     else
         # Use all cores (omit --jobs flag)
         if ! ${build_cmd} 2>&1 | tee "/tmp/${repo}-build.log"; then
-            # In Phase 1 prerelease, bllvm-commons is optional (governance not activated)
-            if [ "$repo" == "bllvm-commons" ] && [ "$MODE" == "release" ]; then
+            # In Phase 1 prerelease, blvm-commons is optional (governance not activated)
+            if [ "$repo" == "blvm-commons" ] && [ "$MODE" == "release" ]; then
                 log_warn "Build failed for ${repo} (optional in Phase 1 prerelease)"
                 log_info "Skipping ${repo} - governance not yet activated"
                 popd > /dev/null
@@ -321,7 +321,7 @@ topological_sort() {
 }
 
 main() {
-    log_info "Bitcoin Commons BLLVM Unified Build System"
+    log_info "Bitcoin Commons BLVM Unified Build System"
     log_info "Mode: ${MODE}"
     log_info "Variant: ${VARIANT}"
     echo ""

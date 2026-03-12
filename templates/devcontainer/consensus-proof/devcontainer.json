@@ -1,5 +1,5 @@
 {
-  "name": "consensus-proof-dev",
+  "name": "blvm-consensus-dev",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {},
   "customizations": {

@@ -15,8 +15,8 @@ blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requir
 # Binaries
 blvm-node = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-protocol=0.1.0", "blvm-consensus=0.1.0"] }
 blvm = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-node=0.1.0"], binaries = ["blvm"] }
-bllvm-sdk = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", binaries = ["bllvm-keygen", "bllvm-sign", "bllvm-verify"] }
-governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["bllvm-sdk=0.1.0"], binaries = ["governance-app", "key-manager", "test-content-hash", "test-content-hash-standalone"] }
+blvm-sdk = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", binaries = ["blvm-keygen", "blvm-sign", "blvm-verify"] }
+governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-sdk=0.1.0"], binaries = ["governance-app", "key-manager", "test-content-hash", "test-content-hash-standalone"] }
 
 # Metadata
 [metadata]

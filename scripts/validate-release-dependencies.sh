@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Release System Dependency Validation Script
-# Validates the dependency chain from bottom (bllvm-consensus) to top (bllvm-commons)
+# Validates the dependency chain from bottom (blvm-consensus) to top (blvm-commons)
 # Uses GitHub API to check repository status and workflows
 #
 
@@ -20,22 +20,22 @@ ORG="BTCDecoded"
 
 # Dependency order (bottom to top)
 declare -a REPOS=(
-    "bllvm-consensus"
-    "bllvm-protocol"
-    "bllvm-node"
-    "bllvm-sdk"
-    "bllvm"
-    "bllvm-commons"
+    "blvm-consensus"
+    "blvm-protocol"
+    "blvm-node"
+    "blvm-sdk"
+    "blvm"
+    "blvm-commons"
 )
 
 # Dependency relationships
 declare -A DEPS
-DEPS[bllvm-consensus]=""
-DEPS[bllvm-protocol]="bllvm-consensus"
-DEPS[bllvm-node]="bllvm-protocol"
-DEPS[bllvm-sdk]="bllvm-node"
-DEPS[bllvm]="bllvm-node"
-DEPS[bllvm-commons]="bllvm-sdk bllvm-protocol"
+DEPS[blvm-consensus]=""
+DEPS[blvm-protocol]="blvm-consensus"
+DEPS[blvm-node]="blvm-protocol"
+DEPS[blvm-sdk]="blvm-node"
+DEPS[blvm]="blvm-node"
+DEPS[blvm-commons]="blvm-sdk blvm-protocol"
 
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -106,7 +106,7 @@ validate_cargo_toml() {
             fi
         done
     else
-        log_success "  ✓ No bllvm dependencies (foundation layer)"
+        log_success "  ✓ No blvm dependencies (foundation layer)"
     fi
     
     return 0
@@ -169,11 +169,11 @@ check_workflows() {
     
     echo "$body" | jq -r '.workflows[] | "  - \(.name) (\(.state))"' 2>/dev/null || true
     
-    # Check for release workflows (should only be in bllvm repo)
-    if [ "$repo" != "bllvm" ]; then
+    # Check for release workflows (should only be in blvm repo)
+    if [ "$repo" != "blvm" ]; then
         local has_release=$(echo "$body" | jq -r '.workflows[] | select(.path | contains("release")) | .name' | wc -l)
         if [ "$has_release" -gt 0 ]; then
-            log_warn "  ⚠ Release workflow found in ${repo} (should only be in bllvm repo)"
+            log_warn "  ⚠ Release workflow found in ${repo} (should only be in blvm repo)"
         else
             log_success "  ✓ No release workflows (correct - only CI)"
         fi

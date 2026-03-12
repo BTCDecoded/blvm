@@ -39,7 +39,7 @@ on:
 - Allows manual override via workflow dispatch
 
 **Implementation**:
-- Reads `bllvm-consensus` version from `versions.toml`
+- Reads `blvm-consensus` version from `versions.toml`
 - Increments patch: `X.Y.Z` → `X.Y.(Z+1)`
 - Generates release set ID: `set-YYYY-MMDD`
 
@@ -51,7 +51,7 @@ on:
 - Leverages existing dependency declarations
 - Automatic dependency resolution
 - No manual build order maintenance
-- Handles parallel builds (bllvm-sdk)
+- Handles parallel builds (blvm-sdk)
 
 **Implementation**:
 - `build.sh` uses topological sort based on Cargo dependencies
@@ -130,7 +130,7 @@ on:
 - Dependency coordination
 
 **Implementation**:
-- Tag all repos: `bllvm-consensus`, `bllvm-protocol`, `bllvm-node`, `bllvm`, `bllvm-sdk`, `bllvm-commons`
+- Tag all repos: `blvm-consensus`, `blvm-protocol`, `blvm-node`, `blvm`, `blvm-sdk`, `blvm-commons`
 - Annotated tags with release message
 - Skip if tag exists (idempotent)
 
@@ -146,7 +146,7 @@ on:
 
 **Implementation**:
 - `prerelease: false`
-- Release in `bllvm` repository
+- Release in `blvm` repository
 - Include all artifacts and checksums
 
 ## Workflow Structure
@@ -215,14 +215,14 @@ on:
 The build system respects Cargo's dependency declarations:
 
 ```toml
-# bllvm-protocol/Cargo.toml
+# blvm-protocol/Cargo.toml
 [dependencies]
-bllvm-consensus = { git = "...", tag = "v0.1.0" }
+blvm-consensus = { git = "...", tag = "v0.1.0" }
 
-# bllvm-node/Cargo.toml
+# blvm-node/Cargo.toml
 [dependencies]
-bllvm-protocol = { git = "...", tag = "v0.1.0" }
-bllvm-consensus = { git = "...", tag = "v0.1.0" }
+blvm-protocol = { git = "...", tag = "v0.1.0" }
+blvm-consensus = { git = "...", tag = "v0.1.0" }
 ```
 
 ### Build Order Enforcement
@@ -238,25 +238,25 @@ bllvm-consensus = { git = "...", tag = "v0.1.0" }
 
 ```
 artifacts/
-├── bllvm-{version}-linux-x86_64.tar.gz
-├── bllvm-{version}-linux-x86_64.zip
-├── bllvm-{version}-windows-x86_64.tar.gz
-├── bllvm-{version}-windows-x86_64.zip
-├── bllvm-experimental-{version}-linux-x86_64.tar.gz
-├── bllvm-experimental-{version}-linux-x86_64.zip
-├── bllvm-experimental-{version}-windows-x86_64.tar.gz
-├── bllvm-experimental-{version}-windows-x86_64.zip
-├── SHA256SUMS-bllvm-linux-x86_64
-├── SHA256SUMS-bllvm-windows-x86_64
-├── SHA256SUMS-bllvm-experimental-linux-x86_64
-├── SHA256SUMS-bllvm-experimental-windows-x86_64
+├── blvm-{version}-linux-x86_64.tar.gz
+├── blvm-{version}-linux-x86_64.zip
+├── blvm-{version}-windows-x86_64.tar.gz
+├── blvm-{version}-windows-x86_64.zip
+├── blvm-experimental-{version}-linux-x86_64.tar.gz
+├── blvm-experimental-{version}-linux-x86_64.zip
+├── blvm-experimental-{version}-windows-x86_64.tar.gz
+├── blvm-experimental-{version}-windows-x86_64.zip
+├── SHA256SUMS-blvm-linux-x86_64
+├── SHA256SUMS-blvm-windows-x86_64
+├── SHA256SUMS-blvm-experimental-linux-x86_64
+├── SHA256SUMS-blvm-experimental-windows-x86_64
 └── RELEASE_NOTES.md
 ```
 
 ### Contents
 
 Each archive contains:
-- All binaries (bllvm + governance tools)
+- All binaries (blvm + governance tools)
 - SHA256SUMS file for verification
 - Flat structure (no subdirectories)
 

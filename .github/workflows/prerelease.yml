@@ -34,11 +34,11 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 120
     steps:
-      - name: Checkout bllvm
+      - name: Checkout blvm
         uses: actions/checkout@v4
         with:
-          repository: BTCDecoded/bllvm
-          path: bllvm
+          repository: BTCDecoded/blvm
+          path: blvm
           ref: main
           fetch-depth: 0
       
@@ -130,8 +130,8 @@ jobs:
       
       - name: Checkout all repos at version
         run: |
-          chmod +x bllvm/scripts/*.sh
-          bllvm/scripts/setup-build-env.sh ${{ inputs.version_tag }}
+          chmod +x blvm/scripts/*.sh
+          blvm/scripts/setup-build-env.sh ${{ inputs.version_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           PARENT_DIR: ${{ github.workspace }}
@@ -217,12 +217,12 @@ jobs:
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
-          bllvm/build.sh --mode release --variant base
+          blvm/build.sh --mode release --variant base
           
           # Save hashes from first build for deterministic verification
           echo "Saving hashes from first build for deterministic verification..."
           cd ${{ github.workspace }}
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "$repo" ] && [ -d "$repo/target/release" ]; then
               cd "$repo"
               find target/release -maxdepth 1 -type f -executable -print0 | xargs -0 sha256sum > /tmp/${repo}-build1-hashes.txt 2>/dev/null || true
@@ -244,7 +244,7 @@ jobs:
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
-          bllvm/build.sh --mode release --variant experimental
+          blvm/build.sh --mode release --variant experimental
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
@@ -255,15 +255,15 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "$repo" ]; then
               echo "Building $repo for Windows (base variant)..."
               cd "$repo"
               
-              # Build with appropriate features (bllvm-sdk doesn't have production feature)
+              # Build with appropriate features (blvm-sdk doesn't have production feature)
               # Cargo config already set up MinGW linker, no need to unset CC/CXX
-              if [ "$repo" = "bllvm" ]; then
-                # bllvm has production feature
+              if [ "$repo" = "blvm" ]; then
+                # blvm has production feature
                 if cargo build --release --target x86_64-pc-windows-gnu --features production; then
                   echo "✅ Successfully built $repo for Windows (base)"
                 else
@@ -271,7 +271,7 @@ jobs:
                   FAILED_REPOS+=("$repo")
                 fi
               else
-                # bllvm-sdk uses default features (no production feature)
+                # blvm-sdk uses default features (no production feature)
                 if cargo build --release --target x86_64-pc-windows-gnu; then
                   echo "✅ Successfully built $repo for Windows (base)"
                 else
@@ -298,14 +298,14 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "$repo" ]; then
               echo "Building $repo for Windows (experimental variant)..."
               cd "$repo"
               
               # Build with experimental features
-              if [ "$repo" = "bllvm" ]; then
-                # bllvm inherits from bllvm-node, need to build with experimental features
+              if [ "$repo" = "blvm" ]; then
+                # blvm inherits from blvm-node, need to build with experimental features
                 if cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
                   echo "✅ Successfully built $repo for Windows (experimental)"
                 else
@@ -313,7 +313,7 @@ jobs:
                   FAILED_REPOS+=("$repo")
                 fi
               else
-                # bllvm-sdk uses default features
+                # blvm-sdk uses default features
                 if cargo build --release --target x86_64-pc-windows-gnu --all-features; then
                   echo "✅ Successfully built $repo for Windows (experimental)"
                 else
@@ -346,7 +346,7 @@ jobs:
           PARENT_DIR="${GITHUB_WORKSPACE}"
           FAILED_REPOS=()
           
-          for repo in bllvm bllvm-sdk; do
+          for repo in blvm blvm-sdk; do
             if [ -d "${PARENT_DIR}/${repo}" ] && [ -f "/tmp/${repo}-build1-hashes.txt" ]; then
               echo "Verifying deterministic build for ${repo} (base variant)..."
               cd "${PARENT_DIR}/${repo}"
@@ -357,11 +357,11 @@ jobs:
               export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-1}"
               
               # Determine features based on repo (matching build.sh logic)
-              if [ "$repo" = "bllvm" ] || [ "$repo" = "bllvm-consensus" ] || [ "$repo" = "bllvm-protocol" ] || [ "$repo" = "bllvm-node" ]; then
+              if [ "$repo" = "blvm" ] || [ "$repo" = "blvm-consensus" ] || [ "$repo" = "blvm-protocol" ] || [ "$repo" = "blvm-node" ]; then
                 # These repos have production feature
                 BUILD_CMD="cargo build --release --locked --features production"
               else
-                # bllvm-sdk uses default features
+                # blvm-sdk uses default features
                 BUILD_CMD="cargo build --release --locked"
               fi
               
@@ -414,7 +414,7 @@ jobs:
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
-          for repo in bllvm-consensus bllvm-protocol bllvm-node bllvm-sdk; do
+          for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk; do
             if [ -d "$repo" ]; then
               echo "=========================================="
               echo "Running tests in $repo (skipping doctests and CI-problematic tests)..."
@@ -478,48 +478,48 @@ jobs:
       - name: Collect artifacts (base variant)
         run: |
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            bllvm/scripts/collect-artifacts.sh linux-x86_64 base
+            blvm/scripts/collect-artifacts.sh linux-x86_64 base
           fi
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            bllvm/scripts/collect-artifacts.sh windows-x86_64 base
+            blvm/scripts/collect-artifacts.sh windows-x86_64 base
           fi
       
       - name: Collect artifacts (experimental variant)
         run: |
-          # Only collect bllvm binary for experimental (governance tools are the same, collected in base)
+          # Only collect blvm binary for experimental (governance tools are the same, collected in base)
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            bllvm/scripts/collect-artifacts.sh linux-x86_64 experimental
+            blvm/scripts/collect-artifacts.sh linux-x86_64 experimental
           fi
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            bllvm/scripts/collect-artifacts.sh windows-x86_64 experimental
+            blvm/scripts/collect-artifacts.sh windows-x86_64 experimental
           fi
       
       - name: Validate artifacts exist
         run: |
-          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
-          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
+          BLVM_DIR="${GITHUB_WORKSPACE}/blvm"
+          ARTIFACTS_DIR="${BLVM_DIR}/artifacts"
           MISSING_ARTIFACTS=0
           
           echo "=== Validating Artifacts ==="
           
           # Check for expected binaries based on platform (both variants)
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            echo "Checking Linux bllvm binary (base variant)..."
-            if [ ! -d "${ARTIFACTS_DIR}/bllvm-linux" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/bllvm-linux 2>/dev/null)" ]; then
-              echo "❌ ERROR: Linux bllvm binary directory not found or empty: ${ARTIFACTS_DIR}/bllvm-linux"
+            echo "Checking Linux blvm binary (base variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/blvm-linux" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/blvm-linux 2>/dev/null)" ]; then
+              echo "❌ ERROR: Linux blvm binary directory not found or empty: ${ARTIFACTS_DIR}/blvm-linux"
               MISSING_ARTIFACTS=1
             else
-              LINUX_BLLVM=$(find "${ARTIFACTS_DIR}/bllvm-linux" -type f -executable 2>/dev/null | wc -l)
-              echo "✅ Found $LINUX_BLLVM bllvm binary(ies) (base)"
+              LINUX_BLVM=$(find "${ARTIFACTS_DIR}/blvm-linux" -type f -executable 2>/dev/null | wc -l)
+              echo "✅ Found $LINUX_BLVM blvm binary(ies) (base)"
             fi
             
-            echo "Checking Linux bllvm binary (experimental variant)..."
-            if [ ! -d "${ARTIFACTS_DIR}/bllvm-experimental-linux" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/bllvm-experimental-linux 2>/dev/null)" ]; then
-              echo "❌ ERROR: Linux experimental bllvm binary directory not found or empty: ${ARTIFACTS_DIR}/bllvm-experimental-linux"
+            echo "Checking Linux blvm binary (experimental variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/blvm-experimental-linux" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/blvm-experimental-linux 2>/dev/null)" ]; then
+              echo "❌ ERROR: Linux experimental blvm binary directory not found or empty: ${ARTIFACTS_DIR}/blvm-experimental-linux"
               MISSING_ARTIFACTS=1
             else
-              LINUX_EXP_BLLVM=$(find "${ARTIFACTS_DIR}/bllvm-experimental-linux" -type f -executable 2>/dev/null | wc -l)
-              echo "✅ Found $LINUX_EXP_BLLVM bllvm binary(ies) (experimental)"
+              LINUX_EXP_BLVM=$(find "${ARTIFACTS_DIR}/blvm-experimental-linux" -type f -executable 2>/dev/null | wc -l)
+              echo "✅ Found $LINUX_EXP_BLVM blvm binary(ies) (experimental)"
             fi
             
             echo "Checking Linux governance tools (single variant)..."
@@ -532,22 +532,22 @@ jobs:
           fi
           
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            echo "Checking Windows bllvm binary (base variant)..."
-            if [ ! -d "${ARTIFACTS_DIR}/bllvm-windows" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/bllvm-windows 2>/dev/null)" ]; then
-              echo "❌ ERROR: Windows bllvm binary directory not found or empty: ${ARTIFACTS_DIR}/bllvm-windows"
+            echo "Checking Windows blvm binary (base variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/blvm-windows" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/blvm-windows 2>/dev/null)" ]; then
+              echo "❌ ERROR: Windows blvm binary directory not found or empty: ${ARTIFACTS_DIR}/blvm-windows"
               MISSING_ARTIFACTS=1
             else
-              WINDOWS_BLLVM=$(find "${ARTIFACTS_DIR}/bllvm-windows" -type f -name "*.exe" 2>/dev/null | wc -l)
-              echo "✅ Found $WINDOWS_BLLVM bllvm binary(ies) (base)"
+              WINDOWS_BLVM=$(find "${ARTIFACTS_DIR}/blvm-windows" -type f -name "*.exe" 2>/dev/null | wc -l)
+              echo "✅ Found $WINDOWS_BLVM blvm binary(ies) (base)"
             fi
             
-            echo "Checking Windows bllvm binary (experimental variant)..."
-            if [ ! -d "${ARTIFACTS_DIR}/bllvm-experimental-windows" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/bllvm-experimental-windows 2>/dev/null)" ]; then
-              echo "❌ ERROR: Windows experimental bllvm binary directory not found or empty: ${ARTIFACTS_DIR}/bllvm-experimental-windows"
+            echo "Checking Windows blvm binary (experimental variant)..."
+            if [ ! -d "${ARTIFACTS_DIR}/blvm-experimental-windows" ] || [ -z "$(ls -A ${ARTIFACTS_DIR}/blvm-experimental-windows 2>/dev/null)" ]; then
+              echo "❌ ERROR: Windows experimental blvm binary directory not found or empty: ${ARTIFACTS_DIR}/blvm-experimental-windows"
               MISSING_ARTIFACTS=1
             else
-              WINDOWS_EXP_BLLVM=$(find "${ARTIFACTS_DIR}/bllvm-experimental-windows" -type f -name "*.exe" 2>/dev/null | wc -l)
-              echo "✅ Found $WINDOWS_EXP_BLLVM bllvm binary(ies) (experimental)"
+              WINDOWS_EXP_BLVM=$(find "${ARTIFACTS_DIR}/blvm-experimental-windows" -type f -name "*.exe" 2>/dev/null | wc -l)
+              echo "✅ Found $WINDOWS_EXP_BLVM blvm binary(ies) (experimental)"
             fi
             
             echo "Checking Windows governance tools (single variant)..."
@@ -590,8 +590,8 @@ jobs:
       
       - name: Verify artifact checksums (if available)
         run: |
-          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
-          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
+          BLVM_DIR="${GITHUB_WORKSPACE}/blvm"
+          ARTIFACTS_DIR="${BLVM_DIR}/artifacts"
           
           echo "=== Verifying Artifact Checksums ==="
           
@@ -605,14 +605,14 @@ jobs:
             echo "Verifying checksums for $checksum_name..."
             
             # Determine which directory to check based on checksum filename
-            if [[ "$checksum_name" == *"bllvm-linux"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/bllvm-linux"
-            elif [[ "$checksum_name" == *"bllvm-experimental-linux"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/bllvm-experimental-linux"
-            elif [[ "$checksum_name" == *"bllvm-windows"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/bllvm-windows"
-            elif [[ "$checksum_name" == *"bllvm-experimental-windows"* ]]; then
-              check_dir="${ARTIFACTS_DIR}/bllvm-experimental-windows"
+            if [[ "$checksum_name" == *"blvm-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/blvm-linux"
+            elif [[ "$checksum_name" == *"blvm-experimental-linux"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/blvm-experimental-linux"
+            elif [[ "$checksum_name" == *"blvm-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/blvm-windows"
+            elif [[ "$checksum_name" == *"blvm-experimental-windows"* ]]; then
+              check_dir="${ARTIFACTS_DIR}/blvm-experimental-windows"
             else
               echo "⚠️  WARNING: Unknown checksum file format: $checksum_name"
               continue
@@ -634,16 +634,16 @@ jobs:
       
       - name: Create release package
         run: |
-          bllvm/scripts/create-release.sh ${{ inputs.version_tag }}
+          blvm/scripts/create-release.sh ${{ inputs.version_tag }}
       
       - name: Verify versions
         run: |
-          bllvm/scripts/verify-versions.sh
+          blvm/scripts/verify-versions.sh
       
       - name: Validate release artifacts before publishing
         run: |
-          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
-          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
+          BLVM_DIR="${GITHUB_WORKSPACE}/blvm"
+          ARTIFACTS_DIR="${BLVM_DIR}/artifacts"
           VERSION_TAG="${{ inputs.version_tag }}"
           
           echo "=== Final Artifact Validation ==="
@@ -653,46 +653,46 @@ jobs:
           FOUND_FILES=0
           
           if [ "${{ inputs.platform }}" = "linux" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            # Check bllvm binaries (base + experimental)
+            # Check blvm binaries (base + experimental)
             REQUIRED_FILES=$((REQUIRED_FILES + 2))
-            if [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
-              echo "✅ Found bllvm Linux binary (base)"
+            if [ -f "${ARTIFACTS_DIR}/blvm-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
+              echo "✅ Found blvm Linux binary (base)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: bllvm Linux base binary not found"
+              echo "❌ ERROR: blvm Linux base binary not found"
             fi
-            if [ -f "${ARTIFACTS_DIR}/bllvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
-              echo "✅ Found bllvm Linux binary (experimental)"
+            if [ -f "${ARTIFACTS_DIR}/blvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz" ]; then
+              echo "✅ Found blvm Linux binary (experimental)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: bllvm Linux experimental binary not found"
+              echo "❌ ERROR: blvm Linux experimental binary not found"
             fi
             
-            # Governance tools are now included in bllvm archives, no separate archive needed
+            # Governance tools are now included in blvm archives, no separate archive needed
           fi
           
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
-            # Check bllvm binaries (base + experimental)
+            # Check blvm binaries (base + experimental)
             REQUIRED_FILES=$((REQUIRED_FILES + 2))
-            if [ -f "${ARTIFACTS_DIR}/bllvm-${VERSION_TAG}-windows-x86_64.zip" ]; then
-              echo "✅ Found bllvm Windows binary (base)"
+            if [ -f "${ARTIFACTS_DIR}/blvm-${VERSION_TAG}-windows-x86_64.zip" ]; then
+              echo "✅ Found blvm Windows binary (base)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: bllvm Windows base binary not found"
+              echo "❌ ERROR: blvm Windows base binary not found"
             fi
-            if [ -f "${ARTIFACTS_DIR}/bllvm-experimental-${VERSION_TAG}-windows-x86_64.zip" ]; then
-              echo "✅ Found bllvm Windows binary (experimental)"
+            if [ -f "${ARTIFACTS_DIR}/blvm-experimental-${VERSION_TAG}-windows-x86_64.zip" ]; then
+              echo "✅ Found blvm Windows binary (experimental)"
               FOUND_FILES=$((FOUND_FILES + 1))
             else
-              echo "❌ ERROR: bllvm Windows experimental binary not found"
+              echo "❌ ERROR: blvm Windows experimental binary not found"
             fi
             
-            # Governance tools are now included in bllvm archives, no separate archive needed
+            # Governance tools are now included in blvm archives, no separate archive needed
           fi
           
           # Check for SHA256SUMS files (at least one should exist)
           SHA256SUMS_FOUND=0
-          for checksum in SHA256SUMS-bllvm-* SHA256SUMS-bllvm-experimental-*; do
+          for checksum in SHA256SUMS-blvm-* SHA256SUMS-blvm-experimental-*; do
             if [ -f "${ARTIFACTS_DIR}/${checksum}" ]; then
               SHA256SUMS_FOUND=1
               break
@@ -725,15 +725,15 @@ jobs:
       
       - name: Verify files exist before release
         run: |
-          BLLVM_DIR="${GITHUB_WORKSPACE}/bllvm"
-          ARTIFACTS_DIR="${BLLVM_DIR}/artifacts"
+          BLVM_DIR="${GITHUB_WORKSPACE}/blvm"
+          ARTIFACTS_DIR="${BLVM_DIR}/artifacts"
           VERSION_TAG="${{ inputs.version_tag }}"
           
           echo "=== Verifying files exist before release ==="
           
           # List all files that will be uploaded
-          echo "Archive files (bllvm and bllvm-experimental, both tar.gz and zip):"
-          find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "bllvm-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-${VERSION_TAG}-*.zip" -o -name "bllvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "bllvm-experimental-${VERSION_TAG}-*.zip" \) -ls
+          echo "Archive files (blvm and blvm-experimental, both tar.gz and zip):"
+          find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "blvm-${VERSION_TAG}-*.tar.gz" -o -name "blvm-${VERSION_TAG}-*.zip" -o -name "blvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "blvm-experimental-${VERSION_TAG}-*.zip" \) -ls
           
           echo ""
           echo "Checksum files:"
@@ -747,14 +747,14 @@ jobs:
         with:
           tag_name: ${{ inputs.version_tag }}
           name: Bitcoin Commons ${{ inputs.version_tag }} (Prerelease)
-          body_path: bllvm/artifacts/RELEASE_NOTES.md
+          body_path: blvm/artifacts/RELEASE_NOTES.md
           files: |
-            bllvm/artifacts/bllvm-${{ inputs.version_tag }}-*.tar.gz
-            bllvm/artifacts/bllvm-${{ inputs.version_tag }}-*.zip
-            bllvm/artifacts/bllvm-experimental-${{ inputs.version_tag }}-*.tar.gz
-            bllvm/artifacts/bllvm-experimental-${{ inputs.version_tag }}-*.zip
-            bllvm/artifacts/SHA256SUMS-bllvm-*
-            bllvm/artifacts/SHA256SUMS-bllvm-experimental-*
+            blvm/artifacts/blvm-${{ inputs.version_tag }}-*.tar.gz
+            blvm/artifacts/blvm-${{ inputs.version_tag }}-*.zip
+            blvm/artifacts/blvm-experimental-${{ inputs.version_tag }}-*.tar.gz
+            blvm/artifacts/blvm-experimental-${{ inputs.version_tag }}-*.zip
+            blvm/artifacts/SHA256SUMS-blvm-*
+            blvm/artifacts/SHA256SUMS-blvm-experimental-*
           draft: false
           prerelease: true
         env:

@@ -53,7 +53,7 @@ impl VersionsManifest {
     /// Validate the manifest
     pub fn validate(&self) -> ValidationResult {
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         // Check all versions are valid semver
         for (repo, version_info) in &self.versions {
@@ -92,7 +92,7 @@ impl VersionsManifest {
 
     /// Detect circular dependencies
     pub fn detect_circular_dependencies(&self) -> Option<String> {
-        for (repo, _) in &self.versions {
+        for repo in self.versions.keys() {
             let mut visited = std::collections::HashSet::new();
             let mut path = Vec::new();
             if self.has_circular_dependency(repo, &mut visited, &mut path) {
@@ -232,31 +232,31 @@ mod tests {
     fn test_parse_versions_toml() {
         let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
 "#;
 
         let manifest: VersionsManifest = toml::from_str(content).unwrap();
         assert_eq!(manifest.versions.len(), 2);
-        assert!(manifest.versions.contains_key("bllvm-consensus"));
-        assert!(manifest.versions.contains_key("bllvm-protocol"));
+        assert!(manifest.versions.contains_key("blvm-consensus"));
+        assert!(manifest.versions.contains_key("blvm-protocol"));
     }
 
     #[test]
     fn test_build_order() {
         let content = r#"
 [versions]
-bllvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-consensus=0.1.0"] }
-bllvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["bllvm-protocol=0.1.0"] }
+blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
+blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=0.1.0"] }
 "#;
 
         let manifest: VersionsManifest = toml::from_str(content).unwrap();
         let order = manifest.build_order().unwrap();
 
-        let consensus_pos = order.iter().position(|r| r == "bllvm-consensus").unwrap();
-        let protocol_pos = order.iter().position(|r| r == "bllvm-protocol").unwrap();
-        let node_pos = order.iter().position(|r| r == "bllvm-node").unwrap();
+        let consensus_pos = order.iter().position(|r| r == "blvm-consensus").unwrap();
+        let protocol_pos = order.iter().position(|r| r == "blvm-protocol").unwrap();
+        let node_pos = order.iter().position(|r| r == "blvm-node").unwrap();
 
         assert!(consensus_pos < protocol_pos);
         assert!(protocol_pos < node_pos);

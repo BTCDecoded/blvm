@@ -168,6 +168,21 @@ struct FeatureFlags {
 #[derive(Parser, Debug, Clone, Default)]
 #[group(id = "advanced")]
 struct AdvancedConfig {
+    /// Assume-valid: skip script verification for blocks before this height or block hash.
+    /// Use -assumevalid=0 or -noassumevalid to disable.
+    /// Value: decimal height (e.g. 700000) or 64-char block hash (hex).
+    #[arg(long, value_name = "HEIGHT_OR_HASH")]
+    assumevalid: Option<String>,
+
+    /// Disable assume-valid (validate all blocks). Same as -assumevalid=0.
+    #[arg(long)]
+    noassumevalid: bool,
+
+    /// AssumeUTXO: load UTXO snapshot at block hash for fast sync.
+    /// Block hash must be 64 hex chars. Snapshot file must exist.
+    #[arg(long, value_name = "BLOCKHASH")]
+    assumeutxo: Option<String>,
+
     /// Target number of peers to connect to (default: 8)
     #[arg(long)]
     target_peer_count: Option<usize>,
@@ -533,8 +548,7 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
         // Parse transport preference
         match transport.to_lowercase().as_str() {
             "tcp_only" | "tcp" => {
-                config.transport_preference =
-                    blvm_node::config::TransportPreferenceConfig::TcpOnly;
+                config.transport_preference = blvm_node::config::TransportPreferenceConfig::TcpOnly;
             }
             #[cfg(feature = "iroh")]
             "iroh_only" | "iroh" => {
@@ -598,6 +612,22 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
 
     // Apply CLI advanced config (CLI overrides everything)
     apply_cli_advanced_config(&mut config, &cli.advanced);
+
+    // Per-network default assume-valid when block_validation is None and not regtest
+    if config.block_validation.is_none() {
+        let default_height =
+            blvm_node::config::default_assume_valid_height_for_network(&format!("{:?}", network));
+        if default_height > 0 {
+            config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                assume_valid_height: default_height,
+                assume_valid_hash: None,
+            });
+            info!(
+                "Assume-valid default for {:?}: height {}",
+                network, default_height
+            );
+        }
+    }
 
     (config, data_dir, listen_addr, rpc_addr, network)
 }
@@ -873,7 +903,66 @@ fn apply_env_config_overrides(_config: &mut NodeConfig, env: &EnvOverrides) {
 }
 
 /// Apply CLI advanced config options
-fn apply_cli_advanced_config(_config: &mut NodeConfig, advanced: &AdvancedConfig) {
+fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig) {
+    // Assume-valid: CLI overrides config file (Option A: height or hash)
+    if advanced.noassumevalid || advanced.assumevalid.as_deref() == Some("0") {
+        config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+            assume_valid_height: 0,
+            assume_valid_hash: None,
+        });
+    } else if let Some(ref val) = advanced.assumevalid {
+        let is_hex_hash = val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit());
+        if is_hex_hash {
+            // Parse 64-char hex to [u8; 32] for hash-based ancestry verification.
+            if let Ok(hash_bytes) = hex::decode(val) {
+                if hash_bytes.len() == 32 {
+                    let mut arr = [0u8; 32];
+                    arr.copy_from_slice(&hash_bytes);
+                    config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                        assume_valid_height: 0, // Hash takes precedence
+                        assume_valid_hash: Some(arr),
+                    });
+                } else {
+                    tracing::warn!("Invalid -assumevalid hash length. Use 64 hex chars.");
+                }
+            } else {
+                tracing::warn!("Invalid -assumevalid hash hex. Use 64 hex chars.");
+            }
+        } else if let Ok(height) = val.parse::<u64>() {
+            config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                assume_valid_height: height,
+                assume_valid_hash: None,
+            });
+        } else {
+            tracing::warn!(
+                "Invalid -assumevalid value '{}'. Use height (e.g. 700000) or 64-char block hash.",
+                val
+            );
+        }
+    }
+
+    // AssumeUTXO: -assumeutxo=<64-char block hash>
+    if let Some(ref val) = advanced.assumeutxo {
+        if val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit()) {
+            if let Ok(hash_bytes) = hex::decode(val) {
+                if hash_bytes.len() == 32 {
+                    let mut arr = [0u8; 32];
+                    arr.copy_from_slice(&hash_bytes);
+                    config.assumeutxo_blockhash = Some(arr);
+                    info!(
+                        "AssumeUTXO: will attempt to load snapshot at block hash {}",
+                        val
+                    );
+                }
+            }
+        } else {
+            tracing::warn!(
+                "Invalid -assumeutxo: use 64 hex chars (block hash). Got: {}",
+                val
+            );
+        }
+    }
+
     if let Some(target_peer_count) = advanced.target_peer_count {
         info!("Target peer count set via CLI: {}", target_peer_count);
         // This would need to be added to NodeConfig if not already present

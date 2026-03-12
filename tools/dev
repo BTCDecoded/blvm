@@ -1,7 +1,7 @@
 #!/bin/bash
 # Developer UX wrapper
 # Usage: dev up|test|build [repo]
-# repos: consensus-proof | protocol-engine | reference-node | developer-sdk | governance-app
+# repos: blvm-consensus | blvm-protocol | blvm-node | blvm-sdk | governance-app
 
 set -euo pipefail
 
@@ -25,10 +25,10 @@ case "$CMD" in
   test)
     if [[ -z "$REPO" ]]; then echo "Specify repo for test." >&2; exit 2; fi
     case "$REPO" in
-      consensus-proof) "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L2 ;;
-      protocol-engine) "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L3 ;;
-      reference-node)  "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L4 ;;
-      developer-sdk)   "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase SDK ;;
+      blvm-consensus) "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L2 ;;
+      blvm-protocol)  "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L3 ;;
+      blvm-node)      "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase L4 ;;
+      blvm-sdk)       "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase SDK ;;
       governance-app)  "$COMMONS_DIR/tools/run_phase.sh" --base "$BASE_DIR" --phase GA ;;
       *) echo "Unknown repo: $REPO" >&2; exit 2 ;;
     esac
@@ -36,7 +36,7 @@ case "$CMD" in
   build)
     if [[ -z "$REPO" ]]; then echo "Specify repo for build." >&2; exit 2; fi
     case "$REPO" in
-      consensus-proof|protocol-engine|reference-node|developer-sdk)
+      blvm-consensus|blvm-protocol|blvm-node|blvm-sdk)
         "$COMMONS_DIR/tools/det_build.sh" --repo "$BASE_DIR/$REPO" ;;
       governance-app)
         ( cd "$BASE_DIR/governance-app" && cargo build --release --locked ) ;;

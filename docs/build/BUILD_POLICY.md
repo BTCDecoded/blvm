@@ -2,14 +2,14 @@
 
 ## Separation of Concerns
 - **commons**: Orchestration, policies, reusable workflows, shared tools, version topology.
-- **bllvm-consensus (L2)**: Consensus math + formal verification; publishes libraries and verification bundles.
-- **bllvm-protocol (L3)**: Protocol abstraction; depends on L2; publishes library.
-- **bllvm-node (L4)**: Node infra; depends on L2 & L3; publishes binaries.
+- **blvm-consensus (L2)**: Consensus math + formal verification; publishes libraries and verification bundles.
+- **blvm-protocol (L3)**: Protocol abstraction; depends on L2; publishes library.
+- **blvm-node (L4)**: Node infra; depends on L2 & L3; publishes binaries.
 
 ## Build Order
-1. bllvm-consensus → verify (tests + optional Kani)
-2. bllvm-protocol → build lib
-3. bllvm-node → build binaries
+1. blvm-consensus → verify (tests + spec-lock)
+2. blvm-protocol → build lib
+3. blvm-node → build binaries
 
 ## Version Topology
 - Authoritative map: `commons/versions.toml` (tags per repo).
@@ -25,5 +25,5 @@
 - Hash artifacts with `SHA256SUMS`.
 
 ## Attestation
-- Verification bundles produced by L2 (tests + kani + logs).
+- Verification bundles produced by L2 (tests + spec-lock + logs).
 - Attestations stored in governance repo (or commons/attestations/).

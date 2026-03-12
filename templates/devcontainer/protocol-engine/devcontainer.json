@@ -1,5 +1,5 @@
 {
-  "name": "protocol-engine-dev",
+  "name": "blvm-protocol-dev",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "customizations": {
     "vscode": {

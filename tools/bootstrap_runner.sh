@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bootstrap a self-hosted runner with required toolchains
-# Usage: sudo ./bootstrap_runner.sh [--rust] [--docker] [--kani] [--ghcr USER TOKEN] [--cache-dir DIR]
+# Usage: sudo ./bootstrap_runner.sh [--rust] [--docker] [--ghcr USER TOKEN] [--cache-dir DIR]
 
 set -euo pipefail
 
@@ -13,7 +13,6 @@ NC='\033[0m' # No Color
 
 INSTALL_RUST=0
 INSTALL_DOCKER=0
-INSTALL_KANI=0
 GHCR_USER=""
 GHCR_TOKEN=""
 CACHE_DIR="/tmp/runner-cache"
@@ -28,10 +27,9 @@ Usage: sudo $0 [options]
 Options:
     --rust              Install Rust toolchain (rustup)
     --docker            Install Docker engine
-    --kani              Install Kani model checker
     --ghcr USER TOKEN   Login to GitHub Container Registry
     --cache-dir DIR     Setup cache directory (default: /tmp/runner-cache)
-    --all               Install all tools (Rust, Docker, Kani, cache)
+    --all               Install all tools (Rust, Docker, cache)
     -h, --help          Show this help message
 
 Examples:
@@ -46,10 +44,9 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --rust) INSTALL_RUST=1; shift ;;
     --docker) INSTALL_DOCKER=1; shift ;;
-    --kani) INSTALL_KANI=1; shift ;;
     --ghcr) GHCR_USER="$2"; GHCR_TOKEN="$3"; shift 3 ;;
     --cache-dir) CACHE_DIR="$2"; SETUP_CACHE=1; shift 2 ;;
-    --all) INSTALL_RUST=1; INSTALL_DOCKER=1; INSTALL_KANI=1; SETUP_CACHE=1; shift ;;
+    --all) INSTALL_RUST=1; INSTALL_DOCKER=1; SETUP_CACHE=1; shift ;;
     -h|--help) show_usage; exit 0 ;;
     *) echo -e "${RED}Unknown arg: $1${NC}" >&2; show_usage; exit 2 ;;
   esac
@@ -105,18 +102,6 @@ if [[ $INSTALL_DOCKER -eq 1 ]]; then
   echo ""
 fi
 
-# Install Kani
-if [[ $INSTALL_KANI -eq 1 ]]; then
-  echo -e "${BLUE}🔍 Installing Kani model checker...${NC}"
-  if command -v kani >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️  Kani already installed: $(kani --version)${NC}"
-  else
-    su - "$RUNNER_USER" -c "curl -fsSL https://model-checking.github.io/kani/install.sh | sh -s -- -y"
-    echo -e "${GREEN}✅ Kani installed${NC}"
-  fi
-  echo ""
-fi
-
 # Login to GHCR
 if [[ -n "$GHCR_USER" && -n "$GHCR_TOKEN" ]]; then
   echo -e "${BLUE}🔐 Logging in to GitHub Container Registry...${NC}"
@@ -136,7 +121,6 @@ echo ""
 echo "Installed components:"
 [[ $INSTALL_RUST -eq 1 ]] && echo "  ✅ Rust toolchain"
 [[ $INSTALL_DOCKER -eq 1 ]] && echo "  ✅ Docker"
-[[ $INSTALL_KANI -eq 1 ]] && echo "  ✅ Kani"
 [[ $SETUP_CACHE -eq 1 ]] && echo "  ✅ Cache directory: ${CACHE_DIR}"
 [[ -n "$GHCR_USER" ]] && echo "  ✅ GHCR login: ${GHCR_USER}"
 echo ""

@@ -25,7 +25,7 @@ You can manually trigger a release with:
 ### Automatic Version Bumping
 
 When triggered by a push to `main`, the pipeline:
-1. Reads the current version from `bllvm/versions.toml` (from `bllvm-consensus` version)
+1. Reads the current version from `blvm/versions.toml` (from `blvm-consensus` version)
 2. Auto-increments the patch version (X.Y.Z → X.Y.(Z+1))
 3. Generates a release set ID (e.g., `set-2025-0123`)
 
@@ -42,18 +42,18 @@ When using workflow dispatch, you can:
 The build follows Cargo's dependency graph:
 
 ```
-1. bllvm-consensus (no dependencies)
+1. blvm-consensus (no dependencies)
    ↓
-2. bllvm-protocol (depends on bllvm-consensus)
+2. blvm-protocol (depends on blvm-consensus)
    ↓
-3. bllvm-node (depends on bllvm-protocol + bllvm-consensus)
+3. blvm-node (depends on blvm-protocol + blvm-consensus)
    ↓
-4. bllvm (depends on bllvm-node)
+4. blvm (depends on blvm-node)
 
 Parallel:
-5. bllvm-sdk (no dependencies)
+5. blvm-sdk (no dependencies)
    ↓
-6. bllvm-commons (depends on bllvm-sdk)
+6. blvm-commons (depends on blvm-sdk)
 ```
 
 ### Build Variants
@@ -88,11 +88,11 @@ Both variants are built for:
 ### Binaries Included
 
 Both variants include:
-- `bllvm` - Bitcoin reference node
-- `bllvm-keygen` - Key generation tool
-- `bllvm-sign` - Message signing tool
-- `bllvm-verify` - Signature verification tool
-- `bllvm-commons` - Governance application server (Linux only)
+- `blvm` - Bitcoin reference node
+- `blvm-keygen` - Key generation tool
+- `blvm-sign` - Message signing tool
+- `blvm-verify` - Signature verification tool
+- `blvm-commons` - Governance application server (Linux only)
 - `key-manager` - Key management utility
 - `test-content-hash` - Content hash testing tool
 - `test-content-hash-standalone` - Standalone content hash test
@@ -147,12 +147,12 @@ When a release succeeds, the pipeline:
 3. Pushes tags to origin
 
 **Repositories Tagged**:
-- `bllvm-consensus`
-- `bllvm-protocol`
-- `bllvm-node`
-- `bllvm`
-- `bllvm-sdk`
-- `bllvm-commons`
+- `blvm-consensus`
+- `blvm-protocol`
+- `blvm-node`
+- `blvm`
+- `blvm-sdk`
+- `blvm-commons`
 
 ### Tag Format
 
@@ -173,13 +173,13 @@ The pipeline creates a GitHub release with:
 
 ### Release Location
 
-Releases are created in the `bllvm` repository as the primary release point for the ecosystem.
+Releases are created in the `blvm` repository as the primary release point for the ecosystem.
 
 ## Version Coordination
 
 ### versions.toml
 
-The `bllvm/versions.toml` file tracks:
+The `blvm/versions.toml` file tracks:
 - Current version of each repository
 - Dependency requirements
 - Release set ID
@@ -271,16 +271,16 @@ For patch releases:
 
 ### Overview
 
-To avoid compiling all dependencies when building the final `bllvm` binary, all library dependencies are published to [crates.io](https://crates.io) as part of the release process. This allows the final binary to use pre-built, cached dependencies from the Cargo registry.
+To avoid compiling all dependencies when building the final `blvm` binary, all library dependencies are published to [crates.io](https://crates.io) as part of the release process. This allows the final binary to use pre-built, cached dependencies from the Cargo registry.
 
 ### Publishing Strategy
 
 Dependencies are published in dependency order:
 
-1. **bllvm-consensus** (no dependencies) → Published first
-2. **bllvm-protocol** (depends on bllvm-consensus) → Published after bllvm-consensus
-3. **bllvm-node** (depends on bllvm-protocol) → Published after bllvm-protocol
-4. **bllvm-sdk** (no dependencies) → Published in parallel with bllvm-consensus
+1. **blvm-consensus** (no dependencies) → Published first
+2. **blvm-protocol** (depends on blvm-consensus) → Published after blvm-consensus
+3. **blvm-node** (depends on blvm-protocol) → Published after blvm-protocol
+4. **blvm-sdk** (no dependencies) → Published in parallel with blvm-consensus
 
 ### Publishing Process
 
@@ -302,27 +302,27 @@ The release pipeline automatically:
 ### Crate Names
 
 Published crates use the same names as the repositories:
-- `bllvm-consensus` → `bllvm-consensus`
-- `bllvm-protocol` → `bllvm-protocol`
-- `bllvm-node` → `bllvm-node`
-- `bllvm-sdk` → `bllvm-sdk`
+- `blvm-consensus` → `blvm-consensus`
+- `blvm-protocol` → `blvm-protocol`
+- `blvm-node` → `blvm-node`
+- `blvm-sdk` → `blvm-sdk`
 
 ### Version Coordination
 
 - Published versions match git tags (e.g., `v0.1.0` → crate version `0.1.0`)
 - Exact version pinning in `Cargo.toml` ensures reproducibility
-- All dependencies use exact versions: `bllvm-protocol = "=0.1.0"`
+- All dependencies use exact versions: `blvm-protocol = "=0.1.0"`
 
 ### Local Development
 
 For local development, repositories still use path dependencies:
 ```toml
-bllvm-protocol = { path = "../bllvm-protocol" }
+blvm-protocol = { path = "../blvm-protocol" }
 ```
 
 For release builds, the pipeline switches to published crates:
 ```toml
-bllvm-protocol = "=0.1.0"
+blvm-protocol = "=0.1.0"
 ```
 
 ## Future Enhancements

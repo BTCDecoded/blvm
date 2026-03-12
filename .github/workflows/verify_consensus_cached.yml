@@ -6,11 +6,7 @@ on:
       repo:
         required: false
         type: string
-        default: consensus-proof
-      kani:
-        required: false
-        type: boolean
-        default: true
+        default: blvm-consensus
       ref:
         required: true
         type: string
@@ -35,7 +31,6 @@ env:
 
 jobs:
   verify:
-    # Kani is installed dynamically, so we only need rust label
     runs-on: [self-hosted, Linux, X64, perf]
     timeout-minutes: ${{ inputs.timeout_minutes }}
     
@@ -108,17 +103,6 @@ jobs:
       - name: Cargo test (all features)
         run: cargo test --all-features --locked
       
-      - name: Install Kani (if enabled)
-        if: ${{ inputs.kani }}
-        run: |
-          curl -fsSL https://model-checking.github.io/kani/install.sh | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-      
-      - name: Run Kani proofs
-        if: ${{ inputs.kani }}
-        run: |
-          cargo kani --features verify || true
-      
       - name: Cache Cargo registry
         if: ${{ inputs.use_cache && always() && env.CARGO_REGISTRY_RESTORED != 'true' }}
         run: |
@@ -144,7 +128,6 @@ jobs:
           name: verify-logs-${{ inputs.repo }}
           path: |
             target/**/*.log
-            kani-*.log
       
       - name: Cache cleanup management
         if: always()

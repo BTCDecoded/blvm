@@ -55,17 +55,17 @@ fi
 
 # Try to find the main binary for this repo
 case "$REPO" in
-    bllvm)
-        BINARY_NAME="bllvm"
+    blvm)
+        BINARY_NAME="blvm"
         ;;
     bllvm-sdk)
         BINARY_NAME="bllvm-keygen"  # Use first binary as representative
         ;;
-    bllvm-commons)
-        BINARY_NAME="bllvm-commons"
+    blvm-commons)
+        BINARY_NAME="blvm-commons"
         ;;
-    bllvm-node)
-        BINARY_NAME="bllvm-node"
+    blvm-node)
+        BINARY_NAME="blvm"
         ;;
     *)
         # For libraries, no binary

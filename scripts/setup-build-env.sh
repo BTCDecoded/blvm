@@ -13,7 +13,7 @@ PARENT_DIR="${PARENT_DIR:-$(dirname "$COMMONS_DIR")}"
 # Configuration
 ORG="BTCDecoded"
 TAG="${1:-}"
-REPOS=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm" "bllvm-sdk" "bllvm-commons")
+REPOS=("blvm-consensus" "blvm-protocol" "blvm-node" "blvm" "blvm-sdk" "blvm-commons")
 
 log_info() {
     echo "[INFO] $1"

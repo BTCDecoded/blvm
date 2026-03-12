@@ -8,10 +8,6 @@ Use the following guidance to reduce flakiness and ensure reproducibility:
   - Transactions: inputs ≤ 10, outputs ≤ 10
   - Headers chain: ≥ required for difficulty targets; use known fixtures
 
-## Kani Proofs
-- Use `#[kani::unwind(N)]` with conservative bounds per harness
-- Add `kani::assume()` for domain constraints
-
 ## Randomized Tests
 - Provide a default seed: `RUST_TEST_SEED` env
 - Document any suites that intentionally vary with seeds

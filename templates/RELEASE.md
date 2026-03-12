@@ -6,7 +6,7 @@
 - Hash artifacts to `SHA256SUMS`
 
 ## Tests
-- Run suites per `commons/TEST_PLAN.md`
+- Run suites per `cargo test` and repo-specific test documentation
 
 ## Version Pins
 - Confirm pins match `commons/versions.toml`

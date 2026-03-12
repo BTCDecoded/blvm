@@ -46,7 +46,7 @@ jobs:
           script: |
             await github.rest.repos.createDispatchEvent({
               owner: 'BTCDecoded',
-              repo: 'bllvm',
+              repo: 'blvm',
               event_type: 'build_all',
               client_payload: {
                 nightly: true,

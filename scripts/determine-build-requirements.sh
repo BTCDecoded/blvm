@@ -33,10 +33,10 @@ log_info() {
 }
 
 # Repos that produce binaries (need artifacts)
-BINARY_REPOS=("bllvm" "bllvm-sdk" "bllvm-commons" "bllvm-node")
+BINARY_REPOS=("blvm" "blvm-sdk" "blvm-commons" "blvm-node")
 
 # Repos that are libraries only (don't need artifacts, but need to be built for dependencies)
-LIBRARY_REPOS=("bllvm-consensus" "bllvm-protocol")
+LIBRARY_REPOS=("blvm-consensus" "blvm-protocol")
 
 # Parse versions.toml and check each repo
 BUILD_REQUIREMENTS="{"

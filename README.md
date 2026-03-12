@@ -261,6 +261,16 @@ Environment variables are ideal for deployment scenarios, especially in containe
 | `BLVM_REQUEST_CLEANUP_INTERVAL` | Request cleanup interval (seconds) | `60` |
 | `BLVM_REQUEST_PENDING_MAX_AGE` | Max age for pending requests (seconds) | `300` |
 
+#### IBD (Initial Block Download)
+
+| Variable | Description | Values |
+|----------|-------------|--------|
+| `BLVM_IBD_EVICTION` | UTXO eviction strategy during IBD | `dynamic` / `fifo` (default) / `lifo` |
+
+- **fifo** (default): Evict oldest entries first.
+- **lifo**: Evict newest entries first.
+- **dynamic**: Age/dust heuristics — prefer evicting dust, very old outputs, then older; never evict outputs from last 100 blocks.
+
 #### Module Resource Limits
 
 | Variable | Description | Default |
@@ -557,7 +567,7 @@ sha256sum -c SHA256SUMS
 ### Verification Bundles
 
 For consensus-critical releases, verification bundles are available that include:
-- Kani proof results (formal verification)
+- Test results and spec-lock verification (formal verification)
 - Test results
 - Source code hash
 - Build configuration hash
@@ -576,7 +586,6 @@ sha256sum -c verification-artifacts.tar.gz.sha256
 
 # Extract and inspect
 tar -xzf verification-artifacts.tar.gz
-cat verify-artifacts/kani.log
 cat verify-artifacts/tests.log
 ```
 

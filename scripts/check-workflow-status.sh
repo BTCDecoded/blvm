@@ -7,7 +7,7 @@ set -euo pipefail
 # Configuration
 ORG="${GITHUB_ORG:-BTCDecoded}"
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
-REPOS=("bllvm-consensus" "bllvm-protocol" "bllvm-node" "bllvm-sdk")
+REPOS=("blvm-consensus" "blvm-protocol" "blvm-node" "blvm-sdk")
 TIMEOUT="${TIMEOUT:-300}"  # Default 5 minutes
 POLL_INTERVAL="${POLL_INTERVAL:-10}"  # Check every 10 seconds
 MAX_RUNS="${MAX_RUNS:-1}"  # Check the most recent run

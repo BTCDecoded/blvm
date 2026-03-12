@@ -5,9 +5,9 @@ Edit `versions.toml` with exact tags per repo:
 
 ```
 [versions]
-consensus-proof = "v0.1.0-locked"
-protocol-engine  = "v0.1.0"
-reference-node   = "v0.1.0"
+blvm-consensus = "v0.1.0-locked"
+blvm-protocol  = "v0.1.0"
+blvm-node   = "v0.1.0"
 ```
 
 ## Orchestrate

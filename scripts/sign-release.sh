@@ -131,9 +131,9 @@ if [[ -d "${ARTIFACTS_DIR}/binaries" ]]; then
             binary_name=$(basename "$binary")
             sig_file="${SIGNATURES_DIR}/${binary_name}.sig"
             
-            if [[ -n "$SIGN_KEY" ]] && command -v bllvm-sign-binary >/dev/null 2>&1; then
+            if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
                 echo "Signing: ${binary_name}"
-                bllvm-sign-binary binary \
+                blvm-sign-binary binary \
                     --file "$binary" \
                     --binary-type "$BINARY_TYPE" \
                     --version "$VERSION" \
@@ -143,7 +143,7 @@ if [[ -d "${ARTIFACTS_DIR}/binaries" ]]; then
                     echo "Warning: Failed to sign ${binary_name}" >&2
                 }
             else
-                echo "Skipping: ${binary_name} (no key or bllvm-sign-binary not found)"
+                echo "Skipping: ${binary_name} (no key or blvm-sign-binary not found)"
             fi
         fi
     done
@@ -155,8 +155,8 @@ if [[ -f "${ARTIFACTS_DIR}/SHA256SUMS" ]]; then
     echo "=== Signing SHA256SUMS ==="
     sig_file="${SIGNATURES_DIR}/SHA256SUMS.sig"
     
-    if [[ -n "$SIGN_KEY" ]] && command -v bllvm-sign-binary >/dev/null 2>&1; then
-        bllvm-sign-binary checksums \
+    if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
+        blvm-sign-binary checksums \
             --file "${ARTIFACTS_DIR}/SHA256SUMS" \
             --version "$VERSION" \
             --key "$SIGN_KEY" \
@@ -164,7 +164,7 @@ if [[ -f "${ARTIFACTS_DIR}/SHA256SUMS" ]]; then
             echo "Warning: Failed to sign SHA256SUMS" >&2
         }
     else
-        echo "Skipping SHA256SUMS (no key or bllvm-sign-binary not found)"
+        echo "Skipping SHA256SUMS (no key or blvm-sign-binary not found)"
     fi
 fi
 
@@ -183,9 +183,9 @@ if [[ -d "${ARTIFACTS_DIR}" ]]; then
                 SOURCE_HASH=$(git rev-parse HEAD 2>/dev/null || echo "")
             fi
             
-            if [[ -n "$SIGN_KEY" ]] && command -v bllvm-sign-binary >/dev/null 2>&1; then
+            if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
                 echo "Signing: ${bundle_name}"
-                bllvm-sign-binary bundle \
+                blvm-sign-binary bundle \
                     --file "$bundle" \
                     --source-hash "${SOURCE_HASH}" \
                     --key "$SIGN_KEY" \
@@ -193,14 +193,14 @@ if [[ -d "${ARTIFACTS_DIR}" ]]; then
                     echo "Warning: Failed to sign ${bundle_name}" >&2
                 }
             else
-                echo "Skipping: ${bundle_name} (no key or bllvm-sign-binary not found)"
+                echo "Skipping: ${bundle_name} (no key or blvm-sign-binary not found)"
             fi
         fi
     done
 fi
 
 # Aggregate signatures if multiple maintainers signed
-if [[ -n "${BLVM_MAINTAINER_KEYS:-}" ]] && command -v bllvm-aggregate-signatures >/dev/null 2>&1; then
+if [[ -n "${BLVM_MAINTAINER_KEYS:-}" ]] && command -v blvm-aggregate-signatures >/dev/null 2>&1; then
     echo ""
     echo "=== Aggregating Signatures ==="
     
@@ -214,7 +214,7 @@ if [[ -n "${BLVM_MAINTAINER_KEYS:-}" ]] && command -v bllvm-aggregate-signatures
             type_sigs=$(find "${SIGNATURES_DIR}" -name "*${sig_type}*.sig" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
             if [[ -n "$type_sigs" ]]; then
                 aggregated="${SIGNATURES_DIR}/${sig_type}-signatures-aggregated.json"
-                bllvm-aggregate-signatures \
+                blvm-aggregate-signatures \
                     --signatures "$type_sigs" \
                     --threshold "$THRESHOLD" \
                     --pubkeys "${BLVM_MAINTAINER_KEYS}" \
@@ -232,7 +232,7 @@ echo "Signatures saved to: ${SIGNATURES_DIR}"
 echo ""
 echo "Next steps:"
 echo "1. Collect signatures from other maintainers"
-echo "2. Aggregate signatures: bllvm-aggregate-signatures --signatures sig1.json,sig2.json,... --threshold ${THRESHOLD}"
-echo "3. Verify signatures: bllvm-verify-binary ... --signatures aggregated.json --threshold ${THRESHOLD}"
+echo "2. Aggregate signatures: blvm-aggregate-signatures --signatures sig1.json,sig2.json,... --threshold ${THRESHOLD}"
+echo "3. Verify signatures: blvm-verify-binary ... --signatures aggregated.json --threshold ${THRESHOLD}"
 
 

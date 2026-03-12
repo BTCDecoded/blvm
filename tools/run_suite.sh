@@ -2,7 +2,7 @@
 # Run a single test suite for a given repo
 # Usage: run_suite.sh --repo /path/to/repo --suite <name> [--features "..."]
 # Suites:
-#  cp-unit, cp-prop, cp-kani, cp-int, pe-all,
+#  cp-unit, cp-prop, cp-int, pe-all,
 #  rn-storage, rn-network, rn-rpc, rn-node, rn-quic,
 #  ds-all, ga-all
 
@@ -33,12 +33,6 @@ case "$SUITE" in
     cargo test --all-features --lib --tests ;;
   cp-prop)
     cargo test --test property_* ;;
-  cp-kani)
-    if command -v cargo-kani >/dev/null 2>&1 || command -v kani >/dev/null 2>&1; then
-      cargo kani --features verify || true
-    else
-      echo "Kani not installed; skipping" ;
-    fi ;;
   cp-int)
     cargo test --test integration_* ;;
   pe-all)

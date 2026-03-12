@@ -1,6 +1,6 @@
 //! Tests for build order and dependency resolution
 
-use bllvm::versions::VersionsManifest;
+use blvm::versions::VersionsManifest;
 use std::fs;
 use tempfile::TempDir;
 
@@ -78,7 +78,7 @@ fn test_parallel_builds() {
     let content = r#"
 [versions]
 blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0" }
-bllvm-sdk = { version = "0.1.0", git_tag = "v0.1.0" }
+blvm-sdk = { version = "0.1.0", git_tag = "v0.1.0" }
 blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-consensus=0.1.0"] }
 "#;
 
@@ -91,9 +91,9 @@ blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-conse
         .build_order()
         .expect("Should calculate build order");
 
-    // blvm-consensus and bllvm-sdk have no dependencies, so they can be built in parallel
+    // blvm-consensus and blvm-sdk have no dependencies, so they can be built in parallel
     // blvm-protocol depends on blvm-consensus, so consensus must come before protocol
-    // bllvm-sdk has no dependencies, so its position relative to protocol is non-deterministic
+    // blvm-sdk has no dependencies, so its position relative to protocol is non-deterministic
     let consensus_pos = build_order
         .iter()
         .position(|r| r == "blvm-consensus")
@@ -111,7 +111,7 @@ blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-conse
 
     // Verify all repos are present (order between independent repos is non-deterministic)
     assert!(build_order.contains(&"blvm-consensus".to_string()));
-    assert!(build_order.contains(&"bllvm-sdk".to_string()));
+    assert!(build_order.contains(&"blvm-sdk".to_string()));
     assert!(build_order.contains(&"blvm-protocol".to_string()));
     assert_eq!(
         build_order.len(),

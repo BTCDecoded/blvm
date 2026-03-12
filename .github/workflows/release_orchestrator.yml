@@ -189,25 +189,25 @@ jobs:
           elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             # Use triggering repo's ref for the triggering repo, main for others
             TRIGGER_REPO="${{ needs.determine-scope.outputs.trigger_repo }}"
-            if [ "$TRIGGER_REPO" = "bllvm-consensus" ]; then
+            if [ "$TRIGGER_REPO" = "blvm-consensus" ]; then
               CP="${TRIGGER_REF}"
               PE="main"
               RN="main"
               DS="main"
               GA="main"
-            elif [ "$TRIGGER_REPO" = "bllvm-protocol" ]; then
+            elif [ "$TRIGGER_REPO" = "blvm-protocol" ]; then
               CP="main"  # Use existing consensus
               PE="${TRIGGER_REF}"
               RN="main"
               DS="main"
               GA="main"
-            elif [ "$TRIGGER_REPO" = "bllvm-node" ]; then
+            elif [ "$TRIGGER_REPO" = "blvm-node" ]; then
               CP="main"
               PE="main"
               RN="${TRIGGER_REF}"
               DS="main"
               GA="main"
-            elif [ "$TRIGGER_REPO" = "bllvm-sdk" ]; then
+            elif [ "$TRIGGER_REPO" = "blvm-sdk" ]; then
               CP="main"
               PE="main"
               RN="main"
@@ -215,18 +215,18 @@ jobs:
               GA="main"
             else
               # Fallback to versions.toml
-              CP=$(grep -A 1 "bllvm-consensus" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-              PE=$(grep -A 1 "bllvm-protocol" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-              RN=$(grep -A 1 "bllvm-node" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-              DS=$(grep -A 1 "bllvm-sdk" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+              CP=$(grep -A 1 "blvm-consensus" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+              PE=$(grep -A 1 "blvm-protocol" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+              RN=$(grep -A 1 "blvm-node" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+              DS=$(grep -A 1 "blvm-sdk" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
               GA=$(grep -A 1 "governance-app" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
             fi
           else
             # Parse versions.toml for official releases
-            CP=$(grep -A 1 "bllvm-consensus" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-            PE=$(grep -A 1 "bllvm-protocol" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-            RN=$(grep -A 1 "bllvm-node" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
-            DS=$(grep -A 1 "bllvm-sdk" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+            CP=$(grep -A 1 "blvm-consensus" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+            PE=$(grep -A 1 "blvm-protocol" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+            RN=$(grep -A 1 "blvm-node" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
+            DS=$(grep -A 1 "blvm-sdk" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
             GA=$(grep -A 1 "governance-app" versions.toml | grep "git_tag" | sed -E 's/.*git_tag = "([^"]+)".*/\1/' | head -1 || echo "main")
           fi
           
@@ -248,8 +248,7 @@ jobs:
     if: needs.determine-scope.outputs.build_consensus == 'true'
     uses: ./.github/workflows/verify_consensus_cached.yml
     with:
-      repo: bllvm-consensus
-      kani: true
+      repo: blvm-consensus
       ref: ${{ needs.read-versions.outputs.cp }}
       use_cache: true
       timeout_minutes: 120
@@ -261,8 +260,8 @@ jobs:
       (needs.determine-scope.outputs.build_consensus == 'false' || needs.verify-consensus.result == 'success')
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: bllvm-protocol
-      package: bllvm-protocol
+      repo: blvm-protocol
+      package: blvm-protocol
       ref: ${{ needs.read-versions.outputs.pe }}
       features: ""
       release: true
@@ -277,8 +276,8 @@ jobs:
       (needs.determine-scope.outputs.build_protocol == 'false' || needs.build-protocol.result == 'success')
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: bllvm-node
-      package: bllvm-node
+      repo: blvm-node
+      package: blvm-node
       ref: ${{ needs.read-versions.outputs.rn }}
       features: ""
       release: true
@@ -293,8 +292,8 @@ jobs:
       (needs.determine-scope.outputs.build_node == 'false' || needs.build-node.result == 'success')
     uses: ./.github/workflows/build_lib_cached.yml
     with:
-      repo: bllvm-sdk
-      package: bllvm-sdk
+      repo: blvm-sdk
+      package: blvm-sdk
       ref: ${{ needs.read-versions.outputs.ds }}
       features: ""
       release: true
@@ -309,7 +308,7 @@ jobs:
       (needs.determine-scope.outputs.build_sdk == 'false' || needs.build-sdk.result == 'success')
     uses: ./.github/workflows/build_docker.yml
     with:
-      repo: bllvm-commons
+      repo: blvm-commons
       context: .
       image_name: governance-app
       push: false
@@ -374,7 +373,7 @@ jobs:
           script: |
             await github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,
-              repo: 'bllvm-commons',  # GitHub repo name (was governance-app)
+              repo: 'blvm-commons',  # GitHub repo name (was governance-app)
               event_type: 'deploy',
               client_payload: { 
                 tag: '${{ needs.read-versions.outputs.ga }}',

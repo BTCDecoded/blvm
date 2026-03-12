@@ -1,6 +1,5 @@
 # Local Build Verification and Quick Start
 
-**Date:** 2025-01-XX  
 **Status:** Verified
 
 ## What We've Created
@@ -71,11 +70,11 @@ cd /path/to/BTCDecoded/commons
 # 1. Clone all repos
 cd /path/to/BTCDecoded
 git clone https://github.com/BTCDecoded/commons.git
-git clone https://github.com/BTCDecoded/bllvm-consensus.git
-git clone https://github.com/BTCDecoded/bllvm-protocol.git
-git clone https://github.com/BTCDecoded/bllvm-node.git
-git clone https://github.com/BTCDecoded/bllvm.git
-git clone https://github.com/BTCDecoded/bllvm-sdk.git
+git clone https://github.com/BTCDecoded/blvm-consensus.git
+git clone https://github.com/BTCDecoded/blvm-protocol.git
+git clone https://github.com/BTCDecoded/blvm-node.git
+git clone https://github.com/BTCDecoded/blvm.git
+git clone https://github.com/BTCDecoded/blvm-sdk.git
 git clone https://github.com/BTCDecoded/governance-app.git
 
 # 2. Build everything
@@ -159,7 +158,7 @@ cd /path/to/BTCDecoded/commons
 ### Example 4: Single Repo Build
 ```bash
 cd /path/to/BTCDecoded/commons
-./tools/det_build.sh --repo ../bllvm-consensus
+./tools/det_build.sh --repo ../blvm-consensus
 ```
 **Output:** Built repo with SHA256SUMS
 
@@ -167,11 +166,11 @@ cd /path/to/BTCDecoded/commons
 
 The scripts correctly handle dependency order:
 
-1. **bllvm-consensus** (no deps) - builds first
-2. **bllvm-sdk** (no deps) - builds in parallel with bllvm-consensus
-3. **bllvm-protocol** (needs bllvm-consensus) - builds after bllvm-consensus
-4. **bllvm-node** (needs bllvm-protocol + bllvm-consensus) - builds last
-5. **governance-app** (needs bllvm-sdk) - builds after bllvm-sdk
+1. **blvm-consensus** (no deps) - builds first
+2. **blvm-sdk** (no deps) - builds in parallel with blvm-consensus
+3. **blvm-protocol** (needs blvm-consensus) - builds after blvm-consensus
+4. **blvm-node** (needs blvm-protocol + blvm-consensus) - builds last
+5. **governance-app** (needs blvm-sdk) - builds after blvm-sdk
 
 ## Comparison with CI/CD
 

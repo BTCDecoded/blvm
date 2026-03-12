@@ -14,9 +14,9 @@
 id = "set-2025-01A"
 
 [versions]
-consensus-proof = "v0.1.0-locked"
-protocol-engine  = "v0.1.0"
-reference-node   = "v0.1.0"
-developer-sdk    = "v0.1.0"
-governance-app   = "v0.1.0"
+blvm-consensus = "v0.1.0-locked"
+blvm-protocol  = "v0.1.0"
+blvm-node   = "v0.1.0"
+blvm-sdk    = "v0.1.0"
+blvm-commons   = "v0.1.0"
 ```
