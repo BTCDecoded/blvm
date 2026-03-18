@@ -34,9 +34,9 @@ struct Cli {
     #[arg(short, long, default_value = "0.0.0.0:8333")]
     listen_addr: SocketAddr,
 
-    /// Data directory
-    #[arg(short, long, default_value = "./data")]
-    data_dir: String,
+    /// Data directory (CLI overrides ENV and config; default ./data when not specified)
+    #[arg(short, long)]
+    data_dir: Option<String>,
 
     /// Configuration file path (TOML or JSON)
     #[arg(short, long)]
@@ -113,6 +113,94 @@ enum Command {
         #[arg(long)]
         rpc_addr: Option<SocketAddr>,
     },
+    /// Module lifecycle (load, unload, reload, list)
+    Module {
+        #[command(subcommand)]
+        subcommand: ModuleCommand,
+        /// RPC server address (overrides config)
+        #[arg(long)]
+        rpc_addr: Option<SocketAddr>,
+    },
+    /// Migration and data conversion tools
+    Migrate {
+        #[command(subcommand)]
+        subcommand: MigrateCommand,
+    },
+    /// Print config file path for a module (works offline)
+    ConfigPath {
+        /// Module name (e.g. datum, stratum-v2, mesh)
+        module: String,
+    },
+    /// Load a module at runtime (node must be running)
+    Load {
+        /// Module name
+        module: String,
+        /// RPC server address (overrides config)
+        #[arg(long)]
+        rpc_addr: Option<SocketAddr>,
+    },
+    /// Unload a module at runtime (node must be running)
+    Unload {
+        /// Module name
+        module: String,
+        /// RPC server address (overrides config)
+        #[arg(long)]
+        rpc_addr: Option<SocketAddr>,
+    },
+    /// Reload a module at runtime (node must be running)
+    Reload {
+        /// Module name
+        module: String,
+        /// RPC server address (overrides config)
+        #[arg(long)]
+        rpc_addr: Option<SocketAddr>,
+    },
+    /// Dynamic module commands (e.g. blvm sync-policy list) from getmoduleclispecs
+    #[command(external_subcommand)]
+    ModuleCli(Vec<String>),
+}
+
+#[derive(Subcommand)]
+enum MigrateCommand {
+    /// Migrate Bitcoin Core data directory to BLVM format
+    Core {
+        /// Bitcoin Core data directory (default: auto-detect)
+        #[arg(short, long)]
+        source: Option<String>,
+        /// Destination directory for BLVM database
+        #[arg(short, long, required = true)]
+        destination: String,
+        /// Network type (mainnet, testnet, regtest, signet)
+        #[arg(short, long, default_value = "mainnet")]
+        network: String,
+        /// Verify migrated data
+        #[arg(short, long)]
+        verify: bool,
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ModuleCommand {
+    /// Load a module at runtime (hot load)
+    Load {
+        /// Module name
+        name: String,
+    },
+    /// Unload a module at runtime (hot unload)
+    Unload {
+        /// Module name
+        name: String,
+    },
+    /// Reload a module at runtime (hot reload)
+    Reload {
+        /// Module name
+        name: String,
+    },
+    /// List loaded modules
+    List,
 }
 
 #[derive(Subcommand)]
@@ -126,6 +214,24 @@ enum ConfigCommand {
     },
     /// Show configuration file path
     Path,
+    /// Set config value(s). Use dotted keys for primary and module config.
+    /// Examples: storage.data_dir=./data, modules.stratum-v2.listen_addr=0.0.0.1:3333
+    Set {
+        /// One or more key=value assignments
+        #[arg(required = true, value_name = "KEY=VALUE")]
+        assignments: Vec<String>,
+    },
+    /// Convert Bitcoin Core bitcoin.conf to blvm config.toml
+    ConvertCore {
+        /// Bitcoin Core config file (bitcoin.conf)
+        input: PathBuf,
+        /// Output path (default: config.toml)
+        #[arg(default_value = "config.toml")]
+        output: PathBuf,
+        /// Verbose output
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 #[derive(Parser, Debug, Clone, Default)]
@@ -224,76 +330,150 @@ impl From<Network> for ProtocolVersion {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Initialize tracing (minimal for subcommands, full for start)
-    let filter = if cli.verbose {
+    // Initialize tracing: RUST_LOG > BLVM_LOG_LEVEL > default (verbose ? debug : info)
+    let default_filter = if cli.verbose {
         "blvm=debug,blvm_node=debug"
     } else {
         "blvm=info,blvm_node=info"
     };
+    let filter = match tracing_subscriber::EnvFilter::try_from_default_env() {
+        Ok(f) => f,
+        Err(_) => {
+            if let Ok(level) = env::var("BLVM_LOG_LEVEL") {
+                if let Ok(f) = tracing_subscriber::EnvFilter::try_new(&level) {
+                    f
+                } else {
+                    tracing_subscriber::EnvFilter::new(default_filter)
+                }
+            } else {
+                tracing_subscriber::EnvFilter::new(default_filter)
+            }
+        }
+    };
 
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(filter)),
-        )
-        .init();
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     // Handle subcommands
     match cli.command {
         Some(Command::Status { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_status(rpc_addr, &config).await
         }
         Some(Command::Health { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_health(rpc_addr, &config).await
         }
         Some(Command::Version) => handle_version(),
         Some(Command::Chain { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_chain(rpc_addr, &config).await
         }
         Some(Command::Peers { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_peers(rpc_addr, &config).await
         }
         Some(Command::Network { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_network(rpc_addr, &config).await
         }
         Some(Command::Sync { rpc_addr }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             handle_sync(rpc_addr, &config).await
         }
         Some(Command::Config { ref subcommand }) => {
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             match subcommand {
                 ConfigCommand::Show => handle_config_show(&config),
                 ConfigCommand::Validate { path } => {
                     handle_config_validate(path.clone(), &cli.config)
                 }
                 ConfigCommand::Path => handle_config_path(&cli.config),
+                ConfigCommand::Set { ref assignments } => {
+                    handle_config_set(&cli.config, assignments)
+                }
+                ConfigCommand::ConvertCore {
+                    input,
+                    output,
+                    verbose,
+                } => {
+                    blvm_node::cli::run_config_convert_core(input, output, *verbose)?;
+                    Ok(())
+                }
             }
         }
+        Some(Command::Migrate { ref subcommand }) => match subcommand {
+            MigrateCommand::Core {
+                source,
+                destination,
+                network,
+                verify,
+                verbose,
+            } => {
+                use blvm_node::storage::bitcoin_core_detection::BitcoinCoreNetwork;
+                let network_parsed: BitcoinCoreNetwork = network
+                    .parse()
+                    .map_err(|e: String| anyhow::anyhow!("Invalid network: {}", e))?;
+                let source_path = source.as_ref().map(std::path::PathBuf::from);
+                blvm_node::cli::run_migrate_core_cli(
+                    source_path,
+                    std::path::PathBuf::from(destination),
+                    network_parsed,
+                    *verify,
+                    *verbose,
+                )?;
+                Ok(())
+            }
+        },
         Some(Command::Rpc {
             ref method,
             ref params,
             rpc_addr,
         }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
             let params: Value = serde_json::from_str(params).context("Invalid JSON parameters")?;
             handle_rpc(rpc_addr, method, params, &config).await
         }
+        Some(Command::Module {
+            ref subcommand,
+            rpc_addr,
+        }) => {
+            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
+            handle_module(rpc_addr, subcommand, &config).await
+        }
+        Some(Command::ConfigPath { ref module }) => {
+            let (config, data_dir, _, _, _) = build_final_config(&cli)?;
+            handle_module_config_path(module, &config, &data_dir)
+        }
+        Some(Command::Load { ref module, rpc_addr }) => {
+            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
+            handle_module(rpc_addr, &ModuleCommand::Load { name: module.clone() }, &config).await
+        }
+        Some(Command::Unload { ref module, rpc_addr }) => {
+            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
+            handle_module(rpc_addr, &ModuleCommand::Unload { name: module.clone() }, &config).await
+        }
+        Some(Command::Reload { ref module, rpc_addr }) => {
+            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
+            let (config, _, _, _, _) = build_final_config(&cli)?;
+            handle_module(rpc_addr, &ModuleCommand::Reload { name: module.clone() }, &config).await
+        }
+        Some(Command::ModuleCli(ref args)) => {
+            let (config, _, _, _, _) = build_final_config(&cli)?;
+            handle_module_cli(cli.rpc_addr, args, &config).await
+        }
         None | Some(Command::Start) => {
             // Start node (default behavior)
-            let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli);
+            let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli)?;
 
             info!("Starting Bitcoin Commons BLVM Node");
             info!("Network: {:?}", network);
@@ -320,6 +500,11 @@ async fn main() -> Result<()> {
             node = node
                 .with_config(config.clone())
                 .map_err(|e| anyhow::anyhow!("Failed to apply config: {}", e))?;
+
+            #[cfg(feature = "wasm-modules")]
+            {
+                node = node.with_wasm_loader(std::sync::Arc::new(blvm_sdk::BlvmSdkWasmLoader));
+            }
 
             // with_modules_from_config takes ownership, so we need to handle it carefully
             node = match node.with_modules_from_config(&config) {
@@ -360,7 +545,6 @@ struct EnvOverrides {
     network: Option<String>,
     listen_addr: Option<SocketAddr>,
     rpc_addr: Option<SocketAddr>,
-    log_level: Option<String>,
     max_peers: Option<usize>,
     transport: Option<String>,
     // Feature flags
@@ -398,7 +582,6 @@ impl EnvOverrides {
                 .ok()
                 .and_then(|s| s.parse().ok()),
             rpc_addr: env::var("BLVM_RPC_ADDR").ok().and_then(|s| s.parse().ok()),
-            log_level: env::var("BLVM_LOG_LEVEL").ok(),
             max_peers: env::var("BLVM_NODE_MAX_PEERS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
@@ -501,7 +684,7 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 }
 
 /// Build final configuration with hierarchy: CLI > ENV > Config > Defaults
-fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr, Network) {
+fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
     // 1. Start with defaults
     let mut config = NodeConfig::default();
 
@@ -541,7 +724,7 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
     }
     if let Some(max_peers) = env_overrides.max_peers {
         info!("Max peers overridden by ENV: {}", max_peers);
-        config.max_peers = Some(max_peers);
+        config.max_outbound_peers = Some(max_peers);
     }
     if let Some(transport) = &env_overrides.transport {
         info!("Transport overridden by ENV: {}", transport);
@@ -598,8 +781,13 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
         cli.network.clone()
     };
 
-    // CLI always wins for these (they're required CLI args with defaults)
-    let data_dir = cli.data_dir.clone();
+    // data_dir: CLI > ENV > config.storage.data_dir > default
+    let data_dir = cli
+        .data_dir
+        .clone()
+        .or_else(|| env_overrides.data_dir.clone())
+        .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
+        .unwrap_or_else(|| "./data".to_string());
     let listen_addr = cli.listen_addr;
     let rpc_addr = cli.rpc_addr;
 
@@ -629,7 +817,10 @@ fn build_final_config(cli: &Cli) -> (NodeConfig, String, SocketAddr, SocketAddr,
         }
     }
 
-    (config, data_dir, listen_addr, rpc_addr, network)
+    // Validate config before returning (semantic checks: pruning, etc.)
+    config.validate().context("Invalid configuration")?;
+
+    Ok((config, data_dir, listen_addr, rpc_addr, network))
 }
 
 /// Apply feature flags from environment variables
@@ -805,100 +996,102 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
 }
 
 /// Apply environment config overrides (non-feature flags)
-fn apply_env_config_overrides(_config: &mut NodeConfig, env: &EnvOverrides) {
+/// ENV overrides config file; values are written to config for downstream use.
+fn apply_env_config_overrides(config: &mut NodeConfig, env: &EnvOverrides) {
     // Network timing config
-    if let Some(target_peer_count) = env.target_peer_count {
-        // This would need to be added to NodeConfig if not already present
-        // For now, just log it
-        info!("Target peer count overridden by ENV: {}", target_peer_count);
-    }
-    if let Some(peer_connection_delay) = env.peer_connection_delay {
-        info!(
-            "Peer connection delay overridden by ENV: {}",
-            peer_connection_delay
-        );
-    }
-    if let Some(max_addresses_from_dns) = env.max_addresses_from_dns {
-        info!(
-            "Max addresses from DNS overridden by ENV: {}",
-            max_addresses_from_dns
-        );
+    if env.target_peer_count.is_some()
+        || env.peer_connection_delay.is_some()
+        || env.max_addresses_from_dns.is_some()
+    {
+        let timing = config
+            .network_timing
+            .get_or_insert_with(blvm_node::config::NetworkTimingConfig::default);
+        if let Some(v) = env.target_peer_count {
+            info!("Target peer count overridden by ENV: {}", v);
+            timing.target_outbound_peers = v;
+        }
+        if let Some(v) = env.peer_connection_delay {
+            info!("Peer connection delay overridden by ENV: {}", v);
+            timing.peer_connection_delay_seconds = v;
+        }
+        if let Some(v) = env.max_addresses_from_dns {
+            info!("Max addresses from DNS overridden by ENV: {}", v);
+            timing.max_addresses_from_dns = v;
+        }
     }
 
     // Request timeout config
-    if let Some(async_request_timeout) = env.async_request_timeout {
-        info!(
-            "Async request timeout overridden by ENV: {}",
-            async_request_timeout
-        );
-    }
-    if let Some(utxo_commitment_timeout) = env.utxo_commitment_timeout {
-        info!(
-            "UTXO commitment timeout overridden by ENV: {}",
-            utxo_commitment_timeout
-        );
-    }
-    if let Some(request_cleanup_interval) = env.request_cleanup_interval {
-        info!(
-            "Request cleanup interval overridden by ENV: {}",
-            request_cleanup_interval
-        );
-    }
-    if let Some(pending_request_max_age) = env.pending_request_max_age {
-        info!(
-            "Pending request max age overridden by ENV: {}",
-            pending_request_max_age
-        );
+    if env.async_request_timeout.is_some()
+        || env.utxo_commitment_timeout.is_some()
+        || env.request_cleanup_interval.is_some()
+        || env.pending_request_max_age.is_some()
+    {
+        let timeouts = config
+            .request_timeouts
+            .get_or_insert_with(blvm_node::config::RequestTimeoutConfig::default);
+        if let Some(v) = env.async_request_timeout {
+            info!("Async request timeout overridden by ENV: {}", v);
+            timeouts.async_request_timeout_seconds = v;
+        }
+        if let Some(v) = env.utxo_commitment_timeout {
+            info!("UTXO commitment timeout overridden by ENV: {}", v);
+            timeouts.utxo_commitment_request_timeout_seconds = v;
+        }
+        if let Some(v) = env.request_cleanup_interval {
+            info!("Request cleanup interval overridden by ENV: {}", v);
+            timeouts.request_cleanup_interval_seconds = v;
+        }
+        if let Some(v) = env.pending_request_max_age {
+            info!("Pending request max age overridden by ENV: {}", v);
+            timeouts.pending_request_max_age_seconds = v;
+        }
     }
 
     // Module resource limits config
-    if let Some(module_max_cpu_percent) = env.module_max_cpu_percent {
-        info!(
-            "Module max CPU percent overridden by ENV: {}",
-            module_max_cpu_percent
-        );
-    }
-    if let Some(module_max_memory_bytes) = env.module_max_memory_bytes {
-        info!(
-            "Module max memory bytes overridden by ENV: {}",
-            module_max_memory_bytes
-        );
-    }
-    if let Some(module_max_file_descriptors) = env.module_max_file_descriptors {
-        info!(
-            "Module max file descriptors overridden by ENV: {}",
-            module_max_file_descriptors
-        );
-    }
-    if let Some(module_max_child_processes) = env.module_max_child_processes {
-        info!(
-            "Module max child processes overridden by ENV: {}",
-            module_max_child_processes
-        );
-    }
-    if let Some(module_startup_wait_millis) = env.module_startup_wait_millis {
-        info!(
-            "Module startup wait millis overridden by ENV: {}",
-            module_startup_wait_millis
-        );
-    }
-    if let Some(module_socket_timeout) = env.module_socket_timeout {
-        info!(
-            "Module socket timeout overridden by ENV: {}",
-            module_socket_timeout
-        );
-    }
-    if let Some(module_socket_check_interval) = env.module_socket_check_interval {
-        info!(
-            "Module socket check interval overridden by ENV: {}",
-            module_socket_check_interval
-        );
-    }
-    if let Some(module_socket_max_attempts) = env.module_socket_max_attempts {
-        info!(
-            "Module socket max attempts overridden by ENV: {}",
-            module_socket_max_attempts
-        );
+    if env.module_max_cpu_percent.is_some()
+        || env.module_max_memory_bytes.is_some()
+        || env.module_max_file_descriptors.is_some()
+        || env.module_max_child_processes.is_some()
+        || env.module_startup_wait_millis.is_some()
+        || env.module_socket_timeout.is_some()
+        || env.module_socket_check_interval.is_some()
+        || env.module_socket_max_attempts.is_some()
+    {
+        let limits = config
+            .module_resource_limits
+            .get_or_insert_with(blvm_node::config::ModuleResourceLimitsConfig::default);
+        if let Some(v) = env.module_max_cpu_percent {
+            info!("Module max CPU percent overridden by ENV: {}", v);
+            limits.default_max_cpu_percent = v;
+        }
+        if let Some(v) = env.module_max_memory_bytes {
+            info!("Module max memory bytes overridden by ENV: {}", v);
+            limits.default_max_memory_bytes = v;
+        }
+        if let Some(v) = env.module_max_file_descriptors {
+            info!("Module max file descriptors overridden by ENV: {}", v);
+            limits.default_max_file_descriptors = v;
+        }
+        if let Some(v) = env.module_max_child_processes {
+            info!("Module max child processes overridden by ENV: {}", v);
+            limits.default_max_child_processes = v;
+        }
+        if let Some(v) = env.module_startup_wait_millis {
+            info!("Module startup wait millis overridden by ENV: {}", v);
+            limits.module_startup_wait_millis = v;
+        }
+        if let Some(v) = env.module_socket_timeout {
+            info!("Module socket timeout overridden by ENV: {}", v);
+            limits.module_socket_timeout_seconds = v;
+        }
+        if let Some(v) = env.module_socket_check_interval {
+            info!("Module socket check interval overridden by ENV: {}", v);
+            limits.module_socket_check_interval_millis = v;
+        }
+        if let Some(v) = env.module_socket_max_attempts {
+            info!("Module socket max attempts overridden by ENV: {}", v);
+            limits.module_socket_max_attempts = v;
+        }
     }
 }
 
@@ -963,27 +1156,33 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
         }
     }
 
-    if let Some(target_peer_count) = advanced.target_peer_count {
-        info!("Target peer count set via CLI: {}", target_peer_count);
-        // This would need to be added to NodeConfig if not already present
+    // CLI overrides config file and ENV for these options
+    if let Some(v) = advanced.target_peer_count {
+        info!("Target peer count set via CLI: {}", v);
+        let timing = config
+            .network_timing
+            .get_or_insert_with(blvm_node::config::NetworkTimingConfig::default);
+        timing.target_outbound_peers = v;
     }
-    if let Some(async_request_timeout) = advanced.async_request_timeout {
-        info!(
-            "Async request timeout set via CLI: {}",
-            async_request_timeout
-        );
+    if let Some(v) = advanced.async_request_timeout {
+        info!("Async request timeout set via CLI: {}", v);
+        let timeouts = config
+            .request_timeouts
+            .get_or_insert_with(blvm_node::config::RequestTimeoutConfig::default);
+        timeouts.async_request_timeout_seconds = v;
     }
-    if let Some(module_max_cpu_percent) = advanced.module_max_cpu_percent {
-        info!(
-            "Module max CPU percent set via CLI: {}",
-            module_max_cpu_percent
-        );
-    }
-    if let Some(module_max_memory_bytes) = advanced.module_max_memory_bytes {
-        info!(
-            "Module max memory bytes set via CLI: {}",
-            module_max_memory_bytes
-        );
+    if advanced.module_max_cpu_percent.is_some() || advanced.module_max_memory_bytes.is_some() {
+        let limits = config
+            .module_resource_limits
+            .get_or_insert_with(blvm_node::config::ModuleResourceLimitsConfig::default);
+        if let Some(v) = advanced.module_max_cpu_percent {
+            info!("Module max CPU percent set via CLI: {}", v);
+            limits.default_max_cpu_percent = v;
+        }
+        if let Some(v) = advanced.module_max_memory_bytes {
+            info!("Module max memory bytes set via CLI: {}", v);
+            limits.default_max_memory_bytes = v;
+        }
     }
 }
 
@@ -1264,10 +1463,16 @@ fn handle_config_validate(path: Option<PathBuf>, cli_config: &Option<PathBuf>) -
 
     match config_path {
         Some(path) => match NodeConfig::from_file(&path) {
-            Ok(_) => {
-                println!("✅ Configuration file is valid: {}", path.display());
-                Ok(())
-            }
+            Ok(config) => match config.validate() {
+                Ok(()) => {
+                    println!("✅ Configuration file is valid: {}", path.display());
+                    Ok(())
+                }
+                Err(e) => {
+                    eprintln!("❌ Configuration validation failed: {}", e);
+                    std::process::exit(1);
+                }
+            },
             Err(e) => {
                 eprintln!("❌ Configuration file is invalid: {}", e);
                 std::process::exit(1);
@@ -1290,6 +1495,114 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
     }
 }
 
+/// Set config value(s) in the config file. Supports dotted keys for primary and module config.
+/// Examples: storage.data_dir=./data, modules.stratum-v2.listen_addr=0.0.0.1:3333
+fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Result<()> {
+    let config_path = find_config_file(cli_config)
+        .or_else(|| Some(PathBuf::from("./blvm.toml")))
+        .ok_or_else(|| anyhow::anyhow!("No config file path"))?;
+
+    let mut content = if config_path.exists() {
+        std::fs::read_to_string(&config_path)
+            .context("Failed to read config file")?
+    } else {
+        String::new()
+    };
+
+    let mut root: toml::Value = if content.trim().is_empty() {
+        toml::Value::Table(toml::map::Map::new())
+    } else {
+        content
+            .parse()
+            .context("Failed to parse config file as TOML")?
+    };
+
+    for assignment in assignments {
+        let (key, value_str) = assignment
+            .split_once('=')
+            .ok_or_else(|| anyhow::anyhow!("Invalid assignment '{}': expected key=value", assignment))?;
+        let key = key.trim();
+        let value_str = value_str.trim();
+
+        let value = parse_toml_value(value_str)?;
+        set_toml_dotted(&mut root, key, value)?;
+    }
+
+    content = toml::to_string_pretty(&root).context("Failed to serialize config")?;
+    std::fs::write(&config_path, content).context("Failed to write config file")?;
+    println!("Updated {}", config_path.display());
+    Ok(())
+}
+
+fn parse_toml_value(s: &str) -> Result<toml::Value> {
+    let s = s.trim();
+    if s == "true" {
+        return Ok(toml::Value::Boolean(true));
+    }
+    if s == "false" {
+        return Ok(toml::Value::Boolean(false));
+    }
+    if let Ok(i) = s.parse::<i64>() {
+        return Ok(toml::Value::Integer(i));
+    }
+    if let Ok(f) = s.parse::<f64>() {
+        return Ok(toml::Value::Float(f));
+    }
+    Ok(toml::Value::String(s.to_string()))
+}
+
+fn set_toml_dotted(root: &mut toml::Value, key: &str, value: toml::Value) -> Result<()> {
+    let parts: Vec<&str> = key.split('.').collect();
+    if parts.is_empty() {
+        anyhow::bail!("Empty key");
+    }
+
+    let mut current = root;
+    for (i, part) in parts.iter().enumerate() {
+        let is_last = i == parts.len() - 1;
+        if is_last {
+            if let toml::Value::Table(t) = current {
+                t.insert(part.to_string(), value);
+                return Ok(());
+            }
+            anyhow::bail!("Key '{}': expected table at '{}'", key, parts[..=i].join("."));
+        }
+        if let toml::Value::Table(t) = current {
+            let entry = t
+                .entry(part.to_string())
+                .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+            if let toml::Value::Table(_) = entry {
+                current = entry;
+            } else {
+                anyhow::bail!(
+                    "Key '{}': '{}' exists but is not a section",
+                    key,
+                    parts[..=i].join(".")
+                );
+            }
+        } else {
+            anyhow::bail!("Key '{}': expected table at '{}'", key, parts[..=i].join("."));
+        }
+    }
+    Ok(())
+}
+
+/// Print config file path for a module (works offline; uses config to resolve path)
+fn handle_module_config_path(
+    module: &str,
+    config: &NodeConfig,
+    data_dir: &str,
+) -> Result<()> {
+    let modules_data_dir = config
+        .modules
+        .as_ref()
+        .map(|m| PathBuf::from(&m.data_dir))
+        .unwrap_or_else(|| PathBuf::from(data_dir).join("modules"));
+    let path = modules_data_dir.join(module).join("config.toml");
+    println!("{}", path.display());
+    Ok(())
+}
+
 async fn handle_rpc(
     rpc_addr: SocketAddr,
     method: &str,
@@ -1298,5 +1611,58 @@ async fn handle_rpc(
 ) -> Result<()> {
     let result = rpc_call(rpc_addr, method, params).await?;
     println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+async fn handle_module(
+    rpc_addr: SocketAddr,
+    subcommand: &ModuleCommand,
+    _config: &NodeConfig,
+) -> Result<()> {
+    let (method, params) = match subcommand {
+        ModuleCommand::Load { name } => ("loadmodule", json!([name])),
+        ModuleCommand::Unload { name } => ("unloadmodule", json!([name])),
+        ModuleCommand::Reload { name } => ("reloadmodule", json!([name])),
+        ModuleCommand::List => ("listmodules", json!([])),
+    };
+    let result = rpc_call(rpc_addr, method, params).await?;
+    println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+/// Handle dynamic module CLI (e.g. blvm sync-policy list)
+async fn handle_module_cli(
+    rpc_addr: SocketAddr,
+    args: &[String],
+    _config: &NodeConfig,
+) -> Result<()> {
+    if args.len() < 2 {
+        anyhow::bail!(
+            "Usage: blvm <module_name> <subcommand> [args...]\n\
+             Example: blvm sync-policy list\n\
+             Run 'blvm' with no args to see core commands. Module commands require the node to be running."
+        );
+    }
+    let module_name = &args[0];
+    let subcommand = &args[1];
+    let sub_args: Vec<String> = args[2..].to_vec();
+    let params = {
+        let mut p = vec![json!(module_name), json!(subcommand)];
+        p.extend(sub_args.into_iter().map(Value::from));
+        Value::Array(p)
+    };
+    let result = rpc_call(rpc_addr, "runmodulecli", params).await?;
+    let stdout = result.get("stdout").and_then(|v| v.as_str()).unwrap_or("");
+    let stderr = result.get("stderr").and_then(|v| v.as_str()).unwrap_or("");
+    let exit_code = result.get("exit_code").and_then(|v| v.as_i64()).unwrap_or(1);
+    if !stdout.is_empty() {
+        print!("{}", stdout);
+    }
+    if !stderr.is_empty() {
+        eprint!("{}", stderr);
+    }
+    if exit_code != 0 {
+        std::process::exit(exit_code as i32);
+    }
     Ok(())
 }

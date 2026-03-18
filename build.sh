@@ -19,7 +19,10 @@ PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 MODE="dev"
 VARIANT="base"  # base or experimental
 ARTIFACTS_DIR="${SCRIPT_DIR}/artifacts"
-TARGET_DIR="target/release"
+# BLVM_FAST_BUILD=1: use --profile release-fast (~2-3x faster, ~5-10% slower runtime). For PR/branch/nightly.
+# Unset on main push: use full --release for production.
+TARGET_DIR="${BLVM_FAST_BUILD:+target/release-fast}"
+TARGET_DIR="${TARGET_DIR:-target/release}"
 
 # Functions (defined early for use in argument parsing)
 log_info() {
@@ -215,9 +218,15 @@ build_repo() {
     fi
     
     # Build command with features
-    local build_cmd="cargo build --release"
+    # Use release-fast for PR/branch/nightly (BLVM_FAST_BUILD=1); full release for main push
+    local profile_flag="--release"
+    if [ -n "${BLVM_FAST_BUILD:-}" ]; then
+        profile_flag="--profile release-fast"
+        log_info "Using release-fast profile (faster compile, iteration build)"
+    fi
+    local build_cmd="cargo build ${profile_flag}"
     if [ "$MODE" == "release" ]; then
-        build_cmd="cargo build --release --locked"
+        build_cmd="cargo build ${profile_flag} --locked"
     fi
     if [ -n "$features" ]; then
         build_cmd="${build_cmd} --features ${features}"

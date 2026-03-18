@@ -20,7 +20,8 @@ name = "blvm"
 path = "src/bin/main.rs"
 
 [dependencies]
-blvm-node = "0.1.0"
+blvm-node = { path = "../blvm-node", default-features = true }
+blvm-sdk = { path = "../blvm-sdk", optional = true, features = ["wasm-modules"] }
 clap = { version = "=4.4.11", features = ["derive"] }
 tokio = { version = "=1.48.0", features = ["full", "rt-multi-thread", "signal"] }
 tracing = "=0.1.41"
@@ -30,17 +31,27 @@ toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "=1.0.108"
 reqwest = { version = "0.12", features = ["json"], default-features = false }
+bytes = "1.11.1"  # Align with blvm-node (RUSTSEC-2026-0007); reqwest ^1.2 accepts this
 hex = "0.4"
 
 # Local development: Use [patch.crates-io] to override with local paths
 # For production/CI, these patches are removed and crates.io versions are used
 [patch.crates-io]
-blvm-node = { path = "../blvm-node" }
 blvm-protocol = { path = "../blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus" }
 
 [features]
-default = ["blvm-node/rocksdb"]
+default = [
+    "blvm-node/sysinfo",
+    "blvm-node/rocksdb",
+    "blvm-node/redb",
+    "blvm-node/nix",
+    "blvm-node/libc",
+    "blvm-node/production",
+    "blvm-node/governance",
+    "blvm-node/zmq",
+    "blvm-node/utxo-commitments",
+]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
 # Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
@@ -55,7 +66,8 @@ sigop = ["blvm-node/sigop"]
 ctv = ["blvm-node/ctv"]
 # Iroh transport support
 iroh = ["blvm-node/iroh"]
-
+# WASM modules: inject blvm-sdk loader into node
+wasm-modules = ["dep:blvm-sdk", "blvm-node/wasm-modules"]
 [dev-dependencies]
 tempfile = "3.8"
 assert_cmd = "2.0"
