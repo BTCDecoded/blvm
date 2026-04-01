@@ -51,7 +51,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             ${{ inputs.repo-name }}/target
-          key: ${{ runner.os }}-${{ inputs.repo-name }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.repo-name)) }}
+          key: ${{ runner.os }}-${{ inputs.repo-name }}-${{ hashFiles(format('{0}/Cargo.toml', inputs.repo-name)) }}
           restore-keys: |
             ${{ runner.os }}-${{ inputs.repo-name }}-
       
