@@ -687,6 +687,7 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
     // 1. Start with defaults
     let mut config = NodeConfig::default();
+    let mut config_loaded_from_file = false;
 
     // 2. Load config file (if found)
     if let Some(config_path) = find_config_file(&cli.config) {
@@ -695,6 +696,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
             Ok(file_config) => {
                 info!("Configuration loaded successfully from file");
                 config = file_config; // Config file overrides defaults
+                config_loaded_from_file = true;
             }
             Err(e) => {
                 warn!("Failed to load config file: {}. Using defaults.", e);
@@ -758,7 +760,10 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     apply_env_config_overrides(&mut config, &env_overrides);
 
     // 4. Determine final values (CLI > ENV > Config file > Defaults)
-    // For network: CLI wins if explicitly passed; else ENV; else config file; else regtest default
+    // Network: ENV wins; else if a config file was **successfully** loaded, use its
+    // `protocol_version`; else use CLI (default `regtest`). Without this, `NodeConfig::default()`
+    // always has `protocol_version = BitcoinV1`, which incorrectly forced mainnet for
+    // `blvm -n regtest -d …` with no usable config file.
     let network = if let Some(network_str) = &env_overrides.network {
         match network_str.to_lowercase().as_str() {
             "regtest" => Network::Regtest,
@@ -769,13 +774,16 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
                 cli.network.clone()
             }
         }
-    } else if let Some(pv) = &config.protocol_version {
-        // Config file protocol_version: BitcoinV1/Mainnet => mainnet, etc.
-        match pv.to_lowercase().as_str() {
-            "bitcoinv1" | "mainnet" => Network::Mainnet,
-            "testnet" => Network::Testnet,
-            "regtest" => Network::Regtest,
-            _ => cli.network.clone(),
+    } else if config_loaded_from_file {
+        if let Some(pv) = &config.protocol_version {
+            match pv.to_lowercase().as_str() {
+                "bitcoinv1" | "mainnet" => Network::Mainnet,
+                "testnet" => Network::Testnet,
+                "regtest" => Network::Regtest,
+                _ => cli.network.clone(),
+            }
+        } else {
+            cli.network.clone()
         }
     } else {
         cli.network.clone()
@@ -811,7 +819,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
                 assume_valid_hash: None,
             });
             info!(
-                "Assume-valid default for {:?}: height {}",
+                "Assume-valid config seed for {:?}: height {} (superseded by BLVM_ASSUME_VALID_HEIGHT / node merge when set)",
                 network, default_height
             );
         }

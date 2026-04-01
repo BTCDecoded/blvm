@@ -11,6 +11,12 @@ SHA256SUMS
 # Build artifacts (when testing locally)
 target/
 
+# Local node data (rocksdb etc. when running blvm from this checkout)
+data/
+
+# Local Cargo overrides
+.cargo/config.toml
+
 # Editor files
 .vscode/
 .idea/
