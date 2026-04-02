@@ -40,10 +40,11 @@ jobs:
           prefix-key: "v1-rust"
       
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          components: rustfmt, clippy
-      
+          toolchain: stable
+          components: rustfmt clippy
+
       - name: Cache cargo dependencies
         uses: actions/cache@v3
         with:

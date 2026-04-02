@@ -49,7 +49,7 @@ This document defines a consistent, reproducible, and secure workflow model appl
 
 ## Deterministic Builds
 - Per-repo `rust-toolchain.toml` defines toolchain
-- Workflows auto-detect toolchain via `dtolnay/rust-toolchain` action (no explicit override)
+- Workflows install Rust via `BTCDecoded/rust-ci/install-rust-toolchain` (org default pin with optional `toolchain`, `toolchain-file`, or `components`; underlying implementation uses `dtolnay/rust-toolchain`)
 - Use `cargo build --locked --release`
 - Hash outputs to `SHA256SUMS`
 - Optional deterministic verification: rebuild and compare hashes (via `verify_deterministic` input in `build_lib.yml`)

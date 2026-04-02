@@ -66,6 +66,9 @@ jobs:
           repository: ${{ github.repository_owner }}/${{ inputs.repo }}
           ref: ${{ inputs.ref }}
 
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v1-rust"

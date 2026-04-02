@@ -52,6 +52,11 @@ jobs:
           ref: main
           fetch-depth: 0
       
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        with:
+          working-directory: blvm
+      
       - name: Determine version
         id: version
         run: |
@@ -116,11 +121,17 @@ jobs:
           ref: main
           fetch-depth: 0
       
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
         with:
-          components: rustfmt, clippy
+          working-directory: blvm
       
+      - name: Setup Rust toolchain
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        with:
+          toolchain: stable
+          components: rustfmt clippy
+
       - name: Check for performance tools and configure environment
         run: |
           echo "Checking for performance optimization tools..."

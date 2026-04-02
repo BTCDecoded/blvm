@@ -46,6 +46,9 @@ jobs:
           repository: ${{ github.repository_owner }}/${{ inputs.repo }}
           ref: ${{ inputs.ref }}
       
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v1-rust"
@@ -98,8 +101,10 @@ jobs:
           fi
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        with:
+          toolchain: stable
+
       - name: Cargo test (all features)
         run: cargo test --all-features --locked
       
