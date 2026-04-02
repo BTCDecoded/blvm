@@ -7,6 +7,8 @@ SHA256SUMS
 # Temporary files
 *.log
 *.tmp
+__pycache__/
+*.pyc
 
 # Build artifacts (when testing locally)
 target/

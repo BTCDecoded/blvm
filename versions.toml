@@ -5,6 +5,8 @@
 # Format:
 # [versions]
 # repo-name = { version = "...", git_tag = "...", git_commit = "...", requires = [...], binaries = [...] }
+#
+# Bump: scripts/bump-release-set.sh [patch|minor|major] (or release workflow_dispatch with empty version_tag + version_bump).
 
 [versions]
 

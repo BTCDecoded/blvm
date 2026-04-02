@@ -12,9 +12,18 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag for release (e.g., v0.1.0). If not provided, auto-increments patch from versions.toml'
+        description: 'Version tag for release (e.g., v0.1.0). If not provided, auto-increments from versions.toml (see version_bump)'
         required: false
         type: string
+      version_bump:
+        description: 'When version_tag is empty: which semver field to increment (source of truth: blvm entry in versions.toml)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
       platform:
         description: 'Platform to build for (linux, windows, or both)'
         required: false
@@ -43,6 +52,8 @@ jobs:
       version_tag: ${{ steps.version.outputs.version_tag }}
       version_number: ${{ steps.version.outputs.version_number }}
       release_set_id: ${{ steps.version.outputs.release_set_id }}
+      auto_bumped: ${{ steps.version.outputs.auto_bumped }}
+      previous_version: ${{ steps.version.outputs.previous_version }}
     steps:
       - name: Checkout blvm
         uses: actions/checkout@v4
@@ -67,11 +78,13 @@ jobs:
             VERSION_NUMBER="${VERSION_TAG#v}"
             echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
             echo "version_number=${VERSION_NUMBER}" >> $GITHUB_OUTPUT
+            echo "auto_bumped=false" >> $GITHUB_OUTPUT
+            echo "previous_version=" >> $GITHUB_OUTPUT
             echo "Using provided version: ${VERSION_TAG}"
             exit 0
           fi
           
-          # Otherwise, read from versions.toml and auto-increment patch
+          # Otherwise, read from versions.toml (blvm entry = release-set anchor for the node binary)
           VERSIONS_FILE="blvm/versions.toml"
           
           if [ ! -f "$VERSIONS_FILE" ]; then
@@ -79,21 +92,35 @@ jobs:
             exit 1
           fi
           
-          # Extract current version from versions.toml (look for blvm-consensus as base)
-          # Format: blvm-consensus = { version = "0.1.0", ... }
-          CURRENT_VERSION=$(grep -A 1 "blvm-consensus" "$VERSIONS_FILE" | grep "version" | sed -E 's/.*version = "([^"]+)".*/\1/' | head -1)
+          # Format: blvm = { version = "0.1.0", git_tag = "v0.1.0", ... }
+          CURRENT_VERSION=$(grep '^blvm = ' "$VERSIONS_FILE" | sed -E 's/.*version = "([^"]+)".*/\1/')
           
           if [ -z "$CURRENT_VERSION" ]; then
-            echo "ERROR: Could not determine current version from versions.toml"
+            echo "ERROR: Could not read blvm version from versions.toml"
             exit 1
           fi
           
-          echo "Current version from versions.toml: ${CURRENT_VERSION}"
+          echo "Current blvm release-set version from versions.toml: ${CURRENT_VERSION}"
           
-          # Auto-increment patch version (X.Y.Z -> X.Y.(Z+1))
+          KIND="${{ inputs.version_bump }}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          case "${KIND:-patch}" in
+            patch)
+              NEW_PATCH=$((PATCH + 1))
+              NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+              ;;
+            minor)
+              NEW_MINOR=$((MINOR + 1))
+              NEW_VERSION="${MAJOR}.${NEW_MINOR}.0"
+              ;;
+            major)
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            *)
+              echo "ERROR: invalid version_bump"
+              exit 1
+              ;;
+          esac
           VERSION_TAG="v${NEW_VERSION}"
           
           # Generate release set ID (e.g., set-2025-01A)
@@ -104,6 +131,8 @@ jobs:
           echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
           echo "version_number=${NEW_VERSION}" >> $GITHUB_OUTPUT
           echo "release_set_id=${RELEASE_SET_ID}" >> $GITHUB_OUTPUT
+          echo "auto_bumped=true" >> $GITHUB_OUTPUT
+          echo "previous_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
           echo "Auto-incremented version: ${CURRENT_VERSION} -> ${NEW_VERSION} (${VERSION_TAG})"
           echo "Release set ID: ${RELEASE_SET_ID}"
 
@@ -111,7 +140,7 @@ jobs:
     name: Create Release ${{ needs.determine-version.outputs.version_tag }}
     needs: determine-version
     runs-on: [self-hosted, Linux, X64, builds]
-    timeout-minutes: 180
+    timeout-minutes: 240
     steps:
       - name: Checkout blvm
         uses: actions/checkout@v4
@@ -125,6 +154,42 @@ jobs:
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
         with:
           working-directory: blvm
+
+      # When version_tag was omitted, determine-version computed the next semver but the
+      # checkout still has the previous versions.toml / Cargo.toml — apply NEW before building.
+      - name: Apply auto-bumped version to versions.toml and Cargo.toml
+        if: ${{ needs.determine-version.outputs.auto_bumped == 'true' }}
+        run: |
+          set -euo pipefail
+          OLD="${{ needs.determine-version.outputs.previous_version }}"
+          NEW="${{ needs.determine-version.outputs.version_number }}"
+          if [ -z "$OLD" ] || [ -z "$NEW" ]; then
+            echo "ERROR: missing previous or new version"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import pathlib, os
+          old, new = os.environ["OLD"], os.environ["NEW"]
+          root = pathlib.Path("blvm")
+          vpath = root / "versions.toml"
+          cpath = root / "Cargo.toml"
+          t = vpath.read_text(encoding="utf-8")
+          if "[metadata]" in t:
+              head, rest = t.split("[metadata]", 1)
+              head = head.replace(old, new)
+              t = head + "[metadata]" + rest
+          else:
+              t = t.replace(old, new)
+          vpath.write_text(t, encoding="utf-8")
+          ct = cpath.read_text(encoding="utf-8")
+          import re
+          ct = re.sub(r'(?m)^(version\s*=\s*)\"[^\"]+\"', rf'\1"{new}"', ct, count=1)
+          cpath.write_text(ct, encoding="utf-8")
+          print(f"Applied {old} -> {new} in versions.toml (before [metadata]) and Cargo.toml [package].version")
+          PY
+        env:
+          OLD: ${{ needs.determine-version.outputs.previous_version }}
+          NEW: ${{ needs.determine-version.outputs.version_number }}
       
       - name: Setup Rust toolchain
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
@@ -222,6 +287,8 @@ jobs:
           
           # Configure cargo for crates.io
           cargo login "${CARGO_REGISTRY_TOKEN}"
+          set -o pipefail
+          PUBLISH_FAILED=0
           
           for repo in "${PUBLISH_ORDER[@]}"; do
             REPO_PATH="${PARENT_DIR}/${repo}"
@@ -265,20 +332,24 @@ jobs:
                   echo "❌ Failed to publish ${repo}"
                   echo "Publish log (last 50 lines):"
                   tail -50 /tmp/${repo}-publish.log || true
-                  # Continue with other repos even if one fails
+                  PUBLISH_FAILED=1
                 fi
               fi
             else
               echo "❌ Dry-run failed for ${repo}"
               echo "Dry-run log (last 50 lines):"
               tail -50 /tmp/${repo}-publish-dry-run.log || true
-              # Continue with other repos even if one fails
+              PUBLISH_FAILED=1
             fi
             
             cd - > /dev/null
           done
           
           echo "=== Crate Publishing Complete ==="
+          if [ "$PUBLISH_FAILED" -ne 0 ]; then
+            echo "::error::One or more crates failed cargo publish dry-run or publish; fix errors and re-run."
+            exit 1
+          fi
         env:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -689,6 +760,15 @@ jobs:
           CI: true
           GITHUB_ACTIONS: true
           RUSTFLAGS: "-C debuginfo=0"
+
+      # Experimental builds overwrite target/release; rebuild each variant before collect.
+      - name: Rebuild base variant for artifact collection
+        run: |
+          chmod +x blvm/scripts/rebuild-for-release.sh
+          export RELEASE_PLATFORM="${{ inputs.platform }}"
+          blvm/scripts/rebuild-for-release.sh base "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
         run: |
@@ -703,6 +783,14 @@ jobs:
           for platform in $PLATFORM_FLAG; do
             blvm/scripts/collect-artifacts.sh $platform base
           done
+
+      - name: Rebuild experimental variant for artifact collection
+        run: |
+          chmod +x blvm/scripts/rebuild-for-release.sh
+          export RELEASE_PLATFORM="${{ inputs.platform }}"
+          blvm/scripts/rebuild-for-release.sh experimental "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (experimental variant)
         run: |
@@ -721,6 +809,23 @@ jobs:
       - name: Create release package
         run: |
           blvm/scripts/create-release.sh ${{ needs.determine-version.outputs.version_tag }}
+
+      - name: Install Linux packaging tools
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        run: |
+          if command -v apt-get >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq dpkg-dev xz-utils alien fakeroot || true
+          fi
+
+      - name: Package Linux distributions (deb, Arch-style tarball, optional rpm via alien)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        run: |
+          chmod +x blvm/scripts/package-*.sh blvm/scripts/rebuild-for-release.sh
+          V="${{ needs.determine-version.outputs.version_number }}"
+          blvm/scripts/package-linux-releases.sh "$V" "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Verify versions
         run: |
@@ -773,6 +878,11 @@ jobs:
             blvm/artifacts/blvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.zip
             blvm/artifacts/SHA256SUMS-blvm-*
             blvm/artifacts/SHA256SUMS-blvm-experimental-*
+            blvm/artifacts/blvm_*.deb
+            blvm/artifacts/blvm-experimental_*.deb
+            blvm/artifacts/*.rpm
+            blvm/artifacts/blvm-*-x86_64.pkg.tar.gz
+            blvm/artifacts/SHA256SUMS-linux-packages.txt
           draft: false
           prerelease: false
         env:

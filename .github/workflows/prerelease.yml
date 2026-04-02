@@ -492,6 +492,14 @@ jobs:
           CI: true
           GITHUB_ACTIONS: true
           RUSTFLAGS: "-C debuginfo=0"
+
+      - name: Rebuild base variant for artifact collection
+        run: |
+          chmod +x blvm/scripts/rebuild-for-release.sh
+          export RELEASE_PLATFORM="${{ inputs.platform }}"
+          blvm/scripts/rebuild-for-release.sh base "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
         run: |
@@ -501,6 +509,14 @@ jobs:
           if [ "${{ inputs.platform }}" = "windows" ] || [ "${{ inputs.platform }}" = "both" ]; then
             blvm/scripts/collect-artifacts.sh windows-x86_64 base
           fi
+
+      - name: Rebuild experimental variant for artifact collection
+        run: |
+          chmod +x blvm/scripts/rebuild-for-release.sh
+          export RELEASE_PLATFORM="${{ inputs.platform }}"
+          blvm/scripts/rebuild-for-release.sh experimental "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (experimental variant)
         run: |
@@ -653,6 +669,25 @@ jobs:
       - name: Create release package
         run: |
           blvm/scripts/create-release.sh ${{ inputs.version_tag }}
+
+      - name: Install Linux packaging tools
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        run: |
+          if command -v apt-get >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq dpkg-dev xz-utils alien fakeroot || true
+          fi
+
+      - name: Package Linux distributions (deb, Arch-style tarball, optional rpm via alien)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        run: |
+          chmod +x blvm/scripts/package-*.sh blvm/scripts/rebuild-for-release.sh
+          # Strip leading v for semver in .deb filenames
+          V="${{ inputs.version_tag }}"
+          V="${V#v}"
+          blvm/scripts/package-linux-releases.sh "$V" "${{ github.workspace }}"
+        env:
+          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Verify versions
         run: |
@@ -773,6 +808,11 @@ jobs:
             blvm/artifacts/blvm-experimental-${{ inputs.version_tag }}-*.zip
             blvm/artifacts/SHA256SUMS-blvm-*
             blvm/artifacts/SHA256SUMS-blvm-experimental-*
+            blvm/artifacts/blvm_*.deb
+            blvm/artifacts/blvm-experimental_*.deb
+            blvm/artifacts/*.rpm
+            blvm/artifacts/blvm-*-x86_64.pkg.tar.gz
+            blvm/artifacts/SHA256SUMS-linux-packages.txt
           draft: false
           prerelease: true
         env:

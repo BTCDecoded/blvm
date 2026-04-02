@@ -23,8 +23,14 @@ This directory contains build, CI, and release scripts for the Bitcoin Commons b
 - `verify-versions.sh` - Verify version consistency
 
 ### Release Scripts
+- `bump-release-set.sh` / `bump-release-set.py` - Bump coordinated semver (`patch`|`minor`|`major`), update `versions.toml` (before `[metadata]`) and `blvm/Cargo.toml` `[package].version`; use `--dry-run` to preview
 - `create-release.sh` - Create release
 - `collect-artifacts.sh` - Collect release artifacts
+- `rebuild-for-release.sh` - Rebuild base or experimental variant before `collect-artifacts` (avoids wrong binary in `target/release`)
+- `package-deb.sh` - Build `.deb` for `blvm` or `blvm-experimental`
+- `package-arch.sh` - Build Arch-style `.pkg.tar.gz` payload
+- `package-rpm-from-deb.sh` - Optional `.rpm` via `alien` when installed
+- `package-linux-releases.sh` - Orchestrate Linux packages + `SHA256SUMS-linux-packages.txt` (used by release/prerelease workflows)
 
 ## Usage
 

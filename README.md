@@ -47,9 +47,12 @@ The binary will be at `target/release/blvm`.
 
 ### From Packages
 
-- **Debian/Ubuntu**: `.deb` package (coming soon)
-- **Arch Linux**: AUR package (coming soon)
-- **Windows**: `.exe` installer (coming soon)
+Official and prerelease workflows attach artifacts to **GitHub Releases** (built on self-hosted Linux):
+
+- **Debian/Ubuntu**: `.deb` (`blvm` and `blvm-experimental` packages; install with `sudo apt install ./blvm_*.deb`)
+- **RPM-based distros**: `.rpm` when `alien` is available on the builder (converted from `.deb`)
+- **Arch-style**: `.pkg.tar.gz` payload tarball (manual `pacman -U` or unpack `usr/bin`)
+- **Windows**: cross-compiled archives (`.zip`) for `x86_64-pc-windows-gnu`; standalone `.exe` installer not yet provided
 
 ---
 

@@ -56,10 +56,11 @@ package() {
 }
 EOF
 
-# Create .tar.xz package
-log_info "Building .pkg.tar.xz package..."
+# Arch-style payload tarball (gzip); suitable for manual pacman -U or mirrors
+log_info "Building Arch-style .pkg.tar.gz package..."
 cd "${PKGBUILD_DIR}"
-tar -czf "${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-x86_64.pkg.tar.xz" -C "${PKG_DIR}/${PACKAGE_NAME}" .
+OUT="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-x86_64.pkg.tar.gz"
+tar -czf "${OUT}" -C "${PKG_DIR}/${PACKAGE_NAME}" .
 
-log_success "Created: ${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-x86_64.pkg.tar.xz"
+log_success "Created: ${OUT}"
 
