@@ -38,6 +38,10 @@ hex = "0.4"
 [patch.crates-io]
 blvm-protocol = { path = "../blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus" }
+blvm-spec-lock = { path = "../blvm-spec-lock" }
+blvm-muhash = { path = "../blvm-muhash" }
+blvm-node = { path = "../blvm-node" }
+blvm-sdk = { path = "../blvm-sdk" }
 
 [features]
 default = [

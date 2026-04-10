@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "blvm-muhash"
-version = "0.1.0"
+version = "0.1.5"
 dependencies = [
  "chacha20 0.9.1",
  "cipher 0.4.4",
@@ -564,7 +564,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.0"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b01e7cd8a5a0a029b061aabdb04293eb7de6a5a2eb546ec5b4ef95a1bb4f974"
 dependencies = [
  "bitcoin_hashes 0.11.0",
  "ripemd",
@@ -610,7 +612,9 @@ dependencies = [
  "anyhow",
  "base64 0.21.5",
  "bitcoin",
+ "blvm-consensus",
  "blvm-node",
+ "blvm-protocol",
  "blvm-sdk-macros",
  "chrono",
  "clap",
@@ -641,7 +645,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-secp256k1"
-version = "0.1.0"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b476e4c8551f9173d19058d4bd8574cd21f80ab918b68e8cafcca51da153860"
 dependencies = [
  "cc",
  "num-bigint",
