@@ -76,9 +76,15 @@ tempfile = "3.8"
 assert_cmd = "2.0"
 predicates = "3.0"
 
+# ⚠️ WARNING: Only build consensus-sensitive binaries with the `release` profile.
+# Other profiles (release-perf-fast, release-fast) use different codegen settings
+# that have been observed to cause consensus divergence (e.g. "Invalid script at
+# transaction 1" with release-perf debug=1/strip=false). Never ship a node binary
+# built with a non-default profile unless you have explicitly verified consensus.
+#
 [profile.release]
 opt-level = 3
-lto = false        # off: fastest iteration; use thin/fat for production/CI
+lto = false        # off: fastest iteration; distributors should use lto = "thin" or "fat"
 codegen-units = 256  # max parallelism
 strip = true
 panic = "abort"
