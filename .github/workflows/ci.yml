@@ -67,22 +67,14 @@ jobs:
           repository: BTCDecoded/blvm-consensus
           path: _temp-blvm-consensus
       
-      - name: Checkout blvm-spec-lock (consensus path dep)
-        uses: actions/checkout@v4
-        with:
-          repository: BTCDecoded/blvm-spec-lock
-          path: _temp-spec-lock
-      
       - name: Move dependencies to parent directory
         run: |
           if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
-          if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
           mv _temp-blvm-protocol ../blvm-protocol
           mv _temp-blvm-consensus ../blvm-consensus
-          mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
         id: setup-cache
@@ -186,24 +178,15 @@ jobs:
           repository: BTCDecoded/blvm-consensus
           path: _temp-blvm-consensus
       
-      - name: Checkout blvm-spec-lock (consensus path dep)
-        if: steps.skip_check.outputs.skip != 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: BTCDecoded/blvm-spec-lock
-          path: _temp-spec-lock
-      
       - name: Move dependencies to parent directory
         if: steps.skip_check.outputs.skip != 'true'
         run: |
           if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
-          if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
           mv _temp-blvm-protocol ../blvm-protocol
           mv _temp-blvm-consensus ../blvm-consensus
-          mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
         if: steps.skip_check.outputs.skip != 'true'
@@ -283,22 +266,14 @@ jobs:
           repository: BTCDecoded/blvm-consensus
           path: _temp-blvm-consensus
       
-      - name: Checkout blvm-spec-lock (consensus path dep)
-        uses: actions/checkout@v4
-        with:
-          repository: BTCDecoded/blvm-spec-lock
-          path: _temp-spec-lock
-      
       - name: Move dependencies to parent directory
         run: |
           if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
-          if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
           mv _temp-blvm-protocol ../blvm-protocol
           mv _temp-blvm-consensus ../blvm-consensus
-          mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
         uses: BTCDecoded/rust-ci/runner-cargo-cache@main
@@ -378,22 +353,14 @@ jobs:
           repository: BTCDecoded/blvm-consensus
           path: _temp-blvm-consensus
       
-      - name: Checkout blvm-spec-lock (consensus path dep)
-        uses: actions/checkout@v4
-        with:
-          repository: BTCDecoded/blvm-spec-lock
-          path: _temp-spec-lock
-      
       - name: Move dependencies to parent directory
         run: |
           if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
-          if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
           mv _temp-blvm-protocol ../blvm-protocol
           mv _temp-blvm-consensus ../blvm-consensus
-          mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
         uses: BTCDecoded/rust-ci/runner-cargo-cache@main
@@ -418,10 +385,7 @@ jobs:
             find ./target -name "*.d" -type f -delete 2>/dev/null || true
           fi
       
-      - name: Build docs
-        run: cargo doc --no-deps
-      
-      - name: Check docs
+      - name: Docs
         run: cargo doc --no-deps --document-private-items
 
   security:
@@ -500,22 +464,14 @@ jobs:
           repository: BTCDecoded/blvm-consensus
           path: _temp-blvm-consensus
       
-      - name: Checkout blvm-spec-lock (consensus path dep)
-        uses: actions/checkout@v4
-        with:
-          repository: BTCDecoded/blvm-spec-lock
-          path: _temp-spec-lock
-      
       - name: Move dependencies to parent directory
         run: |
           if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
-          if [ -d "../blvm-spec-lock" ]; then rm -rf ../blvm-spec-lock; fi
           mv _temp-blvm-node ../blvm-node
           mv _temp-blvm-protocol ../blvm-protocol
           mv _temp-blvm-consensus ../blvm-consensus
-          mv _temp-spec-lock ../blvm-spec-lock
       
       - name: Cache
         run: |

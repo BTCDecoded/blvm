@@ -20,7 +20,8 @@ name = "blvm"
 path = "src/bin/main.rs"
 
 [dependencies]
-blvm-node = { version = ">=0.1, <1", default-features = true }
+# default-features = false: defaults are listed explicitly below (governance off by product choice).
+blvm-node = { version = ">=0.1, <1", default-features = false }
 blvm-sdk = { version = ">=0.1, <1", optional = true, features = ["wasm-modules"] }
 clap = { version = "=4.4.11", features = ["derive"] }
 tokio = { version = "=1.48.0", features = ["full", "rt-multi-thread", "signal"] }
@@ -36,6 +37,7 @@ hex = "0.4"
 
 # Local monorepo: use sibling checkouts instead of crates.io (omit this file on CI if you need a pure registry build).
 [patch.crates-io]
+blvm-primitives = { path = "../blvm-primitives" }
 blvm-protocol = { path = "../blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus" }
 blvm-spec-lock = { path = "../blvm-spec-lock" }
@@ -51,9 +53,14 @@ default = [
     "blvm-node/nix",
     "blvm-node/libc",
     "blvm-node/production",
-    "blvm-node/governance",
+    "blvm-node/protocol-verification",
     "blvm-node/zmq",
     "blvm-node/utxo-commitments",
+    "blvm-node/iroh",
+    "blvm-node/sigop",
+    "blvm-node/dandelion",
+    "blvm-node/rest-api",
+    "blvm-node/bip70-http",
 ]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
@@ -61,14 +68,25 @@ production = ["blvm-node/production"]
 profile = ["blvm-node/profile"]
 # Experimental features (passed through from blvm-node)
 utxo-commitments = ["blvm-node/utxo-commitments"]
+governance = ["blvm-node/governance"]
 dandelion = ["blvm-node/dandelion"]
 stratum-v2 = ["blvm-node/stratum-v2"]
 bip158 = ["blvm-node/bip158"]
 sigop = ["blvm-node/sigop"]
+fibre = ["blvm-node/fibre"]
 # CTV (CheckTemplateVerify) - passed through from blvm-consensus via blvm-protocol and blvm-node
 ctv = ["blvm-node/ctv"]
 # Iroh transport support
 iroh = ["blvm-node/iroh"]
+# Quinn QUIC (alongside iroh); used where `cfg(any(feature = "quinn", feature = "iroh"))`
+quinn = ["blvm-node/quinn"]
+# REST API + BIP70 HTTP payment protocol (bip70-http implies rest-api in blvm-node)
+rest-api = ["blvm-node/rest-api"]
+bip70-http = ["blvm-node/bip70-http"]
+# Miniscript: descriptor / policy parsing
+miniscript = ["blvm-node/miniscript"]
+# Filesystem watcher (`notify`) for modules dir: reload / pick up modules when files change (see blvm-node `ModuleWatcher`)
+module-watcher = ["blvm-node/module-watcher"]
 # WASM modules: inject blvm-sdk loader into node
 wasm-modules = ["dep:blvm-sdk", "blvm-node/wasm-modules"]
 [dev-dependencies]
