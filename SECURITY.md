@@ -22,7 +22,7 @@ If you discover a security vulnerability in commons, please report it immediatel
 
 ### How to Report
 
-**Email:** security@btcdecoded.org  
+**Email:** security@thebitcoincommons.org  
 **Subject:** [SECURITY] commons vulnerability
 
 Include the following information:
@@ -97,7 +97,7 @@ Security updates will be:
 
 ### Contact Information
 
-- **Security Team:** security@btcdecoded.org
+- **Security Team:** security@thebitcoincommons.org
 - **General Inquiries:** info@btcdecoded.org
 - **Website:** https://btcdecoded.org
 
