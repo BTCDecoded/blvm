@@ -692,12 +692,13 @@ jobs:
         continue-on-error: true
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          export PKG_CONFIG_ALLOW_CROSS=1
           VERSION="${{ steps.version.outputs.version }}"
-          # Windows build: exclude Linux-only features (nix, libc); keep core features
+          # Windows cross-compile: pure-Rust features only (no zmq/rocksdb/nix/libc C libs)
           cargo build --release \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
-            --features "blvm-node/sled,blvm-node/production,blvm-node/protocol-verification,blvm-node/zmq,blvm-node/utxo-commitments,blvm-node/sigop,blvm-node/dandelion,blvm-node/rest-api" \
+            --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
             2>&1
           EXE=/tmp/gh-blvm-release-build/${{ github.run_id }}/target/x86_64-pc-windows-gnu/release/blvm.exe
           if [ -f "$EXE" ]; then
@@ -714,10 +715,14 @@ jobs:
         id: build_deb
         continue-on-error: true
         run: |
-          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           VERSION="${{ steps.version.outputs.version }}"
-          cargo deb --no-build --target-dir /tmp/gh-blvm-release-build/${{ github.run_id }}/target 2>&1
-          DEB=$(find /tmp/gh-blvm-release-build/${{ github.run_id }}/target -name "*.deb" | head -1)
+          # cargo deb --no-build resolves asset paths relative to workspace root (./target/release/blvm).
+          # Copy the already-built binary there so it can find it.
+          mkdir -p target/release
+          cp "${TARGET_DIR}/release/blvm" target/release/blvm
+          cargo deb --no-build 2>&1
+          DEB=$(find target/debian -name "*.deb" 2>/dev/null | head -1)
           if [ -n "$DEB" ]; then
             DEBNAME="blvm_${VERSION}_amd64.deb"
             cp "$DEB" "./${DEBNAME}"
