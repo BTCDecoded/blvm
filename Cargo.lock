@@ -740,9 +740,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-secp256k1"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b476e4c8551f9173d19058d4bd8574cd21f80ab918b68e8cafcca51da153860"
+checksum = "dba834814a74e281e839456fb24c8c5c027555270c4df214db8f61fc2c0941dc"
 dependencies = [
  "cc",
  "num-bigint",
