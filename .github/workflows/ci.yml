@@ -601,28 +601,39 @@ jobs:
           MINOR=$(echo "$CURRENT" | cut -d. -f2)
           PATCH=$(echo "$CURRENT" | cut -d. -f3)
           PATCH=$((PATCH + 1))
-          echo "Fetching published versions for blvm from crates.io..."
+
+          # Collect already-used versions from two sources:
+          # 1. Git tags (primary — always accurate, works even if crate is never published)
+          TAGGED_VERSIONS=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sed 's/-unverified$//')
+          echo "Git-tagged versions: $(echo "$TAGGED_VERSIONS" | tr '\n' ' ')"
+
+          # 2. crates.io (secondary — catches versions published by other means)
           API_RESPONSE=$(curl -sf \
             -H "User-Agent: blvm-ci/1.0 (github.com/BTCDecoded/blvm)" \
             "https://crates.io/api/v1/crates/blvm/versions" 2>/dev/null || echo "")
-          PUBLISHED_VERSIONS=""
+          CRATES_VERSIONS=""
           if [ -n "$API_RESPONSE" ] && ! echo "$API_RESPONSE" | grep -q '"detail"'; then
             if command -v jq &>/dev/null; then
-              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | jq -r '.versions[].num' 2>/dev/null || echo "")
+              CRATES_VERSIONS=$(echo "$API_RESPONSE" | jq -r '.versions[].num' 2>/dev/null || echo "")
             else
-              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | grep -oE '"num":"[^"]+"' | sed 's/"num":"//;s/"//')
+              CRATES_VERSIONS=$(echo "$API_RESPONSE" | grep -oE '"num":"[^"]+"' | sed 's/"num":"//;s/"//')
             fi
           fi
-          MAX_ATTEMPTS=10
+
+          # Combined list — version is taken if it appears in either source
+          USED_VERSIONS=$(printf '%s\n%s' "$TAGGED_VERSIONS" "$CRATES_VERSIONS" | sort -u | grep -v '^$')
+          echo "All used versions: $(echo "$USED_VERSIONS" | tr '\n' ' ')"
+
+          MAX_ATTEMPTS=20
           ATTEMPT=0
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             VERSION="${MAJOR}.${MINOR}.${PATCH}"
-            if echo "$PUBLISHED_VERSIONS" | grep -qxF "$VERSION"; then
-              echo "⚠️  v${VERSION} already published; bumping patch..."
+            if echo "$USED_VERSIONS" | grep -qxF "$VERSION"; then
+              echo "⚠️  v${VERSION} already used (tag or crates.io); bumping patch..."
               PATCH=$((PATCH + 1))
               ATTEMPT=$((ATTEMPT + 1))
             else
-              echo "✅ v${VERSION} available"
+              echo "✅ v${VERSION} is free"
               break
             fi
           done
