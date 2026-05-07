@@ -2,7 +2,7 @@ name: CI
 
 # Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security], [skip_release], [skip_verify], [skip_docker]
 # [skip_docs] also skips clippy and fmt.
-# [skip_verify] skips the release-profile build job (cargo build --locked --release).
+# [skip_verify] skips the release-profile build job (cargo build --release).
 # [skip_release] prevents the release job from running (no publish, no GitHub Release, no tag).
 # [skip_docker] skips the GHCR container publish job (docker-ghcr).
 # Tokens are matched against setup.commit_msg_bundle (git log range) plus head_commit when set.
@@ -522,8 +522,11 @@ jobs:
         run: |
           # Runner sometimes exports CC= globally; cc-rs treats that as set-but-empty and
           # -sys crates fail to compile bundled C (zstd-sys, lz4-sys, rocksdb, etc.).
+          # --locked is omitted: strip-patch-crates-io removes [patch.crates-io] so the
+          # committed Cargo.lock has no registry source for patched crates; cargo must
+          # re-resolve from crates.io before building.
           unset CC CXX CPP AR || true
-          cargo build --locked --release
+          cargo build --release
 
       - name: Dump disk usage on failure
         if: failure()
@@ -697,7 +700,7 @@ jobs:
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           unset CC CXX CPP AR || true
-          cargo build --locked --release
+          cargo build --release
           VERSION="${{ steps.version.outputs.version }}"
           cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-${VERSION}-linux-x86_64
           echo "✅ Linux binary: $(file blvm-${VERSION}-linux-x86_64)"
@@ -718,7 +721,7 @@ jobs:
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           VERSION="${{ steps.version.outputs.version }}"
           echo "=== Windows cross-compile (pure-Rust features, no zmq/rocksdb/nix/libc) ==="
-          cargo build --locked --release \
+          cargo build --release \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
             --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
