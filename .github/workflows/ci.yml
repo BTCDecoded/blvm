@@ -690,16 +690,20 @@ jobs:
       - name: Build Windows x86_64 release binary
         id: build_windows
         continue-on-error: true
+        env:
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+          CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
+          CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++
+          PKG_CONFIG_ALLOW_CROSS: "1"
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
-          export PKG_CONFIG_ALLOW_CROSS=1
           VERSION="${{ steps.version.outputs.version }}"
-          # Windows cross-compile: pure-Rust features only (no zmq/rocksdb/nix/libc C libs)
+          echo "=== Windows cross-compile (pure-Rust features, no zmq/rocksdb/nix/libc) ==="
           cargo build --release \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
             --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
-            2>&1
+            2>&1 || { echo "❌ Windows cross-compile failed (see above)"; exit 1; }
           EXE=/tmp/gh-blvm-release-build/${{ github.run_id }}/target/x86_64-pc-windows-gnu/release/blvm.exe
           if [ -f "$EXE" ]; then
             cp "$EXE" ./blvm-${VERSION}-windows-x86_64.exe
@@ -707,8 +711,9 @@ jobs:
             echo "built=true" >> $GITHUB_OUTPUT
             echo "filename=blvm-${VERSION}-windows-x86_64.exe" >> $GITHUB_OUTPUT
           else
-            echo "⚠️  Windows cross-compile did not produce binary — skipping"
+            echo "❌ .exe not found after build"
             echo "built=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
 
       - name: Package .deb (Debian/Ubuntu)
@@ -802,8 +807,6 @@ jobs:
           tag_name: ${{ steps.version.outputs.version_tag }}
           name: blvm ${{ steps.version.outputs.version_tag }}
           body: |
-            # blvm ${{ steps.version.outputs.version_tag }}
-
             **Bitcoin Commons BLVM** — Bitcoin Low-Level Virtual Machine node CLI.
 
             > [!NOTE]
