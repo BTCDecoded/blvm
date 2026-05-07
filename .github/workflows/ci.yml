@@ -1,7 +1,9 @@
 name: CI
 
-# Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security]
+# Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security], [skip_release], [skip_verify]
 # [skip_docs] also skips clippy and fmt.
+# [skip_verify] skips the release-profile build job (cargo build --release).
+# [skip_release] prevents the release job from running (no publish, no GitHub Release, no tag).
 # Tokens are matched against setup.commit_msg_bundle (git log range) plus head_commit when set.
 
 on:
@@ -528,3 +530,208 @@ jobs:
         uses: BTCDecoded/rust-ci/runner-cargo-cache@main
         with:
           operation: prune
+
+  release:
+    name: Release
+    needs: [setup, build, build-dev, test, clippy, fmt, docs, security]
+    runs-on: [self-hosted, Linux, X64, builds]
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-dev.result == 'skipped') &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip ci]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[ci skip]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[ci skip]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[no ci]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[no ci]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_release]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
+       (
+         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
+         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+       ))
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+
+      - name: Install OpenSSL development headers
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
+          elif command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm openssl pkgconf
+          fi
+
+      - name: Install Rust
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+
+      - name: Determine version
+        id: version
+        run: |
+          CURRENT=$(grep -A 10 '^\[package\]' Cargo.toml | grep '^version = ' | head -1 | sed -E 's/^version = "([^"]+)".*/\1/')
+          if [ -z "$CURRENT" ]; then
+            echo "❌ Could not determine current version from Cargo.toml"
+            exit 1
+          fi
+          echo "Current version: ${CURRENT}"
+          if ! echo "$CURRENT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ Invalid version format: ${CURRENT}"
+            exit 1
+          fi
+          MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT" | cut -d. -f3)
+          PATCH=$((PATCH + 1))
+          echo "Fetching published versions for blvm from crates.io..."
+          API_RESPONSE=$(curl -sf \
+            -H "User-Agent: blvm-ci/1.0 (github.com/BTCDecoded/blvm)" \
+            "https://crates.io/api/v1/crates/blvm/versions" 2>/dev/null || echo "")
+          PUBLISHED_VERSIONS=""
+          if [ -n "$API_RESPONSE" ] && ! echo "$API_RESPONSE" | grep -q '"detail"'; then
+            if command -v jq &>/dev/null; then
+              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | jq -r '.versions[].num' 2>/dev/null || echo "")
+            else
+              PUBLISHED_VERSIONS=$(echo "$API_RESPONSE" | grep -oE '"num":"[^"]+"' | sed 's/"num":"//;s/"//')
+            fi
+          fi
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            if echo "$PUBLISHED_VERSIONS" | grep -qxF "$VERSION"; then
+              echo "⚠️  v${VERSION} already published; bumping patch..."
+              PATCH=$((PATCH + 1))
+              ATTEMPT=$((ATTEMPT + 1))
+            else
+              echo "✅ v${VERSION} available"
+              break
+            fi
+          done
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Failed to find available version after ${MAX_ATTEMPTS} attempts"
+            exit 1
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.skip_tests }}" = "true" ]; then
+            VERSION_TAG="v${VERSION}-unverified"
+          else
+            VERSION_TAG="v${VERSION}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          echo "✅ Releasing: ${VERSION_TAG}"
+
+      - name: Bump Cargo.toml version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v ver="$VERSION" '
+            BEGIN { in_package = 0 }
+            /^\[package\]/ { in_package = 1; print; next }
+            in_package && /^\[/ { in_package = 0 }
+            in_package && /^version = / { print "version = \"" ver "\""; next }
+            { print }
+          ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
+          ACTUAL=$(grep -A 5 '^\[package\]' Cargo.toml | grep '^version = ' | head -1 | sed -E 's/^version = "([^"]+)".*/\1/')
+          [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
+          echo "✅ Cargo.toml bumped to ${VERSION}"
+
+      - name: Build release binary
+        run: |
+          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          cargo build --release
+          cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-linux-x86_64
+          echo "✅ Binary: $(file blvm-linux-x86_64)"
+
+      - name: Generate SHA-256 checksum
+        run: |
+          sha256sum blvm-linux-x86_64 > blvm-linux-x86_64.sha256
+          echo "Checksum: $(cat blvm-linux-x86_64.sha256)"
+
+      - name: Create and push version tag
+        run: |
+          VERSION_TAG="${{ steps.version.outputs.version_tag }}"
+          git config user.email "ci@btcdecoded.com"
+          git config user.name "BLVM CI"
+          if git rev-parse "$VERSION_TAG" >/dev/null 2>&1; then
+            echo "⚠️  Tag ${VERSION_TAG} already exists, skipping"
+          else
+            git tag -a "$VERSION_TAG" -m "Release ${VERSION_TAG}"
+            git push origin "$VERSION_TAG"
+            echo "✅ Created and pushed tag ${VERSION_TAG}"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version_tag }}
+          name: Release ${{ steps.version.outputs.version_tag }}
+          body: |
+            ## ${{ steps.version.outputs.version_tag }}
+
+            Automated release of the `blvm` CLI binary.
+
+            ### Installation (Linux x86_64)
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-linux-x86_64
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-linux-x86_64.sha256
+            sha256sum -c blvm-linux-x86_64.sha256
+            chmod +x blvm-linux-x86_64 && mv blvm-linux-x86_64 /usr/local/bin/blvm
+            ```
+
+            ### Changes
+            See [commit history](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
+          files: |
+            blvm-linux-x86_64
+            blvm-linux-x86_64.sha256
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version_tag, '-unverified') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup release build dir
+        if: always()
+        run: rm -rf /tmp/gh-blvm-release-build/${{ github.run_id }} || true
+
+  teardown:
+    name: Teardown (cleanup runner disk)
+    runs-on: [self-hosted, Linux, X64, builds]
+    if: always()
+    needs:
+      - setup
+      - build-dev
+      - test
+      - clippy
+      - fmt
+      - docs
+      - security
+      - build
+    steps:
+      - name: Delete this run CI target dir
+        run: |
+          RUN_DIR="/tmp/gh-blvm-build/${{ github.run_id }}"
+          if [ -d "$RUN_DIR" ]; then
+            echo "Removing $RUN_DIR ($(du -sh "$RUN_DIR" 2>/dev/null | cut -f1))"
+            rm -rf "$RUN_DIR"
+          fi
+          find /tmp/gh-blvm-build -mindepth 1 -maxdepth 1 -type d \
+            -exec rm -rf {} + 2>/dev/null || true
+          echo "=== disk after teardown ==="
+          df -h /
