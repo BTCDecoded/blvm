@@ -752,16 +752,20 @@ jobs:
           echo "=== checksums.sha256 ==="
           cat checksums.sha256
 
-      - name: Collect artifact paths
-        id: artifacts
+      - name: Stage release artifacts
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          FILES="blvm-${VERSION}-linux-x86_64\nchecksums.sha256"
-          [ -f "blvm-${VERSION}-windows-x86_64.exe" ] && FILES="${FILES}\nblvm-${VERSION}-windows-x86_64.exe"
-          [ -f "blvm_${VERSION}_amd64.deb" ]          && FILES="${FILES}\nblvm_${VERSION}_amd64.deb"
-          [ -f "blvm-${VERSION}-1.x86_64.rpm" ]       && FILES="${FILES}\nblvm-${VERSION}-1.x86_64.rpm"
-          echo -e "$FILES" > /tmp/release-files.txt
-          cat /tmp/release-files.txt
+          mkdir -p release-artifacts
+          for f in \
+            blvm-${VERSION}-linux-x86_64 \
+            blvm-${VERSION}-windows-x86_64.exe \
+            blvm_${VERSION}_amd64.deb \
+            blvm-${VERSION}-1.x86_64.rpm \
+            checksums.sha256; do
+            [ -f "$f" ] && cp "$f" release-artifacts/
+          done
+          echo "=== staged artifacts ==="
+          ls -lh release-artifacts/
 
       - name: Create and push version tag
         run: |
@@ -833,12 +837,7 @@ jobs:
             ## Changes
 
             See [commit history](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
-          files: |
-            blvm-${{ steps.version.outputs.version }}-linux-x86_64
-            checksums.sha256
-            ${{ steps.build_windows.outputs.built == 'true' && format('blvm-{0}-windows-x86_64.exe', steps.version.outputs.version) || '' }}
-            ${{ steps.build_deb.outputs.built == 'true' && format('blvm_{0}_amd64.deb', steps.version.outputs.version) || '' }}
-            ${{ steps.build_rpm.outputs.built == 'true' && format('blvm-{0}-1.x86_64.rpm', steps.version.outputs.version) || '' }}
+          files: release-artifacts/*
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version_tag, '-unverified') }}
         env:
