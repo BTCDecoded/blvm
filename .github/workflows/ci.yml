@@ -1,10 +1,13 @@
 name: CI
 
-# Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security], [skip_release], [skip_verify]
+# Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security], [skip_release], [skip_verify], [skip_docker]
 # [skip_docs] also skips clippy and fmt.
 # [skip_verify] skips the release-profile build job (cargo build --release).
 # [skip_release] prevents the release job from running (no publish, no GitHub Release, no tag).
+# [skip_docker] skips the GHCR container publish job (docker-ghcr).
 # Tokens are matched against setup.commit_msg_bundle (git log range) plus head_commit when set.
+#
+# GHCR auth: use github.token (same credential as secrets.GITHUB_TOKEN — automatic per-run token).
 
 on:
   push:
@@ -26,6 +29,7 @@ on:
 permissions:
   contents: read
   actions: write
+  packages: write # GHCR: docker-ghcr job pushes container images
 
 env:
   CARGO_TERM_COLOR: always
@@ -564,6 +568,9 @@ jobs:
        ))
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -865,6 +872,63 @@ jobs:
       - name: Cleanup release build dir
         if: always()
         run: rm -rf /tmp/gh-blvm-release-build/${{ github.run_id }} || true
+
+  docker-ghcr:
+    name: Publish container (GHCR)
+    needs: [setup, release]
+    runs-on: [self-hosted, Linux, X64, builds]
+    permissions:
+      contents: read
+      packages: write
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      needs.release.result == 'success' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Strip [patch.crates-io] for crates.io-only build (matches CI)
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+
+      - name: Set GHCR image name (must be lowercase)
+        id: ghcr
+        run: |
+          R='${{ github.repository }}'
+          echo "image=ghcr.io/${R,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.ghcr.outputs.image }}
+          tags: |
+            type=raw,value=${{ needs.release.outputs.version }}
+            type=raw,value=latest,enable=${{ !contains(needs.release.outputs.version_tag, 'unverified') }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   teardown:
     name: Teardown (cleanup runner disk)
