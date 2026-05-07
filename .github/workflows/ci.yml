@@ -653,17 +653,115 @@ jobs:
           [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
           echo "✅ Cargo.toml bumped to ${VERSION}"
 
-      - name: Build release binary
+      - name: Install packaging tools and Windows cross-compiler
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq \
+              gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 \
+              rpm dpkg-dev fakeroot
+          fi
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo install cargo-deb --locked --quiet || true
+          cargo install cargo-generate-rpm --locked --quiet || true
+          rustup target add x86_64-pc-windows-gnu
+
+      - name: Build Linux x86_64 release binary
+        id: build_linux
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           cargo build --release
-          cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-linux-x86_64
-          echo "✅ Binary: $(file blvm-linux-x86_64)"
+          VERSION="${{ steps.version.outputs.version }}"
+          cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-${VERSION}-linux-x86_64
+          echo "✅ Linux binary: $(file blvm-${VERSION}-linux-x86_64)"
+          echo "filename=blvm-${VERSION}-linux-x86_64" >> $GITHUB_OUTPUT
 
-      - name: Generate SHA-256 checksum
+      - name: Build Windows x86_64 release binary
+        id: build_windows
+        continue-on-error: true
         run: |
-          sha256sum blvm-linux-x86_64 > blvm-linux-x86_64.sha256
-          echo "Checksum: $(cat blvm-linux-x86_64.sha256)"
+          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          VERSION="${{ steps.version.outputs.version }}"
+          # Windows build: exclude Linux-only features (nix, libc); keep core features
+          cargo build --release \
+            --target x86_64-pc-windows-gnu \
+            --no-default-features \
+            --features "blvm-node/sled,blvm-node/production,blvm-node/protocol-verification,blvm-node/zmq,blvm-node/utxo-commitments,blvm-node/sigop,blvm-node/dandelion,blvm-node/rest-api" \
+            2>&1
+          EXE=/tmp/gh-blvm-release-build/${{ github.run_id }}/target/x86_64-pc-windows-gnu/release/blvm.exe
+          if [ -f "$EXE" ]; then
+            cp "$EXE" ./blvm-${VERSION}-windows-x86_64.exe
+            echo "✅ Windows binary: $(ls -lh blvm-${VERSION}-windows-x86_64.exe)"
+            echo "built=true" >> $GITHUB_OUTPUT
+            echo "filename=blvm-${VERSION}-windows-x86_64.exe" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  Windows cross-compile did not produce binary — skipping"
+            echo "built=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package .deb (Debian/Ubuntu)
+        id: build_deb
+        continue-on-error: true
+        run: |
+          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          VERSION="${{ steps.version.outputs.version }}"
+          cargo deb --no-build --target-dir /tmp/gh-blvm-release-build/${{ github.run_id }}/target 2>&1
+          DEB=$(find /tmp/gh-blvm-release-build/${{ github.run_id }}/target -name "*.deb" | head -1)
+          if [ -n "$DEB" ]; then
+            DEBNAME="blvm_${VERSION}_amd64.deb"
+            cp "$DEB" "./${DEBNAME}"
+            echo "✅ .deb: ${DEBNAME}"
+            echo "built=true" >> $GITHUB_OUTPUT
+            echo "filename=${DEBNAME}" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  .deb not produced"
+            echo "built=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package .rpm (RHEL/Fedora)
+        id: build_rpm
+        continue-on-error: true
+        run: |
+          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          VERSION="${{ steps.version.outputs.version }}"
+          cargo generate-rpm --target-dir /tmp/gh-blvm-release-build/${{ github.run_id }}/target 2>&1
+          RPM=$(find /tmp/gh-blvm-release-build/${{ github.run_id }}/target -name "*.rpm" | head -1)
+          if [ -n "$RPM" ]; then
+            RPMNAME="blvm-${VERSION}-1.x86_64.rpm"
+            cp "$RPM" "./${RPMNAME}"
+            echo "✅ .rpm: ${RPMNAME}"
+            echo "built=true" >> $GITHUB_OUTPUT
+            echo "filename=${RPMNAME}" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  .rpm not produced"
+            echo "built=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate combined checksums
+        id: checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          > checksums.sha256
+          for f in \
+            blvm-${VERSION}-linux-x86_64 \
+            blvm-${VERSION}-windows-x86_64.exe \
+            blvm_${VERSION}_amd64.deb \
+            blvm-${VERSION}-1.x86_64.rpm; do
+            [ -f "$f" ] && sha256sum "$f" >> checksums.sha256
+          done
+          echo "=== checksums.sha256 ==="
+          cat checksums.sha256
+
+      - name: Collect artifact paths
+        id: artifacts
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FILES="blvm-${VERSION}-linux-x86_64\nchecksums.sha256"
+          [ -f "blvm-${VERSION}-windows-x86_64.exe" ] && FILES="${FILES}\nblvm-${VERSION}-windows-x86_64.exe"
+          [ -f "blvm_${VERSION}_amd64.deb" ]          && FILES="${FILES}\nblvm_${VERSION}_amd64.deb"
+          [ -f "blvm-${VERSION}-1.x86_64.rpm" ]       && FILES="${FILES}\nblvm-${VERSION}-1.x86_64.rpm"
+          echo -e "$FILES" > /tmp/release-files.txt
+          cat /tmp/release-files.txt
 
       - name: Create and push version tag
         run: |
@@ -682,25 +780,65 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.version_tag }}
-          name: Release ${{ steps.version.outputs.version_tag }}
+          name: blvm ${{ steps.version.outputs.version_tag }}
           body: |
-            ## ${{ steps.version.outputs.version_tag }}
+            # blvm ${{ steps.version.outputs.version_tag }}
 
-            Automated release of the `blvm` CLI binary.
+            **Bitcoin Commons BLVM** — Bitcoin Low-Level Virtual Machine node CLI.
 
-            ### Installation (Linux x86_64)
+            > [!NOTE]
+            > Verify your download against `checksums.sha256` before running.
+
+            ## Downloads
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | **Linux x86_64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64` | Full features |
+            | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | dpkg install |
+            | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | rpm install |
+            | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Core features |
+            | **Checksums** | `checksums.sha256` | SHA-256 for all artifacts |
+
+            ## Verify
+
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-linux-x86_64
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-linux-x86_64.sha256
-            sha256sum -c blvm-linux-x86_64.sha256
-            chmod +x blvm-linux-x86_64 && mv blvm-linux-x86_64 /usr/local/bin/blvm
+            sha256sum -c checksums.sha256
             ```
 
-            ### Changes
+            ## Install
+
+            **Linux (binary):**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-linux-x86_64
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/checksums.sha256
+            sha256sum -c checksums.sha256
+            chmod +x blvm-${{ steps.version.outputs.version }}-linux-x86_64
+            sudo mv blvm-${{ steps.version.outputs.version }}-linux-x86_64 /usr/local/bin/blvm
+            ```
+
+            **Debian/Ubuntu:**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_amd64.deb
+            sudo dpkg -i blvm_${{ steps.version.outputs.version }}_amd64.deb
+            ```
+
+            **RHEL/Fedora:**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
+            sudo rpm -i blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
+            ```
+
+            **Windows:** Download `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe`, verify checksum, and run from a terminal.
+
+            ## Changes
+
             See [commit history](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
           files: |
-            blvm-linux-x86_64
-            blvm-linux-x86_64.sha256
+            blvm-${{ steps.version.outputs.version }}-linux-x86_64
+            checksums.sha256
+            ${{ steps.build_windows.outputs.built == 'true' && format('blvm-{0}-windows-x86_64.exe', steps.version.outputs.version) || '' }}
+            ${{ steps.build_deb.outputs.built == 'true' && format('blvm_{0}_amd64.deb', steps.version.outputs.version) || '' }}
+            ${{ steps.build_rpm.outputs.built == 'true' && format('blvm-{0}-1.x86_64.rpm', steps.version.outputs.version) || '' }}
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version_tag, '-unverified') }}
         env:

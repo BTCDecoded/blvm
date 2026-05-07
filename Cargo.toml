@@ -133,3 +133,20 @@ opt-level = 2
 inherits = "release"
 lto = "thin"
 codegen-units = 1
+
+[package.metadata.deb]
+maintainer = "Bitcoin Commons Team <team@btcdecoded.org>"
+section = "net"
+priority = "optional"
+extended-description = """\
+Bitcoin Commons BLVM is a Bitcoin Low-Level Virtual Machine node binary.
+It provides a full Bitcoin node with module system support, RPC interface,
+and cross-transport networking (TCP, QUIC/Iroh)."""
+assets = [
+  ["target/release/blvm", "usr/bin/blvm", "755"],
+]
+
+[package.metadata.generate-rpm]
+assets = [
+  { source = "target/release/blvm", dest = "/usr/bin/blvm", mode = "0755" },
+]
