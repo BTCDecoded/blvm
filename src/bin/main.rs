@@ -452,20 +452,50 @@ async fn main() -> Result<()> {
             let (config, data_dir, _, _, _) = build_final_config(&cli)?;
             handle_module_config_path(module, &config, &data_dir)
         }
-        Some(Command::Load { ref module, rpc_addr }) => {
+        Some(Command::Load {
+            ref module,
+            rpc_addr,
+        }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
             let (config, _, _, _, _) = build_final_config(&cli)?;
-            handle_module(rpc_addr, &ModuleCommand::Load { name: module.clone() }, &config).await
+            handle_module(
+                rpc_addr,
+                &ModuleCommand::Load {
+                    name: module.clone(),
+                },
+                &config,
+            )
+            .await
         }
-        Some(Command::Unload { ref module, rpc_addr }) => {
+        Some(Command::Unload {
+            ref module,
+            rpc_addr,
+        }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
             let (config, _, _, _, _) = build_final_config(&cli)?;
-            handle_module(rpc_addr, &ModuleCommand::Unload { name: module.clone() }, &config).await
+            handle_module(
+                rpc_addr,
+                &ModuleCommand::Unload {
+                    name: module.clone(),
+                },
+                &config,
+            )
+            .await
         }
-        Some(Command::Reload { ref module, rpc_addr }) => {
+        Some(Command::Reload {
+            ref module,
+            rpc_addr,
+        }) => {
             let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
             let (config, _, _, _, _) = build_final_config(&cli)?;
-            handle_module(rpc_addr, &ModuleCommand::Reload { name: module.clone() }, &config).await
+            handle_module(
+                rpc_addr,
+                &ModuleCommand::Reload {
+                    name: module.clone(),
+                },
+                &config,
+            )
+            .await
         }
         Some(Command::ModuleCli(ref args)) => {
             let (config, _, _, _, _) = build_final_config(&cli)?;
@@ -801,7 +831,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 
     // Apply CLI overrides to config (CLI overrides ENV and config file)
     config.listen_addr = Some(listen_addr);
-    config.protocol_version = Some(format!("{:?}", network));
+    config.protocol_version = Some(format!("{network:?}"));
 
     // Apply CLI feature flags (CLI overrides ENV and config file)
     apply_feature_flags(&mut config, &cli.features);
@@ -812,7 +842,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     // Per-network default assume-valid when block_validation is None and not regtest
     if config.block_validation.is_none() {
         let default_height =
-            blvm_node::config::default_assume_valid_height_for_network(&format!("{:?}", network));
+            blvm_node::config::default_assume_valid_height_for_network(&format!("{network:?}"));
         if default_height > 0 {
             config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
                 assume_valid_height: default_height,
@@ -832,6 +862,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 }
 
 /// Apply feature flags from environment variables
+#[allow(unused_variables)]
 fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
     // Stratum V2
     if let Some(enabled) = env.stratum_v2 {
@@ -910,6 +941,7 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
 }
 
 /// Apply feature flags from CLI to config
+#[allow(unused_variables)]
 fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
     // Stratum V2
     if features.enable_stratum_v2 || features.disable_stratum_v2 {
@@ -1206,7 +1238,7 @@ async fn rpc_call_with_auth(
     user: Option<&str>,
     password: Option<&str>,
 ) -> Result<Value> {
-    let url = format!("http://{}", rpc_addr);
+    let url = format!("http://{rpc_addr}");
     let client = reqwest::Client::new();
 
     let request = json!({
@@ -1298,7 +1330,7 @@ async fn handle_health(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()>
             Ok(())
         }
         Err(e) => {
-            eprintln!("❌ Health check failed: {}", e);
+            eprintln!("❌ Health check failed: {e}");
             std::process::exit(1);
         }
     }
@@ -1355,10 +1387,10 @@ async fn handle_chain(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
         info.get("headers").and_then(|v| v.as_u64()).unwrap_or(0)
     );
     if let Some(hash) = info.get("bestblockhash").and_then(|v| v.as_str()) {
-        println!("Best Block: {}", hash);
+        println!("Best Block: {hash}");
     }
     if let Some(diff) = info.get("difficulty").and_then(|v| v.as_f64()) {
-        println!("Difficulty: {:.2}", diff);
+        println!("Difficulty: {diff:.2}");
     }
     if let Some(progress) = info.get("verificationprogress").and_then(|v| v.as_f64()) {
         println!("Verification Progress: {:.2}%", progress * 100.0);
@@ -1378,10 +1410,10 @@ async fn handle_peers(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
             for (i, peer) in peer_array.iter().enumerate() {
                 println!("\nPeer {}:", i + 1);
                 if let Some(addr) = peer.get("addr").and_then(|v| v.as_str()) {
-                    println!("  Address: {}", addr);
+                    println!("  Address: {addr}");
                 }
                 if let Some(version) = peer.get("version").and_then(|v| v.as_u64()) {
-                    println!("  Version: {}", version);
+                    println!("  Version: {version}");
                 }
                 if let Some(latency) = peer.get("latency").and_then(|v| v.as_f64()) {
                     println!("  Latency: {:.2}ms", latency * 1000.0);
@@ -1414,14 +1446,14 @@ async fn handle_network(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()
             .unwrap_or(false)
     );
     if let Some(connections) = info.get("connections").and_then(|v| v.as_u64()) {
-        println!("Connections: {}", connections);
+        println!("Connections: {connections}");
     }
     if let Some(local_addrs) = info.get("localaddresses").and_then(|v| v.as_array()) {
         if !local_addrs.is_empty() {
             println!("Local Addresses:");
             for addr in local_addrs {
                 if let Some(addr_str) = addr.get("address").and_then(|v| v.as_str()) {
-                    println!("  {}", addr_str);
+                    println!("  {addr_str}");
                 }
             }
         }
@@ -1441,8 +1473,8 @@ async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
         .unwrap_or(0.0);
 
     println!("=== Sync Status ===");
-    println!("Blocks: {}", blocks);
-    println!("Headers: {}", headers);
+    println!("Blocks: {blocks}");
+    println!("Headers: {headers}");
     println!("Progress: {:.2}%", progress * 100.0);
 
     if blocks == headers && progress >= 1.0 {
@@ -1477,12 +1509,12 @@ fn handle_config_validate(path: Option<PathBuf>, cli_config: &Option<PathBuf>) -
                     Ok(())
                 }
                 Err(e) => {
-                    eprintln!("❌ Configuration validation failed: {}", e);
+                    eprintln!("❌ Configuration validation failed: {e}");
                     std::process::exit(1);
                 }
             },
             Err(e) => {
-                eprintln!("❌ Configuration file is invalid: {}", e);
+                eprintln!("❌ Configuration file is invalid: {e}");
                 std::process::exit(1);
             }
         },
@@ -1511,8 +1543,7 @@ fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Re
         .ok_or_else(|| anyhow::anyhow!("No config file path"))?;
 
     let mut content = if config_path.exists() {
-        std::fs::read_to_string(&config_path)
-            .context("Failed to read config file")?
+        std::fs::read_to_string(&config_path).context("Failed to read config file")?
     } else {
         String::new()
     };
@@ -1526,9 +1557,9 @@ fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Re
     };
 
     for assignment in assignments {
-        let (key, value_str) = assignment
-            .split_once('=')
-            .ok_or_else(|| anyhow::anyhow!("Invalid assignment '{}': expected key=value", assignment))?;
+        let (key, value_str) = assignment.split_once('=').ok_or_else(|| {
+            anyhow::anyhow!("Invalid assignment '{}': expected key=value", assignment)
+        })?;
         let key = key.trim();
         let value_str = value_str.trim();
 
@@ -1573,7 +1604,11 @@ fn set_toml_dotted(root: &mut toml::Value, key: &str, value: toml::Value) -> Res
                 t.insert(part.to_string(), value);
                 return Ok(());
             }
-            anyhow::bail!("Key '{}': expected table at '{}'", key, parts[..=i].join("."));
+            anyhow::bail!(
+                "Key '{}': expected table at '{}'",
+                key,
+                parts[..=i].join(".")
+            );
         }
         if let toml::Value::Table(t) = current {
             let entry = t
@@ -1589,18 +1624,18 @@ fn set_toml_dotted(root: &mut toml::Value, key: &str, value: toml::Value) -> Res
                 );
             }
         } else {
-            anyhow::bail!("Key '{}': expected table at '{}'", key, parts[..=i].join("."));
+            anyhow::bail!(
+                "Key '{}': expected table at '{}'",
+                key,
+                parts[..=i].join(".")
+            );
         }
     }
     Ok(())
 }
 
 /// Print config file path for a module (works offline; uses config to resolve path)
-fn handle_module_config_path(
-    module: &str,
-    config: &NodeConfig,
-    data_dir: &str,
-) -> Result<()> {
+fn handle_module_config_path(module: &str, config: &NodeConfig, data_dir: &str) -> Result<()> {
     let modules_data_dir = config
         .modules
         .as_ref()
@@ -1662,12 +1697,15 @@ async fn handle_module_cli(
     let result = rpc_call(rpc_addr, "runmodulecli", params).await?;
     let stdout = result.get("stdout").and_then(|v| v.as_str()).unwrap_or("");
     let stderr = result.get("stderr").and_then(|v| v.as_str()).unwrap_or("");
-    let exit_code = result.get("exit_code").and_then(|v| v.as_i64()).unwrap_or(1);
+    let exit_code = result
+        .get("exit_code")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(1);
     if !stdout.is_empty() {
-        print!("{}", stdout);
+        print!("{stdout}");
     }
     if !stderr.is_empty() {
-        eprint!("{}", stderr);
+        eprint!("{stderr}");
     }
     if exit_code != 0 {
         std::process::exit(exit_code as i32);

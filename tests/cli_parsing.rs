@@ -10,7 +10,7 @@ fn test_help_flag() {
     cmd.arg("--help");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("Bitcoin Commons BLLVM"));
+        .stdout(predicate::str::contains("Bitcoin Commons BLVM"));
 }
 
 /// Test network argument parsing - valid networks

@@ -125,3 +125,11 @@ codegen-units = 16
 [profile.release-fast]
 inherits = "release"
 opt-level = 2
+
+# PGO final link (scripts/pgo-ibd-build.sh): thin LTO + single codegen unit.
+# Do not pass `-C lto` via RUSTFLAGS while `[profile.release]` has lto=false — Cargo
+# uses embed-bitcode=no for deps and rustc rejects lto+no-bitcode.
+[profile.release-pgo]
+inherits = "release"
+lto = "thin"
+codegen-units = 1

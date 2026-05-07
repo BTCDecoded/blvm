@@ -10,7 +10,7 @@ fn test_version_subcommand() {
     cmd.arg("version");
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("BLLVM"));
+        .stdout(predicate::str::contains("blvm"));
 }
 
 /// Test that status subcommand parses correctly
@@ -160,7 +160,7 @@ fn test_invalid_subcommand() {
     cmd.arg("invalid-subcommand");
     cmd.assert()
         .failure()
-        .stderr(predicate::str::contains("Unknown"));
+        .stderr(predicate::str::contains("Usage:"));
 }
 
 /// Test that help shows subcommands

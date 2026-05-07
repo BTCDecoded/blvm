@@ -1,6 +1,6 @@
 //! Tests for versions.toml parsing and validation
 
-use blvm::versions::{ValidationResult, VersionsManifest};
+use blvm::versions::VersionsManifest;
 use std::fs;
 use tempfile::TempDir;
 

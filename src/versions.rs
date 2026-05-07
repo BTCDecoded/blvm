@@ -69,8 +69,7 @@ impl VersionsManifest {
                 let dep_name = dep.split('=').next().unwrap_or(dep);
                 if !self.versions.contains_key(dep_name) {
                     errors.push(format!(
-                        "Repository '{}' requires '{}' which is not defined",
-                        repo, dep_name
+                        "Repository '{repo}' requires '{dep_name}' which is not defined"
                     ));
                 }
             }
@@ -78,7 +77,7 @@ impl VersionsManifest {
 
         // Check for circular dependencies
         if let Some(circular) = self.detect_circular_dependencies() {
-            errors.push(format!("Circular dependency detected: {}", circular));
+            errors.push(format!("Circular dependency detected: {circular}"));
         }
 
         if errors.is_empty() && warnings.is_empty() {

@@ -3,7 +3,6 @@
 use blvm_node::config::NodeConfig;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 /// Test TOML configuration file loading
@@ -15,9 +14,7 @@ fn test_toml_config_file_loading() {
     let config_content = r#"
 max_peers = 50
 protocol_version = "Regtest"
-
-[transport_preference]
-preference = "TcpOnly"
+transport_preference = "tcponly"
 
 [modules]
 enabled = true
@@ -30,7 +27,7 @@ socket_dir = "data/modules/sockets"
 
     // Test that config file can be loaded
     let config = NodeConfig::from_toml_file(&config_path).expect("Should parse TOML config");
-    assert_eq!(config.max_peers, Some(50));
+    assert_eq!(config.max_outbound_peers, Some(50));
     assert_eq!(config.protocol_version, Some("Regtest".to_string()));
     assert!(config.modules.is_some());
     if let Some(ref modules) = config.modules {
@@ -48,16 +45,14 @@ fn test_json_config_file_loading() {
     let config_content = r#"{
   "max_peers": 50,
   "protocol_version": "Regtest",
-  "transport_preference": {
-    "preference": "TcpOnly"
-  }
+  "transport_preference": "tcponly"
 }"#;
 
     fs::write(&config_path, config_content).unwrap();
 
     // Test that config file can be loaded
     let config = NodeConfig::from_json_file(&config_path).expect("Should parse JSON config");
-    assert_eq!(config.max_peers, Some(50));
+    assert_eq!(config.max_outbound_peers, Some(50));
     assert_eq!(config.protocol_version, Some("Regtest".to_string()));
 }
 
@@ -68,17 +63,20 @@ fn test_config_file_auto_detection() {
 
     // Test TOML
     let toml_path = temp_dir.path().join("config.toml");
-    let toml_content = r#"max_peers = 50"#;
+    let toml_content = r#"
+max_peers = 50
+transport_preference = "tcponly"
+"#;
     fs::write(&toml_path, toml_content).unwrap();
     let config = NodeConfig::from_file(&toml_path).expect("Should parse TOML");
-    assert_eq!(config.max_peers, Some(50));
+    assert_eq!(config.max_outbound_peers, Some(50));
 
     // Test JSON
     let json_path = temp_dir.path().join("config.json");
-    let json_content = r#"{"max_peers": 50}"#;
+    let json_content = r#"{"max_peers": 50, "transport_preference": "tcponly"}"#;
     fs::write(&json_path, json_content).unwrap();
     let config = NodeConfig::from_file(&json_path).expect("Should parse JSON");
-    assert_eq!(config.max_peers, Some(50));
+    assert_eq!(config.max_outbound_peers, Some(50));
 }
 
 /// Test environment variable parsing
@@ -107,7 +105,7 @@ fn test_default_config() {
     let config = NodeConfig::default();
 
     // Verify defaults are set
-    assert_eq!(config.max_peers, None); // Default is None
+    assert_eq!(config.max_outbound_peers, Some(100)); // Default is 100
     assert!(config.enable_self_advertisement); // Default is true
     assert_eq!(config.persistent_peers.len(), 0); // Default is empty
 }
@@ -136,9 +134,11 @@ fn test_config_save_and_reload() {
     let config_path = temp_dir.path().join("test.toml");
 
     // Create a config
-    let mut config = NodeConfig::default();
-    config.max_peers = Some(100);
-    config.protocol_version = Some("Testnet".to_string());
+    let config = NodeConfig {
+        max_outbound_peers: Some(100),
+        protocol_version: Some("Testnet".to_string()),
+        ..Default::default()
+    };
 
     // Save it
     config
@@ -147,6 +147,6 @@ fn test_config_save_and_reload() {
 
     // Reload it
     let loaded = NodeConfig::from_toml_file(&config_path).expect("Should load config");
-    assert_eq!(loaded.max_peers, Some(100));
+    assert_eq!(loaded.max_outbound_peers, Some(100));
     assert_eq!(loaded.protocol_version, Some("Testnet".to_string()));
 }
