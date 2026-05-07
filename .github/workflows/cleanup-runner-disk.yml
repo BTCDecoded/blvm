@@ -1,0 +1,56 @@
+name: Cleanup Runner Disk (blvm)
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (print what would be deleted, do not delete)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Cleanup self-hosted runner disk
+    runs-on: [self-hosted, Linux, X64, builds]
+    steps:
+      - name: Report disk before
+        run: df -h /
+
+      - name: Remove CI build target dirs under /tmp/gh-blvm-build
+        run: |
+          DRY="${{ github.event.inputs.dry_run }}"
+          BASE="/tmp/gh-blvm-build"
+          if [ ! -d "$BASE" ]; then
+            echo "No build dirs at $BASE"
+            exit 0
+          fi
+          echo "=== run dirs under $BASE ==="
+          find "$BASE" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
+            SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "  $dir ($SIZE)"
+            if [ "$DRY" != "true" ]; then
+              rm -rf "$dir"
+            fi
+          done
+
+      - name: Remove runner cache dirs older than 7 days
+        run: |
+          DRY="${{ github.event.inputs.dry_run }}"
+          BASE="/tmp/runner-cache"
+          if [ ! -d "$BASE" ]; then exit 0; fi
+          find "$BASE" -mindepth 2 -maxdepth 2 -type d -mtime +7 | while read -r dir; do
+            SIZE=$(du -sh "$dir" 2>/dev/null | cut -f1)
+            echo "Removing stale cache $dir ($SIZE)"
+            if [ "$DRY" != "true" ]; then
+              rm -rf "$dir"
+            fi
+          done
+
+      - name: Report disk after
+        run: df -h /
