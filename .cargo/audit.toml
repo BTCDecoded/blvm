@@ -1,0 +1,16 @@
+# cargo audit configuration
+# Advisories are ignored here only when:
+#   (a) no fix is available, OR
+#   (b) the fix requires a large dependency upgrade that is tracked separately.
+# Each entry must include the reason and a GitHub issue or tracking note.
+
+[advisories]
+ignore = [
+    # hickory-proto 0.25.2 / hickory-resolver 0.25.2 — transitive via iroh 0.95.
+    # RUSTSEC-2026-0118: no fixed version published as of 2026-05-07.
+    # RUSTSEC-2026-0119: fix requires hickory >=0.26.1, which requires iroh upgrade.
+    # iroh is pinned at =0.95 in blvm-node; upgrading is a separate tracked task.
+    # Neither advisory affects blvm's own DNS resolution code paths.
+    "RUSTSEC-2026-0118",
+    "RUSTSEC-2026-0119",
+]
