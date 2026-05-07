@@ -1,0 +1,9 @@
+[package]
+name = "sha2-asm"
+version = "0.6.4"
+edition = "2018"
+description = "Pure-Rust stub for sha2-asm: used for Windows cross-compilation (sha2-asm 0.6.4 does not support Windows targets)"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "sha2_asm"

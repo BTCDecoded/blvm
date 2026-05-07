@@ -698,6 +698,12 @@ jobs:
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           VERSION="${{ steps.version.outputs.version }}"
+          # sha2-asm 0.6.4 has compile_error! on Windows. Patch it with a pure-Rust stub
+          # so the Windows binary gets correct (non-asm) SHA-2 until blvm-secp256k1 is
+          # republished without the unconditional asm feature.
+          echo '' >> Cargo.toml
+          echo '[patch.crates-io]' >> Cargo.toml
+          echo 'sha2-asm = { path = "ci-stubs/sha2-asm" }' >> Cargo.toml
           echo "=== Windows cross-compile (pure-Rust features, no zmq/rocksdb/nix/libc) ==="
           cargo build --release \
             --target x86_64-pc-windows-gnu \
