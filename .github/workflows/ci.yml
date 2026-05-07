@@ -885,33 +885,37 @@ jobs:
         if: always()
         run: rm -rf /tmp/gh-blvm-release-build/${{ github.run_id }} || true
 
-  # Sends repository_dispatch(blvm-release) to BTCDecoded/website so its Pages
-  # workflow reruns fetch-blvm-release + export. Org secret on this repo:
-  # WEBSITE_REPO_DISPATCH_TOKEN — PAT fine-grained: BTCDecoded/website,
-  # Permissions: Contents: Read, Actions: Read and write (or classic repo scope).
-    name: Dispatch website reinstall refresh
+  # Sends repository_dispatch(blvm-release) to BTCDecoded/website and
+  # BTCDecoded/commons-website so both refresh install/blvm version metadata.
+  # Org secret on this repo: WEBSITE_REPO_DISPATCH_TOKEN — PAT must be able to
+  # dispatch workflows on both repos (classic `repo` or fine-grained on each).
+  notify-website-deploy:
+    name: Dispatch marketing site rebuilds
     needs: release
     runs-on: ubuntu-latest
     if: ${{ always() && needs.release.result == 'success' }}
     steps:
-      - name: repository_dispatch(blvm-release) → BTCDecoded/website
+      - name: repository_dispatch(blvm-release) → website & commons-website
         env:
           TOKEN: ${{ secrets.WEBSITE_REPO_DISPATCH_TOKEN }}
           VERSION_TAG: ${{ needs.release.outputs.version_tag }}
           SOURCE_REPO: ${{ github.repository }}
         run: |
           if [ -z "${TOKEN:-}" ]; then
-            echo "::notice::Secrets WEBSITE_REPO_DISPATCH_TOKEN is not set — skipping website rebuild dispatch."
+            echo "::notice::WEBSITE_REPO_DISPATCH_TOKEN is not set — skipping marketing site dispatch."
             exit 0
           fi
           BODY=$(jq -nc --arg t "${VERSION_TAG}" --arg r "${SOURCE_REPO}" \
             '{"event_type":"blvm-release","client_payload":{"tag":$t,"source_repo":$r}}')
-          curl -fsSL -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/BTCDecoded/website/dispatches" \
-            -d "${BODY}"
+          for REPO in website commons-website; do
+            echo "Dispatching blvm-release → BTCDecoded/${REPO} …"
+            curl -fsSL -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/BTCDecoded/${REPO}/dispatches" \
+              -d "${BODY}"
+          done
 
   docker-ghcr:
     name: Publish container (GHCR)
