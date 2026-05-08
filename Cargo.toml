@@ -45,6 +45,7 @@ ed25519 = "=3.0.0-rc.4"
 blvm-primitives = { path = "../blvm-primitives" }
 blvm-protocol = { path = "../blvm-protocol" }
 blvm-consensus = { path = "../blvm-consensus" }
+blvm-secp256k1 = { path = "../blvm-secp256k1" }
 blvm-spec-lock = { path = "../blvm-spec-lock" }
 blvm-muhash = { path = "../blvm-muhash" }
 blvm-node = { path = "../blvm-node" }
