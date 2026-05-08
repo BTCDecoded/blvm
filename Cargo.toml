@@ -36,7 +36,8 @@ bytes = "1.11.1"  # Align with blvm-node (RUSTSEC-2026-0007); reqwest ^1.2 accep
 hex = "0.4"
 # Pin ed25519 to rc.4: stable 3.0.0 (2026-05-03) changed KeyMalformed to a tuple
 # variant, breaking ed25519-dalek 3.0.0-pre.1 (pulled via iroh 0.95).
-# Remove once iroh upgrades to a compatible ed25519-dalek.
+# Track: https://github.com/n0-computer/iroh/issues — remove once iroh ships with
+# ed25519-dalek >= 2.1 or a version that accepts ed25519 3.0.0 stable.
 ed25519 = "=3.0.0-rc.4"
 
 # Local monorepo: use sibling checkouts instead of crates.io (omit this file on CI if you need a pure registry build).
@@ -53,6 +54,7 @@ blvm-sdk = { path = "../blvm-sdk" }
 default = [
     "blvm-node/sysinfo",
     "rocksdb",
+    "sled",
     "blvm-node/redb",
     "blvm-node/nix",
     "blvm-node/libc",
@@ -70,6 +72,10 @@ default = [
 production = ["blvm-node/production"]
 # RocksDB storage backend (Linux/macOS only — not available for Windows cross-compile)
 rocksdb = ["blvm-node/rocksdb"]
+# Sled embedded storage backend (cross-platform)
+sled = ["blvm-node/sled"]
+# Redb embedded storage backend (cross-platform)
+redb = ["blvm-node/redb"]
 # Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
 profile = ["blvm-node/profile"]
 # Experimental features (passed through from blvm-node)

@@ -712,7 +712,6 @@ jobs:
 
       - name: Build Windows x86_64 release binary
         id: build_windows
-        continue-on-error: true
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
           CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
