@@ -715,7 +715,6 @@ jobs:
           CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++
           PKG_CONFIG_ALLOW_CROSS: "1"
           CARGO_BUILD_JOBS: 8
-          SECP256K1_NO_ASM: "1"
         run: |
           unset CC CXX CPP AR || true
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
