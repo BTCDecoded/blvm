@@ -170,7 +170,9 @@ jobs:
       - name: Compile test binaries (default features)
         env:
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo test --no-run
+        run: |
+          unset CC CXX CPP AR || true
+          cargo test --no-run
 
       - name: Dump disk usage on failure
         if: failure()
@@ -246,7 +248,9 @@ jobs:
       - name: Run tests
         env:
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo test --lib --bins --tests
+        run: |
+          unset CC CXX CPP AR || true
+          cargo test --lib --bins --tests
 
       - name: Dump disk usage on failure
         if: failure()
