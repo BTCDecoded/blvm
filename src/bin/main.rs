@@ -122,6 +122,7 @@ enum Command {
         rpc_addr: Option<SocketAddr>,
     },
     /// Migration and data conversion tools
+    #[cfg(feature = "rocksdb")]
     Migrate {
         #[command(subcommand)]
         subcommand: MigrateCommand,
@@ -160,6 +161,7 @@ enum Command {
     ModuleCli(Vec<String>),
 }
 
+#[cfg(feature = "rocksdb")]
 #[derive(Subcommand)]
 enum MigrateCommand {
     /// Migrate Bitcoin Core data directory to BLVM format
@@ -407,6 +409,7 @@ async fn main() -> Result<()> {
                 }
             }
         }
+        #[cfg(feature = "rocksdb")]
         Some(Command::Migrate { ref subcommand }) => match subcommand {
             MigrateCommand::Core {
                 source,
