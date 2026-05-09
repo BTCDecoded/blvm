@@ -49,10 +49,10 @@ The binary will be at `target/release/blvm`.
 
 Official and prerelease workflows attach artifacts to **GitHub Releases** (built on self-hosted Linux):
 
-- **Debian/Ubuntu**: `.deb` (`blvm` and `blvm-experimental` packages; install with `sudo apt install ./blvm_*.deb`)
-- **RPM-based distros**: `.rpm` when `alien` is available on the builder (converted from `.deb`)
+- **Debian/Ubuntu**: `.deb` packages (`blvm` and `blvm-experimental` where published; install with `sudo apt install ./blvm_*.deb` or `sudo dpkg -i`)
+- **RPM-based distros**: `.rpm` (native builds and/or conversions from `.deb` depending on the release)
 - **Arch-style**: `.pkg.tar.gz` payload tarball (manual `pacman -U` or unpack `usr/bin`)
-- **Windows**: cross-compiled archives (`.zip`) for `x86_64-pc-windows-gnu`; standalone `.exe` installer not yet provided
+- **Windows**: `.exe` installer and cross-compiled `.zip` archives for `x86_64-pc-windows-gnu` — download the asset names listed on the **release page**
 
 ---
 
@@ -521,84 +521,36 @@ blvm --network mainnet --data-dir /var/lib/blvm
 
 ## Verification
 
-### Binary Verification
+GitHub **Releases** attach checksum files next to binaries and packages. **Filenames differ** by workflow and asset set — common examples: `checksums.sha256`, `SHA256SUMS`, `SHA256SUMS-<variant>.txt`, or a `.sha256` next to each artifact. Always use the checksum and signature files from **the same release** you downloaded.
 
-Before running the node, you should verify the binary integrity and authenticity.
-
-#### 1. Download Release Artifacts
-
-Download the following files from the release page:
-- `blvm` (binary)
-- `SHA256SUMS` (checksums file)
-- `SHA256SUMS.asc` (signature file, if available)
-
-#### 2. Verify Checksums
+### Checksums
 
 ```bash
-# Verify binary matches checksum
-sha256sum -c SHA256SUMS
+# Example when the release ships a combined file:
+sha256sum -c checksums.sha256
 
-# Or manually verify
-sha256sum blvm
-# Compare output with SHA256SUMS file
+# Some releases use SHA256SUMS or per-variant files — use the name shown on the release:
+# sha256sum -c SHA256SUMS
 ```
 
-#### 3. Verify Signatures (if available)
+### Signatures
+
+When detached signatures (`.asc` / `.sig`) are published, verify with **GPG** using the keys and steps linked from the **release** or from the [Installation](https://docs.thebitcoincommons.org/getting-started/installation.html) chapter in **BLVM documentation**.
+
+### Verification bundles (optional)
+
+Some releases include `verification-artifacts.tar.gz` (tests, spec-lock outputs, source/config hashes). Check the release notes; verify the bundle with its published `.sha256` and optional OpenTimestamps `.ots` when present.
 
 ```bash
-# Import maintainer public keys (one-time setup)
-gpg --import maintainer-keys.asc
-
-# Verify signature
-gpg --verify SHA256SUMS.asc SHA256SUMS
-```
-
-### Checksum Verification
-
-All releases include `SHA256SUMS` files for verification:
-
-```bash
-# Verify all files
-sha256sum -c SHA256SUMS
-
-# Expected output:
-# blvm: OK
-# blvm-node: OK
-# ...
-```
-
-### Verification Bundles
-
-For consensus-critical releases, verification bundles are available that include:
-- Test results and spec-lock verification (formal verification)
-- Test results
-- Source code hash
-- Build configuration hash
-- Orange Paper specification hash
-
-**Verification Bundle Contents:**
-- `verification-artifacts.tar.gz` - Complete verification bundle
-- `verification-artifacts.tar.gz.sha256` - Bundle checksum
-- `verification-artifacts.tar.gz.ots` - OpenTimestamps proof (if available)
-
-**Verify Bundle:**
-
-```bash
-# Verify bundle checksum
 sha256sum -c verification-artifacts.tar.gz.sha256
-
-# Extract and inspect
 tar -xzf verification-artifacts.tar.gz
-cat verify-artifacts/tests.log
+# Inspect verify-artifacts/ per release notes
 ```
 
-**OpenTimestamps Verification (if available):**
+For **OpenTimestamps** (if `.ots` is attached):
 
 ```bash
-# Install OpenTimestamps client
 pip install opentimestamps-client
-
-# Verify timestamp
 ots verify verification-artifacts.tar.gz.ots
 ```
 
@@ -780,12 +732,12 @@ blvm 2>&1 | tee blvm.log
 ```
 
 **Verify binary:**
-```bash
-# Check binary version
-blvm --version  # (if implemented)
 
-# Verify checksums
-sha256sum -c SHA256SUMS
+```bash
+blvm version
+# Or: blvm --version
+
+# Checksums: see [Verification](#verification) — filenames on the release vary (`checksums.sha256`, `SHA256SUMS-*`, etc.)
 ```
 
 ---
@@ -845,9 +797,8 @@ For reproducible builds:
 # Use locked dependencies
 cargo build --release --locked
 
-# Verify build
+# Compare locally with the digest published for that release (see GitHub Releases / checksums file for that tag)
 sha256sum target/release/blvm
-# Compare with release SHA256SUMS
 ```
 
 ---
