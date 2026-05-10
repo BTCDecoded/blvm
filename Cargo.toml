@@ -60,7 +60,6 @@ default = [
     "blvm-node/libc",
     "blvm-node/production",
     "blvm-node/protocol-verification",
-    "blvm-node/zmq",
     "blvm-node/utxo-commitments",
     "blvm-node/iroh",
     "blvm-node/sigop",
@@ -96,7 +95,8 @@ quinn = ["blvm-node/quinn"]
 rest-api = ["blvm-node/rest-api"]
 bip70-http = ["blvm-node/bip70-http"]
 # Miniscript: descriptor / policy parsing
-miniscript = ["blvm-node/miniscript"]
+# Descriptor / miniscript RPCs: use the `blvm-miniscript` module (no blvm-node feature).
+miniscript = []
 # Filesystem watcher (`notify`) for modules dir: reload / pick up modules when files change (see blvm-node `ModuleWatcher`)
 module-watcher = ["blvm-node/module-watcher"]
 # WASM modules: inject blvm-sdk loader into node
