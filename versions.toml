@@ -2,9 +2,16 @@
 # Tracks compatible versions across all repositories
 # Managed by BTCDecoded organization
 #
-# Format:
-# [versions]
-# repo-name = { version = "...", git_tag = "...", git_commit = "...", requires = [...], binaries = [...] }
+# TWO sections live here:
+#
+#   [versions]  — monorepo-coordinated packages.  All share the same release cadence and are
+#                 bumped together by scripts/bump-release-set.sh.  version = "X.Y.Z" is always
+#                 a concrete semver; git_tag/git_commit are filled by the release workflow.
+#
+#   [modules]   — independently-released first-party modules distributed via GitHub Releases.
+#                 NOT bumped by bump-release-set.sh.  Use min_version to express the minimum
+#                 blvm-node/blvm-sdk ABI required; the actual installed version is determined
+#                 at runtime by registry/modules.json (which points to the latest GitHub Release).
 #
 # Bump: scripts/bump-release-set.sh [patch|minor|major] (or release workflow_dispatch with empty version_tag + version_bump).
 
@@ -25,4 +32,20 @@ governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requi
 last_updated = "2025-01-XX"
 updated_by = "System Review"
 release_notes = "Initial version coordination for Bitcoin Commons v0.1.0 release set"
+
+# ---------------------------------------------------------------------------
+# First-party modules — independently versioned, NOT bumped with the monorepo.
+#
+# Fields:
+#   min_version   — minimum blvm-node version this module ABI requires (>=).
+#   registry_url  — where the module index entry lives (points to modules.json).
+#   git_tag       — latest released tag, or "" if not yet released.
+#                   Updated automatically by each module's own release.yml CI.
+#   binaries      — binary artifact names produced by the module's release.yml.
+# ---------------------------------------------------------------------------
+[modules]
+
+blvm-marketplace = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-marketplace"], registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-miniscript  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-miniscript"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-governance  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-governance"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
 

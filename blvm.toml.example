@@ -55,11 +55,19 @@ enable_self_advertisement = true
 # auto_prune_interval = 3600
 
 # Module system configuration
-# [modules]
-# enabled = true
-# modules_dir = "modules"
-# data_dir = "data/modules"
-# socket_dir = "data/modules/sockets"
-# enabled_modules = []
+[modules]
+enabled = true
+modules_dir = "modules"
+data_dir = "data/modules"
+socket_dir = "data/modules/sockets"
+# Allowlist of modules to auto-load at startup.
+# Empty list (default) loads every module found in modules_dir.
+# Add "blvm-miniscript" to enable getdescriptorinfo and analyzepsbt.
+enabled_modules = ["blvm-miniscript"]
+
+# Per-module configuration overrides (passed to each module via env on spawn)
+[modules.blvm-marketplace]
+registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
+# modules_dir is inherited from [modules].modules_dir above
 
 
