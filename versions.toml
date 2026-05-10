@@ -47,5 +47,6 @@ release_notes = "Initial version coordination for Bitcoin Commons v0.1.0 release
 
 blvm-marketplace = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-marketplace"], registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
 blvm-miniscript  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-miniscript"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-zmq         = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-zmq"],         registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
 blvm-governance  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-governance"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
 
