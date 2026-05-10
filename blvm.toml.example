@@ -62,8 +62,10 @@ data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
 # Allowlist of modules to auto-load at startup.
 # Empty list (default) loads every module found in modules_dir.
-# Add "blvm-miniscript" to enable getdescriptorinfo and analyzepsbt.
-enabled_modules = ["blvm-miniscript"]
+# blvm-miniscript: adds getdescriptorinfo and analyzepsbt RPC methods.
+# blvm-marketplace: enables loadmodule, module discovery, and registry browsing.
+# Both are bootstrap-downloaded on first boot if not already installed locally.
+enabled_modules = ["blvm-miniscript", "blvm-marketplace"]
 
 # Per-module configuration overrides (passed to each module via env on spawn)
 [modules.blvm-marketplace]

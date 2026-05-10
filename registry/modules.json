@@ -69,7 +69,7 @@
         "sha256": ""
       },
       "aarch64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-marketplace/releases/latest/download/blvm-governance-aarch64-macos",
+        "url": "https://github.com/BTCDecoded/blvm-governance/releases/latest/download/blvm-governance-aarch64-macos",
         "sha256": ""
       }
     }
