@@ -14,7 +14,7 @@ This guide explains how to chain build scripts across all BTCDecoded repositorie
 blvm-consensus (L2) ──┐
                        ├──→ blvm-protocol (L3) ──→ blvm-node (L4)
 blvm-sdk ─────────┘
-                       └──→ governance-app
+                       └──→ blvm-commons
 ```
 
 ### Build Order
@@ -23,7 +23,7 @@ blvm-sdk ─────────┘
 2. **blvm-sdk** (parallel with blvm-consensus)
 3. **blvm-protocol** (depends on blvm-consensus)
 4. **blvm-node** (depends on blvm-protocol + blvm-consensus)
-5. **governance-app** (depends on blvm-sdk)
+5. **blvm-commons** (depends on blvm-sdk)
 
 ## Approach 1: Using GitHub Actions Workflows (Recommended)
 
@@ -42,7 +42,7 @@ gh workflow run release_orchestrator.yml
 3. Builds blvm-protocol (depends on blvm-consensus)
 4. Builds blvm-node (depends on blvm-protocol)
 5. Builds blvm-sdk
-6. Builds governance-app Docker image (depends on blvm-sdk)
+6. Builds blvm-commons Docker image (depends on blvm-sdk)
 7. Signals deployment
 
 **Benefits:**
@@ -76,7 +76,7 @@ cd /path/to/BTCDecoded/commons
 #   ├── blvm-protocol/
 #   ├── blvm-node/
 #   ├── blvm-sdk/
-#   └── governance-app/
+#   └── blvm-commons/
 
 # Build all repos in dependency order
 ./build.sh --mode dev    # Uses local path dependencies
@@ -105,7 +105,7 @@ cd /path/to/BTCDecoded/commons
 #   ├── blvm-protocol/
 #   ├── blvm-node/
 #   ├── blvm-sdk/
-#   └── governance-app/
+#   └── blvm-commons/
 
 # Build release set
 ./tools/build_release_set.sh \
@@ -116,8 +116,8 @@ cd /path/to/BTCDecoded/commons
 
 # Options:
 #   --base DIR       : Directory containing all repo checkouts (required)
-#   --gov-source    : Build governance-app from source
-#   --gov-docker    : Build governance-app Docker image
+#   --gov-source    : Build blvm-commons from source
+#   --gov-docker    : Build blvm-commons Docker image
 #   --manifest DIR  : Generate MANIFEST.json in output directory
 ```
 
@@ -125,7 +125,7 @@ cd /path/to/BTCDecoded/commons
 1. Reads `versions.toml` to get version tags
 2. Checks out each repo to the specified tag
 3. Builds blvm-consensus → blvm-protocol → blvm-node → blvm-sdk
-4. Optionally builds governance-app (source and/or Docker)
+4. Optionally builds blvm-commons (source and/or Docker)
 5. Generates SHA256SUMS for each repo
 6. Optionally creates MANIFEST.json with all hashes
 
@@ -152,9 +152,9 @@ cd /path/to/blvm-node
 cd /path/to/blvm-sdk
 ../commons/tools/det_build.sh --repo . --package blvm-sdk
 
-# Build governance-app
-cd /path/to/governance-app
-../commons/tools/det_build.sh --repo . --package governance-app
+# Build blvm-commons
+cd /path/to/blvm-commons
+../commons/tools/det_build.sh --repo . --package blvm-commons
 ```
 
 **What `det_build.sh` does:**
@@ -356,7 +356,7 @@ cd "$COMMONS_DIR"
 mkdir -p "$BASE_DIR"
 ./scripts/setup-build-env.sh --tag "$VERSION_TAG" || {
   # If setup fails, manually clone repos
-  for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk governance-app; do
+  for repo in blvm-consensus blvm-protocol blvm-node blvm-sdk blvm-commons; do
     if [ ! -d "$BASE_DIR/$repo" ]; then
       git clone "https://github.com/BTCDecoded/$repo.git" "$BASE_DIR/$repo"
     fi
@@ -410,7 +410,7 @@ gh workflow run release_orchestrator.yml
 3. `build-blvm-protocol` → Builds blvm-protocol
 4. `build-blvm-node` → Builds blvm-node
 5. `build-blvm-sdk` → Builds blvm-sdk
-6. `build-governance-app-image` → Builds Docker image
+6. `build-blvm-commons-image` → Builds Docker image
 7. `deploy-signal` → Signals deployment
 
 ### Custom Workflow
@@ -447,7 +447,7 @@ blvm-consensus = "v0.1.0"
 blvm-protocol = "v0.1.0"
 blvm-node = "v0.1.0"
 blvm-sdk = "v0.1.0"
-governance-app = "v0.1.0"
+blvm-commons = "v0.1.0"
 ```
 
 All build scripts read from this file to determine which versions to build together.
@@ -458,7 +458,7 @@ All build scripts read from this file to determine which versions to build toget
 
 - **blvm-node**: `blvm-node`
 - **blvm-sdk**: `blvm-keygen`, `blvm-sign`, `blvm-verify`
-- **governance-app**: `governance-app`, `key-manager`, `test-content-hash*`
+- **blvm-commons**: `blvm-commons`, `key-manager`, `test-content-hash*`
 
 ### Libraries (No Binaries)
 

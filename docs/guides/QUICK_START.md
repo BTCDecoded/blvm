@@ -17,7 +17,7 @@
    ├── blvm-protocol/
    ├── blvm-node/
    ├── blvm-sdk/
-   └── governance-app/
+   └── blvm-commons/
    ```
 
 ## One-Command Build (Easiest)
@@ -80,7 +80,7 @@ After a successful build, you'll find:
 - **Binaries**: `commons/artifacts/binaries/`
   - `blvm-node`
   - `blvm-keygen`, `blvm-sign`, `blvm-verify`
-  - `governance-app`, `key-manager`, etc.
+  - `blvm-commons`, `key-manager`, etc.
 
 ## Troubleshooting
 

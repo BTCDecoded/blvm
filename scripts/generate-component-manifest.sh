@@ -58,8 +58,8 @@ case "$REPO" in
     blvm)
         BINARY_NAME="blvm"
         ;;
-    bllvm-sdk)
-        BINARY_NAME="bllvm-keygen"  # Use first binary as representative
+    blvm-sdk)
+        BINARY_NAME="blvm-keygen"  # Use first binary as representative
         ;;
     blvm-commons)
         BINARY_NAME="blvm-commons"

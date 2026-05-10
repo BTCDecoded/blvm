@@ -17,7 +17,7 @@ blvm-node
 
 blvm-sdk (no dependencies)
     ↓
-governance-app
+blvm-commons
 ```
 
 ### Build Order
@@ -26,7 +26,7 @@ governance-app
 2. **blvm-sdk** - Standalone CLI tools (builds in parallel with blvm-consensus)
 3. **blvm-protocol** - Protocol abstraction (depends on blvm-consensus)
 4. **blvm-node** - Full node (depends on blvm-protocol + blvm-consensus)
-5. **governance-app** - Governance app (depends on blvm-sdk)
+5. **blvm-commons** - Governance app (depends on blvm-sdk)
 
 ## Usage
 
@@ -174,7 +174,7 @@ Built binaries are collected in `artifacts/binaries/`:
 
 - `blvm-node` - Bitcoin reference node
 - `blvm-keygen`, `blvm-sign`, `blvm-verify` - SDK tools
-- `governance-app`, `key-manager`, `test-content-hash*` - Governance tools
+- `blvm-commons`, `key-manager`, `test-content-hash*` - Governance tools
 
 Release archives include:
 - `bitcoin-commons-blvm-<platform>.tar.gz` - Tar archive
@@ -193,7 +193,7 @@ Release archives include:
 ### Missing Binaries
 
 - Libraries (blvm-consensus, blvm-protocol) don't produce binaries
-- Only blvm-node, blvm-sdk, and governance-app produce binaries
+- Only blvm-node, blvm-sdk, and blvm-commons produce binaries
 - Check `target/release/` in each repo after build
 
 ### Version Mismatches
@@ -205,6 +205,6 @@ Run `./scripts/verify-versions.sh` to check compatibility.
 - [ ] TOML parser for better version.toml parsing
 - [ ] Support for cross-compilation
 - [ ] Automated dependency version updates
-- [ ] Integration with governance-app for version validation
+- [ ] Integration with blvm-commons for version validation
 - [ ] Support for feature flags per repo
 
