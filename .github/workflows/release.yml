@@ -377,7 +377,8 @@ jobs:
               sudo dnf install -y -q mingw64-gcc || true
             }
           elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm mingw-w64-gcc || true
+            pacman -Qq mingw-w64-gcc mingw-w64-binutils mingw-w64-headers mingw-w64-winpthreads >/dev/null 2>&1 || \
+              sudo pacman -S --noconfirm --needed mingw-w64-toolchain || true
           fi
           
           if command -v x86_64-w64-mingw32-gcc &> /dev/null || [ -f /usr/bin/x86_64-w64-mingw32-gcc ]; then
