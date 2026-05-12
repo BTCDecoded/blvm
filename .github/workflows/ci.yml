@@ -145,7 +145,7 @@ jobs:
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm openssl pkgconf
+            pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
       - name: Isolate CARGO_HOME for this runner
@@ -223,7 +223,7 @@ jobs:
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm openssl pkgconf
+            pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
       - name: Isolate CARGO_HOME for this runner
@@ -315,7 +315,7 @@ jobs:
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm openssl pkgconf
+            pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
       - name: Isolate CARGO_HOME for this runner
@@ -498,7 +498,7 @@ jobs:
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm openssl pkgconf
+            pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
       - name: Isolate CARGO_HOME for this runner
@@ -598,7 +598,7 @@ jobs:
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev
           elif command -v pacman >/dev/null 2>&1; then
-            sudo pacman -Sy --noconfirm openssl pkgconf
+            pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
       - name: Install Rust
