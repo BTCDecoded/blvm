@@ -1,102 +1,26 @@
 [
   {
     "name": "blvm-miniscript",
-    "version": "",
-    "description": "Miniscript support for blvm-node: implements getdescriptorinfo and analyzepsbt as a hot-loadable module, isolating the bitcoin/miniscript crate dependency.",
+    "description": "Miniscript descriptor and PSBT analysis (getdescriptorinfo, analyzepsbt)",
     "repo": "BTCDecoded/blvm-miniscript",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-miniscript/main/module.toml",
-    "binaries": {
-      "x86_64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-miniscript/releases/latest/download/blvm-miniscript-x86_64-linux",
-        "sha256": ""
-      },
-      "aarch64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-miniscript/releases/latest/download/blvm-miniscript-aarch64-linux",
-        "sha256": ""
-      },
-      "x86_64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-miniscript/releases/latest/download/blvm-miniscript-x86_64-macos",
-        "sha256": ""
-      },
-      "aarch64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-miniscript/releases/latest/download/blvm-miniscript-aarch64-macos",
-        "sha256": ""
-      }
-    }
+    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-miniscript/main/module.toml"
   },
   {
     "name": "blvm-marketplace",
-    "version": "",
     "description": "Module marketplace for blvm-node: module discovery, registry fetching, and payment processing.",
     "repo": "BTCDecoded/blvm-marketplace",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-marketplace/main/module.toml",
-    "binaries": {
-      "x86_64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-marketplace/releases/latest/download/blvm-marketplace-x86_64-linux",
-        "sha256": ""
-      },
-      "aarch64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-marketplace/releases/latest/download/blvm-marketplace-aarch64-linux",
-        "sha256": ""
-      },
-      "x86_64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-marketplace/releases/latest/download/blvm-marketplace-x86_64-macos",
-        "sha256": ""
-      },
-      "aarch64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-marketplace/releases/latest/download/blvm-marketplace-aarch64-macos",
-        "sha256": ""
-      }
-    }
+    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-marketplace/main/module.toml"
   },
   {
     "name": "blvm-governance",
-    "version": "",
     "description": "Governance module for blvm-node: on-chain proposal voting and community signaling.",
     "repo": "BTCDecoded/blvm-governance",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-governance/main/module.toml",
-    "binaries": {
-      "x86_64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-governance/releases/latest/download/blvm-governance-x86_64-linux",
-        "sha256": ""
-      },
-      "aarch64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-governance/releases/latest/download/blvm-governance-aarch64-linux",
-        "sha256": ""
-      },
-      "x86_64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-governance/releases/latest/download/blvm-governance-x86_64-macos",
-        "sha256": ""
-      },
-      "aarch64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-governance/releases/latest/download/blvm-governance-aarch64-macos",
-        "sha256": ""
-      }
-    }
+    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-governance/main/module.toml"
   },
   {
     "name": "blvm-zmq",
-    "version": "",
     "description": "ZeroMQ PUB notifications for blvm-node: hashblock, hashtx, rawblock, rawtx, sequence (Bitcoin-compatible).",
     "repo": "BTCDecoded/blvm-zmq",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-zmq/main/module.toml",
-    "binaries": {
-      "x86_64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-zmq/releases/latest/download/blvm-zmq-x86_64-linux",
-        "sha256": ""
-      },
-      "aarch64-linux": {
-        "url": "https://github.com/BTCDecoded/blvm-zmq/releases/latest/download/blvm-zmq-aarch64-linux",
-        "sha256": ""
-      },
-      "x86_64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-zmq/releases/latest/download/blvm-zmq-x86_64-macos",
-        "sha256": ""
-      },
-      "aarch64-apple": {
-        "url": "https://github.com/BTCDecoded/blvm-zmq/releases/latest/download/blvm-zmq-aarch64-macos",
-        "sha256": ""
-      }
-    }
+    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-zmq/main/module.toml"
   }
 ]
