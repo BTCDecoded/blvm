@@ -946,6 +946,9 @@ jobs:
       - name: Strip [patch.crates-io] for crates.io-only build (matches CI)
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
 
+      - name: Regenerate Cargo.lock without path patches
+        run: cargo generate-lockfile
+
       - name: Set GHCR image name (must be lowercase)
         id: ghcr
         run: |
