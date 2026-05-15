@@ -931,12 +931,12 @@ jobs:
     permissions:
       contents: read
       packages: write
+    # Any successful `release` job (push, manual workflow_dispatch, etc.): publish image.
+    # Do not gate on `github.event_name == 'push'` — that skipped GHCR on manual runs.
     if: |
       always() &&
       needs.setup.result == 'success' &&
       needs.release.result == 'success' &&
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
