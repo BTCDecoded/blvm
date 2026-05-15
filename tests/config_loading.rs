@@ -45,7 +45,13 @@ fn test_json_config_file_loading() {
     let config_content = r#"{
   "max_peers": 50,
   "protocol_version": "Regtest",
-  "transport_preference": "tcponly"
+  "transport_preference": "tcponly",
+  "modules": {
+    "enabled": true,
+    "modules_dir": "modules",
+    "data_dir": "data/modules",
+    "socket_dir": "data/modules/sockets"
+  }
 }"#;
 
     fs::write(&config_path, config_content).unwrap();
