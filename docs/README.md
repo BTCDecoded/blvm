@@ -71,4 +71,3 @@ When adding new documentation:
 
 - [Workflow Methodology](./workflows/WORKFLOW_METHODOLOGY.md) - Workflow details
 - [Build System](./build/BUILD_SYSTEM.md) - Build system details
-

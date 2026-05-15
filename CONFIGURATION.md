@@ -157,7 +157,8 @@ enable_self_advertisement = true
 # modules_dir = "modules"
 # data_dir = "data/modules"
 # socket_dir = "data/modules/sockets"
-# enabled_modules = []
+# registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
+# enabled_modules = ["blvm-miniscript", "blvm-zmq"]  # default; [] = on-disk only, no bootstrap
 ```
 
 ## Configuration Hierarchy Examples

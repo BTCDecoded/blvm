@@ -54,6 +54,8 @@ fn test_json_config_file_loading() {
     let config = NodeConfig::from_json_file(&config_path).expect("Should parse JSON config");
     assert_eq!(config.max_outbound_peers, Some(50));
     assert_eq!(config.protocol_version, Some("Regtest".to_string()));
+    assert!(config.modules.is_some());
+    assert!(config.modules.as_ref().unwrap().enabled);
 }
 
 /// Test auto-detection of config file format

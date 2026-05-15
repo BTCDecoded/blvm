@@ -338,15 +338,17 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+      # Integration tests: compiled in the `test` job. Clippy matches blvm-node CI: lib + bins only
+      # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
       - name: Clippy (default features)
         env:
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo clippy --lib --bins --tests -- -D clippy::uninlined_format_args -D warnings
+        run: cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
 
       - name: Clippy (all features, incremental)
         env:
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo clippy --lib --bins --tests --all-features -- -D clippy::uninlined_format_args -D warnings
+        run: cargo clippy --lib --bins --all-features -- -D clippy::uninlined_format_args -D warnings
 
   fmt:
     name: Format

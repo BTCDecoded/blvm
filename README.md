@@ -423,7 +423,8 @@ burst_size = 20
 # modules_dir = "modules"
 # data_dir = "data/modules"
 # socket_dir = "data/modules/sockets"
-# enabled_modules = []
+# registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
+# enabled_modules = ["blvm-miniscript", "blvm-zmq"]  # default: bootstrap if missing; [] = on-disk only
 ```
 
 See `blvm.toml.example` for a complete example configuration file.
@@ -568,6 +569,7 @@ Some features require compile-time flags. Runtime flags will warn if a feature i
 - `dandelion` - Dandelion++ privacy relay
 - `sigop` - Signature operations counting
 - `iroh` - Iroh transport support
+- `governance` - HTTP client for module bootstrap (download official `enabled_modules` from `registry_url`; **enabled by default** in `blvm` default features)
 
 **Build with features:**
 
@@ -602,8 +604,17 @@ enabled = true
 modules_dir = "modules"
 data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
-enabled_modules = []  # Empty = auto-discover all
+registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
+# Default list bootstraps official GitHub Release binaries when missing under modules_dir:
+enabled_modules = ["blvm-miniscript", "blvm-zmq"]
+# Use enabled_modules = [] for on-disk-only (no HTTP bootstrap). Requires `governance` on the blvm build (default).
 ```
+
+#### Module registry
+
+`registry/modules.json` maps each module name to a `module_toml_url`. Download URLs and hashes are in that file’s **`[downloads]`** section, not in the JSON.
+
+Only use bootstrap downloads when **`[downloads]`** has real `url` and `sha256` values for your platform on the branch you trust (usually `main`). Empty placeholders mean the release is not ready yet; do a quick install test after a release before relying on it in production.
 
 **Resource Limits:**
 

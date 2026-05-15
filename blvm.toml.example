@@ -61,13 +61,14 @@ modules_dir = "modules"
 data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
 # Discovery index for bootstrap-download of modules listed in enabled_modules but missing on disk.
+# Default matches shipped `blvm` / `ModuleConfig::default()`.
 registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# Allowlist of modules to auto-load at startup.
-# Empty list (default) loads every module found in modules_dir.
-# blvm-miniscript: getdescriptorinfo / analyzepsbt
-# blvm-zmq: ZMQ PUB notifications
-# blvm-marketplace: loadmodule, registry browsing (optional)
-enabled_modules = ["blvm-miniscript", "blvm-zmq", "blvm-marketplace"]
+# Official modules: auto-load on disk, or bootstrap from each repo’s GitHub Release (module.toml [downloads]).
+# Set to [] to skip bootstrap and only load modules already under modules_dir.
+# Optional: add "blvm-marketplace" for loadmodule / registry browsing.
+enabled_modules = ["blvm-miniscript", "blvm-zmq"]
+# Opt-out: never auto-load or bootstrap-download these names (manifest `name`), even if on disk.
+# disabled_modules = ["some-module"]
 
 # Per-module configuration overrides (passed to each module via env on spawn)
 [modules.blvm-marketplace]

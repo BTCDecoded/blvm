@@ -20,7 +20,7 @@ name = "blvm"
 path = "src/bin/main.rs"
 
 [dependencies]
-# default-features = false: defaults are listed explicitly below (governance off by product choice).
+# default-features = false on blvm-node: feature set is listed explicitly in [features].default (includes `governance` for module bootstrap).
 blvm-node = { version = ">=0.1, <1", default-features = false }
 blvm-sdk = { version = ">=0.1, <1", optional = true, features = ["wasm-modules"] }
 clap = { version = "=4.4.11", features = ["derive"] }
@@ -56,7 +56,6 @@ blvm-sdk = { path = "../blvm-sdk" }
 default = [
     "blvm-node/sysinfo",
     "rocksdb",
-    "sled",
     "blvm-node/redb",
     "blvm-node/nix",
     "blvm-node/libc",
@@ -68,6 +67,7 @@ default = [
     "blvm-node/dandelion",
     "blvm-node/rest-api",
     "blvm-node/bip70-http",
+    "governance",
 ]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
