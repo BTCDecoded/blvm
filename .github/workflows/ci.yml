@@ -621,8 +621,7 @@ jobs:
           fi
           MAJOR=$(echo "$CURRENT" | cut -d. -f1)
           MINOR=$(echo "$CURRENT" | cut -d. -f2)
-          PATCH=$(echo "$CURRENT" | cut -d. -f3)
-          PATCH=$((PATCH + 1))
+          CURRENT_PATCH=$(echo "$CURRENT" | cut -d. -f3)
 
           # Collect already-used versions from two sources:
           # 1. Git tags (primary — always accurate, works even if crate is never published)
@@ -646,23 +645,18 @@ jobs:
           USED_VERSIONS=$(printf '%s\n%s' "$TAGGED_VERSIONS" "$CRATES_VERSIONS" | sort -u | grep -v '^$')
           echo "All used versions: $(echo "$USED_VERSIONS" | tr '\n' ' ')"
 
-          MAX_ATTEMPTS=20
-          ATTEMPT=0
-          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+          # Next patch: max(Cargo.toml, all used X.Y.* on this MAJOR.MINOR) + 1 — not "current+1" then walk.
+          SAME_LINE_PATCHES=$(printf '%s\n' "$USED_VERSIONS" | grep -E "^${MAJOR}\\.${MINOR}\\.[0-9]+$" | cut -d. -f3 || true)
+          MAX_PATCH=$(printf '%s\n' $SAME_LINE_PATCHES "$CURRENT_PATCH" | grep -E '^[0-9]+$' | sort -n | tail -1)
+          [ -n "$MAX_PATCH" ] || MAX_PATCH="$CURRENT_PATCH"
+          PATCH=$((MAX_PATCH + 1))
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          while echo "$USED_VERSIONS" | grep -qxF "$VERSION"; do
+            echo "⚠️  v${VERSION} still used (tag or crates.io); bumping patch..."
+            PATCH=$((PATCH + 1))
             VERSION="${MAJOR}.${MINOR}.${PATCH}"
-            if echo "$USED_VERSIONS" | grep -qxF "$VERSION"; then
-              echo "⚠️  v${VERSION} already used (tag or crates.io); bumping patch..."
-              PATCH=$((PATCH + 1))
-              ATTEMPT=$((ATTEMPT + 1))
-            else
-              echo "✅ v${VERSION} is free"
-              break
-            fi
           done
-          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "❌ Failed to find available version after ${MAX_ATTEMPTS} attempts"
-            exit 1
-          fi
+          echo "✅ v${VERSION} is free"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.skip_tests }}" = "true" ]; then
             VERSION_TAG="v${VERSION}-unverified"
           else
