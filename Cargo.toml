@@ -21,8 +21,7 @@ path = "src/bin/main.rs"
 
 [dependencies]
 # default-features = false on blvm-node: feature set is listed explicitly in [features].default (includes `governance` for module bootstrap).
-# 0.1.9 was published against `blvm_protocol::fibre`, which was removed when FIBRE moved to the `blvm-fibre` module.
-blvm-node = { version = ">=0.1.10, <1", default-features = false }
+blvm-node = { version = ">=0.1, <1", default-features = false }
 blvm-sdk = { version = ">=0.1, <1", optional = true, features = ["wasm-modules"] }
 clap = { version = "=4.4.11", features = ["derive"] }
 tokio = { version = "=1.48.0", features = ["full", "rt-multi-thread", "signal"] }
