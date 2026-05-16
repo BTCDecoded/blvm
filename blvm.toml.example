@@ -25,6 +25,7 @@ enable_self_advertisement = true
 # enabled = false
 # pool_url = "tcp://pool.example.com:3333"
 # listen_addr = "0.0.0.0:3333"
+# p2p_stratum_demux = true
 # transport_preference = "tcp_only"
 # merge_mining_enabled = false
 # secondary_chains = []

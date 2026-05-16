@@ -58,7 +58,8 @@ export BLVM_LOG_LEVEL="info"
 export BLVM_NODE_MAX_PEERS="200"
 export BLVM_NODE_TRANSPORT="tcp_only"
 
-# Feature flags
+# Feature flags (see README “Feature Flags”: Stratum V2 / Dandelion / sigop need compile-time features in the node binary)
+# BIP158 compact block filters are always compiled into current blvm-node builds — no `bip158` Cargo feature.
 export BLVM_NODE_FEATURES_STRATUM_V2="true"
 export BLVM_NODE_FEATURES_DANDELION="true"
 export BLVM_NODE_FEATURES_BIP158="true"
@@ -82,10 +83,8 @@ blvm
 - `BLVM_NODE_TRANSPORT` - Transport preference (tcp_only/iroh_only/hybrid)
 
 **Feature Flags:**
-- `BLVM_NODE_FEATURES_STRATUM_V2` - Enable/disable Stratum V2 (true/false)
-- `BLVM_NODE_FEATURES_DANDELION` - Enable/disable Dandelion++ (true/false)
-- `BLVM_NODE_FEATURES_BIP158` - Enable/disable BIP158 (true/false)
-- `BLVM_NODE_FEATURES_SIGOP` - Enable/disable Sigop counting (true/false)
+- `BLVM_NODE_FEATURES_STRATUM_V2` / `BLVM_NODE_FEATURES_DANDELION` / `BLVM_NODE_FEATURES_SIGOP` — Enable/disable (see compile-time features in README)
+- `BLVM_NODE_FEATURES_BIP158` — Logged preference only; **BIP158 is always built in** (no `bip158` Cargo feature)
 
 ### 3. Config File
 
@@ -122,6 +121,7 @@ enable_self_advertisement = true
 # enabled = false
 # pool_url = "tcp://pool.example.com:3333"
 # listen_addr = "0.0.0.0:3333"   # informational; does not start an in-node miner listener
+# p2p_stratum_demux = true        # false = do not treat P2P bytes as Stratum V2 TLV (module TCP unchanged)
 # transport_preference = "tcp_only"
 # merge_mining_enabled = false
 # secondary_chains = []
@@ -163,7 +163,7 @@ enable_self_advertisement = true
 
 ## Stratum V2 (module-first)
 
-**Dedicated miner TCP** is served only by **`blvm-stratum-v2`** (`listen_addr` in module config or `[modules.blvm-stratum-v2]`). The node’s **`[stratum_v2]`** section does **not** open a miner listener; it remains for merge-mining / pool-related settings. P2P may still deliver Stratum-shaped TLV to the module via **`StratumV2MessageReceived`**.
+**Dedicated miner TCP** is served only by **`blvm-stratum-v2`** (`listen_addr` in module config or `[modules.blvm-stratum-v2]`). The node’s **`[stratum_v2]`** section does **not** open a miner listener; it remains for merge-mining / pool-related settings. P2P may still deliver Stratum-shaped TLV to the module via **`StratumV2MessageReceived`** when **`[stratum_v2].p2p_stratum_demux`** is **`true`** (default).
 
 For end-user configuration, see **[`blvm/CONFIGURATION.md`](https://github.com/BTCDecoded/blvm/blob/main/CONFIGURATION.md)** and the **Stratum V2 + Merge Mining** chapter in **blvm-docs** (`node/mining-stratum-v2.md`).
 

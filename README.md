@@ -181,8 +181,8 @@ blvm --config blvm.toml --network regtest
 |--------|-------------|
 | `--enable-stratum-v2` | Enable Stratum V2 mining (requires compile-time feature) |
 | `--disable-stratum-v2` | Disable Stratum V2 mining |
-| `--enable-bip158` | Enable BIP158 block filtering (requires compile-time feature) |
-| `--disable-bip158` | Disable BIP158 block filtering |
+| `--enable-bip158` | BIP158 logging preference (filters are **always** compiled in) |
+| `--disable-bip158` | BIP158 logging preference (filters are **always** compiled in) |
 | `--enable-dandelion` | Enable Dandelion++ privacy relay (requires compile-time feature) |
 | `--disable-dandelion` | Disable Dandelion++ privacy relay |
 | `--enable-sigop` | Enable signature operations counting (requires compile-time feature) |
@@ -244,7 +244,7 @@ Environment variables are ideal for deployment scenarios, especially in containe
 |----------|-------------|--------|
 | `BLVM_NODE_FEATURES_STRATUM_V2` | Enable/disable Stratum V2 | `true`/`false` |
 | `BLVM_NODE_FEATURES_DANDELION` | Enable/disable Dandelion++ | `true`/`false` |
-| `BLVM_NODE_FEATURES_BIP158` | Enable/disable BIP158 | `true`/`false` |
+| `BLVM_NODE_FEATURES_BIP158` | Logged BIP158 preference (`true`/`false`) — **not** a compile-time gate |
 | `BLVM_NODE_FEATURES_SIGOP` | Enable/disable Sigop counting | `true`/`false` |
 
 #### Network Timing
@@ -563,18 +563,19 @@ ots verify verification-artifacts.tar.gz.ots
 
 Some features require compile-time flags. Runtime flags will warn if a feature isn't compiled in.
 
-**Compile-time features:**
-- `stratum-v2` - Stratum V2 mining support
-- `bip158` - BIP158 compact block filters
+**Compile-time features** (extras that are not in every build):
+- `stratum-v2` - Stratum V2 P2P demux + module integration
 - `dandelion` - Dandelion++ privacy relay
 - `sigop` - Signature operations counting
 - `iroh` - Iroh transport support
 - `governance` - HTTP client for module bootstrap (download official `enabled_modules` from `registry_url`; **enabled by default** in `blvm` default features)
 
+**Always in default `blvm-node` builds:** BIP157/158 compact block filter **code** (no `bip158` Cargo feature flag).
+
 **Build with features:**
 
 ```bash
-cargo build --release --features stratum-v2,bip158,dandelion
+cargo build --release --features stratum-v2,dandelion
 ```
 
 **Runtime enable/disable:**
@@ -797,7 +798,7 @@ cargo build --release
 cargo build --release --all-features
 
 # Build with specific features
-cargo build --release --features stratum-v2,bip158
+cargo build --release --features stratum-v2,dandelion
 ```
 
 ### Deterministic Builds

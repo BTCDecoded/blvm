@@ -2,31 +2,26 @@
   {
     "name": "blvm-miniscript",
     "description": "Miniscript descriptor and PSBT analysis (getdescriptorinfo, analyzepsbt)",
-    "repo": "BTCDecoded/blvm-miniscript",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-miniscript/main/module.toml"
+    "repo": "BTCDecoded/blvm-miniscript"
   },
   {
     "name": "blvm-marketplace",
     "description": "Module marketplace for blvm-node: module discovery, registry fetching, and payment processing.",
-    "repo": "BTCDecoded/blvm-marketplace",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-marketplace/main/module.toml"
+    "repo": "BTCDecoded/blvm-marketplace"
   },
   {
     "name": "blvm-governance",
     "description": "Governance module for blvm-node: on-chain proposal voting and community signaling.",
-    "repo": "BTCDecoded/blvm-governance",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-governance/main/module.toml"
+    "repo": "BTCDecoded/blvm-governance"
   },
   {
     "name": "blvm-fibre",
     "description": "FIBRE (Fast Internet Bitcoin Relay Engine) UDP/FEC block relay for blvm-node (loadable module).",
-    "repo": "BTCDecoded/blvm-fibre",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-fibre/main/module.toml"
+    "repo": "BTCDecoded/blvm-fibre"
   },
   {
     "name": "blvm-zmq",
     "description": "ZeroMQ PUB notifications for blvm-node: hashblock, hashtx, rawblock, rawtx, sequence (Bitcoin-compatible).",
-    "repo": "BTCDecoded/blvm-zmq",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-zmq/main/module.toml"
+    "repo": "BTCDecoded/blvm-zmq"
   }
 ]
