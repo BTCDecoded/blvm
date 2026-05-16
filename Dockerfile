@@ -2,8 +2,12 @@
 # Multi-stage image for GHCR; build context must be crates.io-clean (no [patch.crates-io] — CI strips before build).
 FROM rust:1.88-bookworm AS builder
 WORKDIR /app
+# librocksdb-sys uses bindgen → libclang; RocksDB itself needs cmake + a C++ toolchain.
+# Native compression libs match typical Debian rocksdb builds (see blvm-node CI).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config libssl-dev \
+    build-essential cmake pkg-config libssl-dev \
+    clang libclang-dev \
+    liblz4-dev libzstd-dev libsnappy-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
