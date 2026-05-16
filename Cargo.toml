@@ -84,7 +84,6 @@ utxo-commitments = ["blvm-node/utxo-commitments"]
 governance = ["blvm-node/governance"]
 dandelion = ["blvm-node/dandelion"]
 stratum-v2 = ["blvm-node/stratum-v2"]
-bip158 = ["blvm-node/bip158"]
 sigop = ["blvm-node/sigop"]
 # CTV (CheckTemplateVerify) - passed through from blvm-consensus via blvm-protocol and blvm-node
 ctv = ["blvm-node/ctv"]

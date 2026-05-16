@@ -26,7 +26,7 @@ log_success() {
 
 create_release_notes() {
     local notes_file="${ARTIFACTS_DIR}/RELEASE_NOTES.md"
-    
+
     cat > "$notes_file" <<EOF
 # Bitcoin Commons Release ${VERSION_TAG}
 
@@ -60,37 +60,16 @@ blvm-protocol = "=${VERSION_TAG#v}"
 blvm-node = "=${VERSION_TAG#v}"
 \`\`\`
 
-## Build Variants
+## Release bundle (\`blvm-{version}-{platform}.tar.gz\` / \`.zip\`)
 
-This release includes two build variants:
+**Purpose**: Standard release matching default \`cargo build --release\` for the blvm workspace (Linux) and the portable Windows feature set used in CI.
 
-### Base Variant (\`blvm-{version}-{platform}.tar.gz\`)
-**Purpose**: Stable, minimal release with core functionality only
-
-**Features**:
+**Includes**:
 - Core \`blvm\` binary
-- Production optimizations
-- Standard storage backends
-
-**Use this variant for**: Production deployments, stability priority
-
-### Experimental Variant (\`blvm-experimental-{version}-{platform}.tar.gz\`)
-**Purpose**: Full-featured build with all experimental features
-
-**Features**:
-- All base features
-- UTXO commitments
-- Dandelion++ privacy relay
-- BIP119 CheckTemplateVerify (CTV)
-- Stratum V2 mining
-- BIP158 compact block filters
-- Signature operations counting
-
-**Use this variant for**: Development, testing, advanced features
+- Associated governance / SDK tools collected by \`collect-artifacts.sh\`
 
 ## Binaries Included
 
-Both variants include:
 - \`blvm\` - Bitcoin reference node
 - \`blvm-keygen\` - Key generation tool
 - \`blvm-sign\` - Message signing tool
@@ -102,32 +81,20 @@ Both variants include:
 
 ## Installation
 
-### Base Variant
 \`\`\`bash
 tar -xzf blvm-${VERSION_TAG}-linux-x86_64.tar.gz
-sudo mv binaries/* /usr/local/bin/
+sudo mv blvm /usr/local/bin/
 \`\`\`
 
-### Experimental Variant
-\`\`\`bash
-tar -xzf blvm-experimental-${VERSION_TAG}-linux-x86_64.tar.gz
-sudo mv binaries-experimental/* /usr/local/bin/
-\`\`\`
+(On Windows, extract the \`.zip\` and run \`blvm.exe\` from the archive root.)
 
 ## Verification
 
 Verify checksums:
 
-### Base Variant
 \`\`\`bash
 sha256sum -c SHA256SUMS-linux-x86_64
 sha256sum -c SHA256SUMS-windows-x86_64
-\`\`\`
-
-### Experimental Variant
-\`\`\`bash
-sha256sum -c SHA256SUMS-experimental-linux-x86_64
-sha256sum -c SHA256SUMS-experimental-windows-x86_64
 \`\`\`
 
 Verify component provenance:
@@ -155,28 +122,17 @@ EOF
 
 rename_archives() {
     log_info "Renaming archives to include version tag: ${VERSION_TAG}"
-    
+
     pushd "$ARTIFACTS_DIR" > /dev/null
-    
-    # Rename all archives to include version tag
+
     for platform in linux-x86_64 windows-x86_64; do
-        # Base variant blvm binary
         for ext in tar.gz zip; do
             if [ -f "blvm-${platform}.${ext}" ]; then
                 mv "blvm-${platform}.${ext}" "blvm-${VERSION_TAG}-${platform}.${ext}"
                 log_success "Renamed: blvm-${platform}.${ext} -> blvm-${VERSION_TAG}-${platform}.${ext}"
             fi
         done
-        
-        # Experimental variant blvm binary
-        for ext in tar.gz zip; do
-            if [ -f "blvm-experimental-${platform}.${ext}" ]; then
-                mv "blvm-experimental-${platform}.${ext}" "blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
-                log_success "Renamed: blvm-experimental-${platform}.${ext} -> blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
-            fi
-        done
-        
-        # Governance tools (single variant - same for both base and experimental)
+
         for ext in tar.gz zip; do
             if [ -f "blvm-governance-${platform}.${ext}" ]; then
                 mv "blvm-governance-${platform}.${ext}" "blvm-governance-${VERSION_TAG}-${platform}.${ext}"
@@ -184,29 +140,23 @@ rename_archives() {
             fi
         done
     done
-    
+
     popd > /dev/null
 }
 
 main() {
     log_info "Creating release for tag: ${VERSION_TAG}"
-    
-    # Check for both base and experimental variants
-    if [ ! -d "$ARTIFACTS_DIR" ] || ([ ! -d "${ARTIFACTS_DIR}/binaries" ] && [ ! -d "${ARTIFACTS_DIR}/binaries-experimental" ]); then
-        log_info "Artifacts directory not found. Artifacts should be collected before creating release."
-        log_info "Expected directories:"
-        log_info "  - ${ARTIFACTS_DIR}/binaries (base variant)"
-        log_info "  - ${ARTIFACTS_DIR}/binaries-experimental (experimental variant)"
+
+    if [ ! -d "$ARTIFACTS_DIR" ]; then
+        log_info "Artifacts directory not found. Run collect-artifacts.sh first."
+        log_info "Expected: ${ARTIFACTS_DIR}"
     fi
-    
+
     create_release_notes
     rename_archives
-    
+
     log_success "Release created for ${VERSION_TAG}"
-    log_info "Release artifacts: ${ARTIFACTS_DIR}"
-    log_info "Base variant: ${ARTIFACTS_DIR}/binaries"
-    log_info "Experimental variant: ${ARTIFACTS_DIR}/binaries-experimental"
+    log_info "Release artifacts directory: ${ARTIFACTS_DIR}"
 }
 
 main "$@"
-

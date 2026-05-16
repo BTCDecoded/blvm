@@ -182,11 +182,11 @@ build_repo() {
                     ;;
                 blvm-node)
                     # All base features + all experimental features
-                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh,quinn"
+                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
                     ;;
                 blvm)
                     # blvm binary inherits from blvm-node, include all features
-                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh,quinn"
+                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
                     ;;
                 *)
                     # Other repos (blvm-sdk, blvm-commons) use default features

@@ -2,9 +2,8 @@
 # Run from the blvm repo root during the ci.yml release job, after the main
 # Linux + Windows blvm binaries are built into CARGO_TARGET_DIR.
 #
-# Produces blvm/artifacts/ tarballs/zips + SHA256SUMS-blvm-* (base + experimental),
-# RELEASE_NOTES.md, version-suffixed archive names, experimental .deb (scripted),
-# experimental .rpm via alien when available, and Arch-style .pkg.tar.gz.
+# Produces blvm/artifacts/ tarballs/zips + SHA256SUMS-blvm-* (base only),
+# RELEASE_NOTES.md, version-suffixed archive names, and Arch-style .pkg.tar.gz.
 # SHA256SUMS-linux-packages.txt is produced in ci.yml when staging (includes cargo deb/rpm).
 #
 # Env (required):
@@ -119,62 +118,6 @@ collect_base_variants() {
   fi
 }
 
-experimental_linux_features="production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh"
-
-# Match ci.yml Windows cross-compile: no default features + portable node backends,
-# plus experimental flags enabled on the blvm crate.
-win_exp_features="blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh"
-
-build_experimental_and_collect() {
-  unset CC CXX CPP AR || true
-  log "Building blvm experimental (Linux)…"
-  (cd "${BLVM_ROOT}" && cargo build --release --features "${experimental_linux_features}")
-
-  log "Building blvm-sdk experimental (Linux)…"
-  (cd "${PARENT}/blvm-sdk" && cargo build --release --bins --all-features)
-
-  if rustup target list --installed | grep -q x86_64-pc-windows-gnu; then
-    log "Building blvm experimental (Windows, best-effort)…"
-    (
-      cd "${BLVM_ROOT}"
-      export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
-      export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
-      export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
-      export PKG_CONFIG_ALLOW_CROSS=1
-      cargo build --release --target x86_64-pc-windows-gnu \
-        --no-default-features \
-        --features "${win_exp_features}" \
-        || log "WARN: experimental Windows blvm failed"
-    )
-    log "Building blvm-sdk experimental (Windows, best-effort)…"
-    (
-      cd "${PARENT}/blvm-sdk"
-      export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
-      export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
-      export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
-      export PKG_CONFIG_ALLOW_CROSS=1
-      cargo build --release --bins --all-features --target x86_64-pc-windows-gnu \
-        || log "WARN: experimental Windows blvm-sdk failed"
-    )
-  fi
-
-  (cd "${BLVM_ROOT}" && ./scripts/collect-artifacts.sh linux-x86_64 experimental)
-  if [[ -f "${BLVM_ROOT}/target/x86_64-pc-windows-gnu/release/blvm.exe" ]]; then
-    (cd "${BLVM_ROOT}" && ./scripts/collect-artifacts.sh windows-x86_64 experimental)
-  else
-    log "Skipping Windows experimental collect (no exe)"
-  fi
-}
-
-package_experimental_deb_and_rpm() {
-  chmod +x "${BLVM_ROOT}/scripts/package-deb.sh" "${BLVM_ROOT}/scripts/package-rpm-from-deb.sh" 2>/dev/null || true
-  (cd "${BLVM_ROOT}" && ./scripts/package-deb.sh "${VERSION}" amd64 experimental)
-  (cd "${BLVM_ROOT}" && ./scripts/package-rpm-from-deb.sh "${VERSION}" experimental) || true
-}
-
-# SHA256SUMS-linux-packages.txt is written in ci.yml after cargo deb/rpm so it includes
-# base + experimental packages and the Arch pkg copied into the release bundle.
-
 # --- main ---
 cd "${BLVM_ROOT}"
 
@@ -192,17 +135,6 @@ command -v zip >/dev/null 2>&1 || {
 sync_main_blvm_binaries_to_repo_targets
 build_sdk_and_commons_base
 collect_base_variants
-
-cp -f "${BLVM_ROOT}/target/release/blvm" /tmp/blvm-ci-release-base-stash.bin
-
-build_experimental_and_collect
-
-if [[ -f "${BLVM_ROOT}/target/release/blvm" ]]; then
-  package_experimental_deb_and_rpm
-fi
-
-cp -f /tmp/blvm-ci-release-base-stash.bin "${BLVM_ROOT}/target/release/blvm"
-chmod +x "${BLVM_ROOT}/target/release/blvm"
 
 (cd "${BLVM_ROOT}" && ./scripts/create-release.sh "${VERSION_TAG}")
 

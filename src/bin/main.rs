@@ -908,21 +908,12 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
         }
     }
 
-    // BIP158
+    // BIP158 (compact block filters; always compiled in, like Bitcoin Core)
     if let Some(enabled) = env.bip158 {
-        #[cfg(feature = "bip158")]
-        {
-            info!(
-                "BIP158 block filtering {} via ENV",
-                if enabled { "enabled" } else { "disabled" }
-            );
-        }
-        #[cfg(not(feature = "bip158"))]
-        {
-            if enabled {
-                warn!("BIP158 feature not compiled in. Rebuild with --features bip158 to enable.");
-            }
-        }
+        info!(
+            "BIP158 block filtering {} via ENV",
+            if enabled { "enabled" } else { "disabled" }
+        );
     }
 
     // Sigop
@@ -974,28 +965,20 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
         }
     }
 
-    // Note: Other features like bip158, dandelion, sigop may need to be applied
+    // Note: Dandelion and sigop may still be compile-time gated; BIP158 is always on.
     // through the node's runtime configuration rather than NodeConfig.
     // These features are typically controlled at compile-time via Cargo features,
     // but some may have runtime toggles. Check the node implementation for details.
 
     if features.enable_bip158 || features.disable_bip158 {
-        #[cfg(feature = "bip158")]
-        {
-            info!(
-                "BIP158 block filtering {} via CLI",
-                if features.enable_bip158 {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
-            );
-            // BIP158 is typically always enabled if compiled in, but may have runtime config
-        }
-        #[cfg(not(feature = "bip158"))]
-        {
-            warn!("BIP158 feature not compiled in. Rebuild with --features bip158 to enable.");
-        }
+        info!(
+            "BIP158 block filtering {} via CLI",
+            if features.enable_bip158 {
+                "enabled"
+            } else {
+                "disabled"
+            }
+        );
     }
 
     if features.enable_dandelion || features.disable_dandelion {
@@ -1363,8 +1346,7 @@ fn handle_version() -> Result<()> {
     println!("  ✓ ctv");
     #[cfg(feature = "stratum-v2")]
     println!("  ✓ stratum-v2");
-    #[cfg(feature = "bip158")]
-    println!("  ✓ bip158");
+    println!("  ✓ bip158 (always on)");
     #[cfg(feature = "sigop")]
     println!("  ✓ sigop");
 

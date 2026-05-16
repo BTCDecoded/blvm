@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Collect all built binaries into release artifacts
-# Creates separate archives for blvm binary and governance tools
+# Collect all built binaries into release artifacts (blvm + governance tools).
+# Linux → .tar.gz only; Windows → .zip only (one archive format per OS).
 #
 
 set -euo pipefail
@@ -219,7 +219,6 @@ main() {
         fi
         generate_checksums "$BLVM_DIR" "$blvm_checksum"
         
-        # Create archives for blvm binary (both tar.gz and zip for all platforms)
         local blvm_archive_tgz
         local blvm_archive_zip
         if [ "$VARIANT" = "base" ]; then
@@ -229,8 +228,11 @@ main() {
             blvm_archive_tgz="blvm-experimental-${PLATFORM}.tar.gz"
             blvm_archive_zip="blvm-experimental-${PLATFORM}.zip"
         fi
-        create_archive "$BLVM_DIR" "$blvm_archive_tgz" "$blvm_checksum"
-        create_archive "$BLVM_DIR" "$blvm_archive_zip" "$blvm_checksum"
+        if [[ "$PLATFORM" == *"windows"* ]]; then
+            create_archive "$BLVM_DIR" "$blvm_archive_zip" "$blvm_checksum"
+        else
+            create_archive "$BLVM_DIR" "$blvm_archive_tgz" "$blvm_checksum"
+        fi
     fi
     
     # Governance tools are now included in the blvm archives (collected in collect_blvm_binary)

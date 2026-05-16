@@ -239,12 +239,8 @@ blvm-consensus = { git = "...", tag = "v0.1.0" }
 ```
 artifacts/
 ├── blvm-{version}-linux-x86_64.tar.gz
-├── blvm-{version}-linux-x86_64.zip
-├── blvm-{version}-windows-x86_64.tar.gz
 ├── blvm-{version}-windows-x86_64.zip
 ├── blvm-experimental-{version}-linux-x86_64.tar.gz
-├── blvm-experimental-{version}-linux-x86_64.zip
-├── blvm-experimental-{version}-windows-x86_64.tar.gz
 ├── blvm-experimental-{version}-windows-x86_64.zip
 ├── SHA256SUMS-blvm-linux-x86_64
 ├── SHA256SUMS-blvm-windows-x86_64

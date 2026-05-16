@@ -438,7 +438,7 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -471,7 +471,7 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.13"
+version = "0.1.14"
 dependencies = [
  "bitcoin_hashes",
  "ripemd",

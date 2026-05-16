@@ -738,9 +738,9 @@ jobs:
             exit 1
           fi
 
-      # Tarballs/zips (base + experimental), SHA256SUMS-blvm-*, RELEASE_NOTES.md,
-      # Arch-style .pkg.tar.gz, experimental .deb / alien .rpm, SHA256SUMS-linux-packages.txt
-      - name: Collect distribution bundles (tarballs, Arch pkg, experimental packages)
+      # Linux .tar.gz + Windows .zip (base), SHA256SUMS-blvm-*, RELEASE_NOTES.md,
+      # Arch-style .pkg.tar.gz; SHA256SUMS-linux-packages.txt filled when staging.
+      - name: Collect distribution bundles (tarballs, Arch pkg)
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -853,10 +853,8 @@ jobs:
             |---|---|---|
             | **Linux x86_64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64` | Full features (default `cargo build`) |
             | **Linux x86_64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm` + governance CLIs (+ checksum file inside) |
-            | **Linux x86_64** (experimental) | `blvm-experimental-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | Experimental feature set |
             | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | `pacman -U` |
             | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | `cargo deb` (matches standalone binary) |
-            | **Linux x86_64** (Debian experimental) | `blvm-experimental_${{ steps.version.outputs.version }}_amd64.deb` | Scripted package (experimental binary) |
             | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | `cargo generate-rpm` |
             | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Portable Windows build |
             | **Windows x86_64** (zip) | `blvm-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | Same as .exe in archive form |
@@ -870,13 +868,20 @@ jobs:
 
             ## Install
 
-            **Linux (binary):**
+            **Linux (single binary):**
             ```bash
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-linux-x86_64
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/checksums.sha256
             sha256sum -c checksums.sha256
             chmod +x blvm-${{ steps.version.outputs.version }}-linux-x86_64
             sudo mv blvm-${{ steps.version.outputs.version }}-linux-x86_64 /usr/local/bin/blvm
+            ```
+
+            **Linux (tarball):**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
+            tar -xzf blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
+            sudo mv blvm /usr/local/bin/
             ```
 
             **Debian/Ubuntu:**

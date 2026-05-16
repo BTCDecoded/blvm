@@ -117,11 +117,11 @@ enable_self_advertisement = true
 # Persistent peers
 # persistent_peers = ["1.2.3.4:8333", "5.6.7.8:8333"]
 
-# Stratum V2 mining configuration
+# Stratum V2 (merge-mining / pool-related; dedicated miner TCP is blvm-stratum-v2 module)
 # [stratum_v2]
 # enabled = false
 # pool_url = "tcp://pool.example.com:3333"
-# listen_addr = "0.0.0.0:3333"
+# listen_addr = "0.0.0.0:3333"   # informational; does not start an in-node miner listener
 # transport_preference = "tcp_only"
 # merge_mining_enabled = false
 # secondary_chains = []
@@ -160,6 +160,12 @@ enable_self_advertisement = true
 # registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
 # enabled_modules = ["blvm-miniscript", "blvm-zmq"]  # default; [] = on-disk only, no bootstrap
 ```
+
+## Stratum V2 (module-first)
+
+**Dedicated miner TCP** is served only by **`blvm-stratum-v2`** (`listen_addr` in module config or `[modules.blvm-stratum-v2]`). The node’s **`[stratum_v2]`** section does **not** open a miner listener; it remains for merge-mining / pool-related settings. P2P may still deliver Stratum-shaped TLV to the module via **`StratumV2MessageReceived`**.
+
+Details: **`docs/STRATUM_V2_DECOUPLING_PLAN.md`**.
 
 ## Configuration Hierarchy Examples
 

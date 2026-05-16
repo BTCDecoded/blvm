@@ -545,7 +545,7 @@ jobs:
           # Build blvm (experimental - all features)
           echo "Building blvm (experimental variant)..."
           cd "${PARENT_DIR}/blvm"
-          cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh
+          cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh
           
           # Build blvm-sdk binaries
           echo "Building blvm-sdk binaries (experimental)..."
@@ -619,7 +619,7 @@ jobs:
           if [ -d "blvm" ]; then
             echo "Building blvm for Windows (experimental variant)..."
             cd blvm
-            if cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
+            if cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh; then
               echo "✅ Successfully built blvm for Windows (experimental)"
             else
               echo "❌ Windows build failed for blvm (experimental variant)"

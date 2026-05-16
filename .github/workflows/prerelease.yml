@@ -319,7 +319,7 @@ jobs:
               # Build with experimental features
               if [ "$repo" = "blvm" ]; then
                 # blvm inherits from blvm-node, need to build with experimental features
-                if cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh; then
+                if cargo build --release --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh; then
                   echo "✅ Successfully built $repo for Windows (experimental)"
                 else
                   echo "❌ Windows build failed for $repo (experimental variant)"
@@ -785,7 +785,7 @@ jobs:
           echo "=== Verifying files exist before release ==="
           
           # List all files that will be uploaded
-          echo "Archive files (blvm and blvm-experimental, both tar.gz and zip):"
+          echo "Archive files (Linux .tar.gz, Windows .zip; base + experimental):"
           find "${ARTIFACTS_DIR}" -maxdepth 1 -type f \( -name "blvm-${VERSION_TAG}-*.tar.gz" -o -name "blvm-${VERSION_TAG}-*.zip" -o -name "blvm-experimental-${VERSION_TAG}-*.tar.gz" -o -name "blvm-experimental-${VERSION_TAG}-*.zip" \) -ls
           
           echo ""

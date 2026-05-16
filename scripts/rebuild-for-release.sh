@@ -53,7 +53,7 @@ else
   if [ "$WANT_LINUX" = true ]; then
     echo "--- blvm (experimental, Linux) ---"
     cd "${ROOT}/blvm"
-    cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh
+    cargo build --release --locked --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh
     echo "--- blvm-sdk (experimental, Linux) ---"
     cd "${ROOT}/blvm-sdk"
     cargo build --release --locked --bins --all-features
@@ -64,7 +64,7 @@ else
   if [ "$WANT_WIN" = true ] && rustup target list --installed | grep -q x86_64-pc-windows-gnu; then
     echo "--- blvm Windows (experimental) ---"
     cd "${ROOT}/blvm"
-    cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,bip158,sigop,iroh
+    cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh
     echo "--- blvm-sdk Windows (experimental) ---"
     cd "${ROOT}/blvm-sdk"
     cargo build --release --locked --target x86_64-pc-windows-gnu --bins --all-features
