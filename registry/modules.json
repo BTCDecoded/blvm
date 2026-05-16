@@ -20,8 +20,8 @@
   {
     "name": "blvm-fibre",
     "description": "FIBRE (Fast Internet Bitcoin Relay Engine) UDP/FEC block relay for blvm-node (loadable module).",
-    "repo": "BTCDecoded/blvm",
-    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm/main/blvm-fibre/module.toml"
+    "repo": "BTCDecoded/blvm-fibre",
+    "module_toml_url": "https://raw.githubusercontent.com/BTCDecoded/blvm-fibre/main/module.toml"
   },
   {
     "name": "blvm-zmq",
