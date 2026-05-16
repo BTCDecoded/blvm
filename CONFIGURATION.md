@@ -165,7 +165,7 @@ enable_self_advertisement = true
 
 **Dedicated miner TCP** is served only by **`blvm-stratum-v2`** (`listen_addr` in module config or `[modules.blvm-stratum-v2]`). The node’s **`[stratum_v2]`** section does **not** open a miner listener; it remains for merge-mining / pool-related settings. P2P may still deliver Stratum-shaped TLV to the module via **`StratumV2MessageReceived`**.
 
-Details: **`docs/STRATUM_V2_DECOUPLING_PLAN.md`**.
+See the **blvm-docs** [Stratum V2 decoupling plan](https://github.com/BTCDecoded/blvm-docs/blob/main/src/development/stratum-v2-decoupling-plan.md).
 
 ## Configuration Hierarchy Examples
 
