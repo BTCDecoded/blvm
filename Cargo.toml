@@ -106,11 +106,11 @@ tempfile = "3.8"
 assert_cmd = "2.0"
 predicates = "3.0"
 
-# ⚠️ WARNING: Only build consensus-sensitive binaries with the `release` profile.
-# Other profiles (release-perf-fast, release-fast) use different codegen settings
-# that have been observed to cause consensus divergence (e.g. "Invalid script at
-# transaction 1" with release-perf debug=1/strip=false). Never ship a node binary
-# built with a non-default profile unless you have explicitly verified consensus.
+# Consensus-canonical binaries: prefer `[profile.release]` for builds you distribute.
+# Extra profiles (`release-fast`, `release-perf`, `release-perf-fast`, `release-pgo`) exist for faster
+# compiles, profiling, or PGO — CI commonly uses `release-fast` for iteration. Older codegen-specific
+# divergences have been fixed; still validate materially new rustc/profile combinations against the usual
+# consensus gates (differential tests, release-vs-matrix checks) before treating artifacts as canonical.
 #
 [profile.release]
 opt-level = 3
@@ -119,9 +119,8 @@ codegen-units = 256  # max parallelism
 strip = true
 panic = "abort"
 
-# IBD profiling: MUST use same codegen as release to avoid block 546 consensus divergence.
-# release-perf with debug=0/strip=false caused "Invalid script at transaction 1" — different codegen.
-# Use release profile for profile builds; binary still outputs to target/release-perf/.
+# Same optimization defaults as `release`; use `cargo build --profile release-perf` so binaries land in
+# `target/release-perf/` (e.g. IBD instrumentation without changing opt-level).
 [profile.release-perf]
 inherits = "release"
 
