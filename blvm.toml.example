@@ -5,8 +5,8 @@
 # Network listening address
 listen_addr = "0.0.0.0:8333"
 
-# Transport preference: "tcp_only", "iroh_only", "hybrid", or "all"
-transport_preference = "tcp_only"
+# Transport: TOML serde uses tcponly | irohonly | quinnonly | hybrid | all (CLI/ENV use tcp_lowercase)
+transport_preference = "tcponly"
 
 # Maximum number of peers
 max_peers = 100
@@ -24,9 +24,9 @@ enable_self_advertisement = true
 # [stratum_v2]
 # enabled = false
 # pool_url = "tcp://pool.example.com:3333"
-# listen_addr = "0.0.0.0:3333"
+# listen_addr = "0.0.0.0:3333"   # informational on node; miner TCP is the module
 # p2p_stratum_demux = true
-# transport_preference = "tcp_only"
+# transport_preference = "tcponly"
 # merge_mining_enabled = false
 # secondary_chains = []
 
@@ -46,14 +46,12 @@ enable_self_advertisement = true
 
 # Storage and pruning configuration
 # [storage]
-# backend = "redb"  # "sled" or "redb"
+# database_backend = "auto"  # default release build: usually RocksDB; or force "redb", "sled", etc.
 # 
 # [storage.pruning]
-# enabled = false
-# mode = "normal"  # "normal" or "aggressive"
-# min_blocks_to_keep = 288  # ~2 days at 10 min/block
-# auto_prune = false
-# auto_prune_interval = 3600
+# mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }
+# auto_prune = true
+# min_blocks_to_keep = 144
 
 # Module system configuration
 [modules]

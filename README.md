@@ -175,12 +175,14 @@ blvm --config blvm.toml --network regtest
 | `--config` | `-c` | Config file path (TOML or JSON) | Auto-detected |
 | `--verbose` | `-v` | Enable verbose logging | `false` |
 
+**RPC default:** With `--network regtest` (the CLI default), `--rpc-addr` still defaults to **`127.0.0.1:18332`** — the same default used if you omit `--network`. This is **not** Bitcoin Core’s usual regtest RPC port; set `--rpc-addr` and `BLVM_RPC_ADDR` to whatever socket your deployment uses (e.g. `127.0.0.1:18443` if you align with Core-style regtest).
+
 #### Feature Flags
 
 | Option | Description |
 |--------|-------------|
-| `--enable-stratum-v2` | Enable Stratum V2 mining (requires compile-time feature) |
-| `--disable-stratum-v2` | Disable Stratum V2 mining |
+| `--enable-stratum-v2` | Enable Stratum V2 **P2P demux + module hooks** (requires compile-time feature); miner TCP is **`blvm-stratum-v2`** |
+| `--disable-stratum-v2` | Disable Stratum V2 **P2P demux + module hooks** (compile-time feature) |
 | `--enable-bip158` | BIP158 logging preference (filters are **always** compiled in) |
 | `--disable-bip158` | BIP158 logging preference (filters are **always** compiled in) |
 | `--enable-dandelion` | Enable Dandelion++ privacy relay (requires compile-time feature) |
@@ -223,12 +225,14 @@ Environment variables are ideal for deployment scenarios, especially in containe
 
 #### Deployment-Critical Variables
 
+Examples below use **mainnet-style** RPC `8332`. The `blvm` CLI default is **`127.0.0.1:18332`** unless you override it; set `BLVM_RPC_ADDR` to the same socket you pass to `--rpc-addr`.
+
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `BLVM_DATA_DIR` | Data directory | `/var/lib/blvm` |
 | `BLVM_NETWORK` | Network (regtest/testnet/mainnet) | `mainnet` |
 | `BLVM_LISTEN_ADDR` | P2P listen address | `0.0.0.0:8333` |
-| `BLVM_RPC_ADDR` | RPC server address | `127.0.0.1:8332` |
+| `BLVM_RPC_ADDR` | RPC server address | Example: `127.0.0.1:8332` (match your `--rpc-addr` / network) |
 | `BLVM_LOG_LEVEL` | Logging level (trace/debug/info/warn/error) | `info` |
 
 #### Node Settings
@@ -317,8 +321,8 @@ Config files support complex nested configurations. Config files are searched in
 # Network listening address
 listen_addr = "0.0.0.0:8333"
 
-# Transport preference: "tcp_only", "iroh_only", "hybrid"
-transport_preference = "tcp_only"
+# Transport: in TOML use serde tag tcponly (not tcp_only). CLI / BLVM_NODE_TRANSPORT accept tcp_only.
+transport_preference = "tcponly"
 
 # Maximum number of peers
 max_peers = 100
@@ -383,12 +387,13 @@ enabled = true
 messages_per_second = 10
 burst_size = 20
 
-# Stratum V2 mining configuration (requires compile-time feature)
+# Stratum V2 (requires compile-time feature). Miner TCP = blvm-stratum-v2 module only.
 # [stratum_v2]
 # enabled = false
 # pool_url = "tcp://pool.example.com:3333"
-# listen_addr = "0.0.0.0:3333"
-# transport_preference = "tcp_only"
+# listen_addr = "0.0.0.0:3333"   # informational on node; does not start in-node miner listener
+# p2p_stratum_demux = true       # false = disable P2P Stratum TLV demux (module TCP unchanged)
+# transport_preference = "tcponly"
 # merge_mining_enabled = false
 # secondary_chains = []
 
@@ -408,14 +413,12 @@ burst_size = 20
 
 # Storage and pruning configuration
 # [storage]
-# backend = "redb"  # "sled" or "redb"
+# database_backend = "auto"  # typical release: RocksDB; or "rocksdb", "redb", "sled", "tidesdb"
 # 
 # [storage.pruning]
-# enabled = false
-# mode = "normal"  # "normal" or "aggressive"
-# min_blocks_to_keep = 288  # ~2 days at 10 min/block
-# auto_prune = false
-# auto_prune_interval = 3600
+# mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }
+# auto_prune = true
+# min_blocks_to_keep = 144
 
 # Module system configuration
 # [modules]

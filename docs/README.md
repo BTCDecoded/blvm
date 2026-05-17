@@ -2,6 +2,10 @@
 
 This directory contains all documentation for the BTCDecoded commons repository.
 
+## Workspace-wide documentation (multi-repo checkout)
+
+If you use a **workspace** that contains this repo next to `blvm-node`, `blvm-docs`, etc., cross-repo plans and audits may live in a sibling **`docs/`** folder at that workspace root (not here). This `blvm/docs/` directory is for **Bitcoin Commons / `blvm` crate** build and workflow documentation only.
+
 ## Directory Structure
 
 ### `/build/` - Build System Documentation

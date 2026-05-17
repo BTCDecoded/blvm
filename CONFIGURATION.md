@@ -101,8 +101,8 @@ Config files support complex nested configurations. Config files are searched in
 # Network listening address
 listen_addr = "0.0.0.0:8333"
 
-# Transport preference
-transport_preference = "tcp_only"
+# Transport (TOML: use tcponly / irohonly / … — see blvm-node TransportPreferenceConfig)
+transport_preference = "tcponly"
 
 # Maximum number of peers
 max_peers = 100
@@ -122,7 +122,7 @@ enable_self_advertisement = true
 # pool_url = "tcp://pool.example.com:3333"
 # listen_addr = "0.0.0.0:3333"   # informational; does not start an in-node miner listener
 # p2p_stratum_demux = true        # false = do not treat P2P bytes as Stratum V2 TLV (module TCP unchanged)
-# transport_preference = "tcp_only"
+# transport_preference = "tcponly"
 # merge_mining_enabled = false
 # secondary_chains = []
 
@@ -142,14 +142,12 @@ enable_self_advertisement = true
 
 # Storage and pruning
 # [storage]
-# backend = "redb"
+# database_backend = "auto"  # typical `blvm` build: resolves to RocksDB
 # 
 # [storage.pruning]
-# enabled = false
-# mode = "normal"
-# min_blocks_to_keep = 288
-# auto_prune = false
-# auto_prune_interval = 3600
+# mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }
+# auto_prune = true
+# min_blocks_to_keep = 144
 
 # Module system
 # [modules]
@@ -172,11 +170,11 @@ For end-user configuration, see **[`blvm/CONFIGURATION.md`](https://github.com/B
 ### Example 1: CLI Overrides Everything
 
 ```bash
-# Config file has: network = "testnet"
+# Config file may set protocol_version / peers; chain selection still follows CLI/ENV.
 # ENV has: BLVM_NETWORK="mainnet"
 # CLI: --network regtest
 
-# Result: network = regtest (CLI wins)
+# Result: regtest (CLI wins over ENV / file merge for chain)
 blvm --config blvm.toml --network regtest
 ```
 
