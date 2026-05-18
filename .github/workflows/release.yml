@@ -214,8 +214,8 @@ jobs:
             echo "CXX=ccache g++" >> $GITHUB_ENV
           else
             echo "⚠️  ccache not found (install for faster C dependency builds)"
-            echo "CC=" >> $GITHUB_ENV
-            echo "CXX=" >> $GITHUB_ENV
+            # Do not write CC=/CXX= to GITHUB_ENV — empty values override the job environment and
+            # break -sys crates (cc-rs sees CXX=None; e.g. librocksdb-sys).
           fi
       
       - name: Fix corrupted cargo dependencies and config
