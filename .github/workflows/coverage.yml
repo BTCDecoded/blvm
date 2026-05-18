@@ -47,7 +47,7 @@ jobs:
       
       - name: Cache
         run: |
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           
           # Generate cache key from Cargo.lock
           DEPS_KEY=$(sha256sum Cargo.lock | cut -d' ' -f1)

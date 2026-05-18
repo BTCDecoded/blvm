@@ -94,7 +94,7 @@ jobs:
       - name: Cache key
         id: setup-cache
         run: |
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           # blvm commits Cargo.lock — use it for cache key
           DEPS_KEY=$(sha256sum Cargo.lock | cut -d' ' -f1)
           TOOLCHAIN=$(grep -E '^channel|rust-version' rust-toolchain.toml Cargo.toml 2>/dev/null | head -1 | sha256sum | cut -d' ' -f1 || echo "stable")

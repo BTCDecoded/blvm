@@ -77,7 +77,7 @@ jobs:
         if: ${{ inputs.use_cache }}
         id: setup-cache
         run: |
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           DEPS_KEY=$(sha256sum Cargo.lock 2>/dev/null | cut -d' ' -f1 || echo "no-cargo")
           CACHE_KEY="${DEPS_KEY}-docker"
           
@@ -135,6 +135,6 @@ jobs:
         if: always()
         run: |
           echo "🧹 Cleaning up old caches..."
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           find "$CACHE_ROOT/cargo" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -5 | xargs rm -rf 2>/dev/null || true
           echo "✅ Cache cleanup completed"

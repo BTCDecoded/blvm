@@ -81,7 +81,7 @@ jobs:
         if: ${{ inputs.use_cache }}
         id: setup-cache
         run: |
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           # Create cache key from Cargo.lock hash + toolchain version
           DEPS_KEY=$(sha256sum Cargo.lock | cut -d' ' -f1)
           TOOLCHAIN=$(grep -E '^channel|rust-version' rust-toolchain.toml Cargo.toml 2>/dev/null | head -1 | sha256sum | cut -d' ' -f1 || echo "stable")
@@ -235,7 +235,7 @@ jobs:
         if: always()
         run: |
           echo "🧹 Cleaning up old caches..."
-          CACHE_ROOT="/tmp/runner-cache"
+          CACHE_ROOT="/tmp/runner-cache/${{ github.repository }}"
           # Keep last 5 Cargo caches
           find "$CACHE_ROOT/cargo" -maxdepth 1 -type d -mtime +1 2>/dev/null | head -n -5 | xargs rm -rf 2>/dev/null || true
           # Keep last 3 target caches (larger)
