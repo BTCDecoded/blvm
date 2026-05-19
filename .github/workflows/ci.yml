@@ -1,10 +1,12 @@
 name: CI
 
+# PRs (→ main or develop): quality gates only — no release, nightly-release, or GHCR publish.
 # Commit message skip tokens (push only): [skip_tests], [skip_docs], [skip_fuzz], [skip_security], [skip_release], [skip_verify], [skip_docker]
 # [skip_docs] also skips clippy and fmt.
 # [skip_verify] skips the release-profile build job (cargo build --release).
-# [skip_release] prevents the release job from running (no publish, no GitHub Release, no tag).
-# [skip_docker] skips the GHCR container publish job (docker-ghcr).
+# [skip_release] prevents the release job (main) and nightly-release job (develop) from running.
+# [skip_publish_dev] skips crates.io develop publish (still waits for V on index before nightly).
+# [skip_docker] skips GHCR publish (docker-ghcr on main, docker-ghcr-nightly on develop).
 # Tokens are matched against setup.commit_msg_bundle (git log range) plus head_commit when set.
 #
 # GHCR auth: use github.token (same credential as secrets.GITHUB_TOKEN — automatic per-run token).
@@ -13,15 +15,25 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   release:
     types: [published]
   repository_dispatch:
-    types: [build-chain, upstream-changed]
+    types: [build-chain, upstream-changed, develop-chain]
   workflow_dispatch:
     inputs:
       skip_tests:
         description: 'Skip test execution and build steps'
+        required: false
+        type: boolean
+        default: false
+      force_version:
+        description: 'Coordinated develop V (e.g. 0.1.22-dev.3); empty = compute from crates.io'
+        required: false
+        type: string
+        default: ''
+      skip_publish_dev:
+        description: 'Skip crates.io develop publish (verify/wait for V on index only)'
         required: false
         type: boolean
         default: false
@@ -216,6 +228,12 @@ jobs:
           if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
           if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
           if [ -f ".cargo/config.toml" ]; then rm -f .cargo/config.toml; fi
+
+      - name: Resolve develop registry deps (test)
+        if: github.ref == 'refs/heads/develop' || github.base_ref == 'develop'
+        run: |
+          chmod +x scripts/resolve-develop-registry-deps.sh scripts/resolve-develop-registry-deps.py
+          bash scripts/resolve-develop-registry-deps.sh --mode resolve Cargo.toml || true
 
       - name: Install OpenSSL development headers
         run: |
@@ -942,6 +960,378 @@ jobs:
               "https://api.github.com/repos/BTCDecoded/${REPO}/dispatches" \
               -d "${BODY}"
           done
+
+  # develop: ensure coordinated dev crate set V on crates.io, then nightly binaries use =V deps.
+  publish-develop-set:
+    name: Publish / verify develop crate set
+    needs: [setup, build, build-dev, test, clippy, fmt, docs, security]
+    runs-on: [self-hosted, Linux, X64, builds]
+    outputs:
+      version: ${{ steps.ensure.outputs.version }}
+      based_on_stable: ${{ steps.ensure.outputs.based_on_stable }}
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.build-dev.result == 'success' || needs.build-dev.result == 'skipped') &&
+      (github.ref == 'refs/heads/develop' ||
+        (github.event_name == 'repository_dispatch' && github.event.action == 'develop-chain')) &&
+      (github.event_name == 'push' || github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch') &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_release]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_publish_dev]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_publish_dev]')) &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_publish_dev != true) &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
+       (
+         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
+         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+       ))
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+
+      - name: Ensure develop crate set on registry
+        id: ensure
+        env:
+          FORCE_VERSION: ${{ github.event.inputs.force_version }}
+        run: |
+          chmod +x scripts/*.sh scripts/*.py
+          if [ -n "${FORCE_VERSION}" ]; then
+            eval "$(bash scripts/compute-develop-version.sh --force-version "${FORCE_VERSION}" --emit-shell)"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ] && [ -n "${{ github.event.client_payload.version }}" ]; then
+            V="${{ github.event.client_payload.version }}"
+            DEVELOP_BASED_ON_STABLE=""
+            DEVELOP_PREFIX="$(echo "${V}" | sed -E 's/\.[0-9]+$//')"
+          else
+            eval "$(bash scripts/compute-develop-version.sh --emit-shell)"
+          fi
+          V="${DEVELOP_VERSION:-${V}}"
+          echo "version=${V}" >> "$GITHUB_OUTPUT"
+          echo "based_on_stable=${DEVELOP_BASED_ON_STABLE:-}" >> "$GITHUB_OUTPUT"
+          echo "Coordinated develop version: ${V}"
+
+          publish_sibling() {
+            local dir="$1" wait="$2" sdk="${3:-0}"
+            [ -d "${dir}/Cargo.toml" ] || return 0
+            if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then return 0; fi
+            if [ "${sdk}" = "1" ]; then
+              (cd "${dir}" && bash "${GITHUB_WORKSPACE}/scripts/ci-publish-develop-sdk.sh" \
+                --scripts-dir "${GITHUB_WORKSPACE}/scripts" \
+                --wait-for "${wait}" \
+                "${V}")
+            else
+              (cd "${dir}" && bash "${GITHUB_WORKSPACE}/scripts/ci-publish-develop.sh" \
+                --scripts-dir "${GITHUB_WORKSPACE}/scripts" \
+                ${wait:+--wait-for "$wait"} \
+                "${V}")
+            fi
+          }
+
+          if [ -n "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            cargo login "${CARGO_REGISTRY_TOKEN}"
+            publish_sibling ../blvm-consensus "" 0
+            publish_sibling ../blvm-protocol blvm-consensus 0
+            publish_sibling ../blvm-node blvm-consensus,blvm-protocol 0
+            publish_sibling ../blvm-sdk blvm-node 1
+          else
+            echo "::notice::CARGO_REGISTRY_TOKEN not set — only verifying index, not publishing siblings"
+          fi
+
+          bash scripts/ci-wait-develop-set.sh "${V}"
+
+      - name: Update versions.toml develop metadata
+        if: steps.ensure.outputs.version != ''
+        run: |
+          python3 scripts/update-versions-develop-metadata.py \
+            --version "${{ steps.ensure.outputs.version }}" \
+            --based-on-stable "${{ steps.ensure.outputs.based_on_stable }}" \
+            --versions-toml versions.toml \
+            --git-sha "${{ github.sha }}"
+
+      - name: Commit versions.toml develop metadata
+        if: steps.ensure.outputs.version != '' && secrets.REPO_ACCESS_TOKEN != ''
+        env:
+          REPO_ACCESS_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add versions.toml
+          if git diff --staged --quiet; then
+            echo "No versions.toml changes"
+            exit 0
+          fi
+          git commit -m "chore(develop): record ${{ steps.ensure.outputs.version }} in versions.toml [skip ci]"
+          git remote set-url origin "https://${REPO_ACCESS_TOKEN}@github.com/${{ github.repository }}.git"
+          git push origin "HEAD:${{ github.ref_name }}"
+
+  # develop only: rolling Linux + Windows binaries + GHCR :nightly (no crates.io, no semver tags).
+  nightly-release:
+    name: Nightly Release (develop)
+    needs: [setup, build, build-dev, test, clippy, fmt, docs, security, publish-develop-set]
+    runs-on: [self-hosted, Linux, X64, builds]
+    permissions:
+      contents: write
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      needs.build.result == 'success' &&
+      (needs.publish-develop-set.result == 'success' || needs.publish-develop-set.result == 'skipped') &&
+      (needs.build-dev.result == 'success' || needs.build-dev.result == 'skipped') &&
+      (github.ref == 'refs/heads/develop' ||
+        (github.event_name == 'repository_dispatch' && github.event.action == 'develop-chain')) &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch') &&
+      (github.event_name != 'push' || github.event.head_commit == null ||
+       (!contains(github.event.head_commit.message, '[skip ci]') &&
+        !contains(github.event.head_commit.message, '[ci skip]') &&
+        !contains(github.event.head_commit.message, '[no ci]'))) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip ci]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[ci skip]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[ci skip]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[no ci]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[no ci]')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_release]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
+      ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
+       (
+         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
+         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
+         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+       ))
+    env:
+      CARGO_NIGHTLY_TARGET: /tmp/gh-blvm-nightly-build/${{ github.run_id }}/target
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+
+      - name: Clean leftover path overrides
+        run: |
+          if [ -d "../blvm-node" ]; then rm -rf ../blvm-node; fi
+          if [ -d "../blvm-protocol" ]; then rm -rf ../blvm-protocol; fi
+          if [ -d "../blvm-consensus" ]; then rm -rf ../blvm-consensus; fi
+          if [ -f ".cargo/config.toml" ]; then rm -f .cargo/config.toml; fi
+
+      - name: Install OpenSSL, packaging tools, and Windows cross-compiler
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq pkg-config libssl-dev \
+              gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 \
+              dpkg-dev fakeroot rpm zip || true
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Qq openssl pkgconf dpkg fakeroot zip >/dev/null 2>&1 || \
+              sudo pacman -Sy --noconfirm openssl pkgconf dpkg fakeroot zip
+            pacman -Qq mingw-w64-gcc >/dev/null 2>&1 || \
+              sudo pacman -Sy --noconfirm mingw-w64-gcc
+          fi
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo install cargo-deb --locked --quiet || true
+          cargo install cargo-generate-rpm --locked --quiet || true
+          rustup target add x86_64-pc-windows-gnu
+
+      - name: Isolate CARGO_HOME for this runner
+        run: |
+          mkdir -p "${RUNNER_TEMP}/cargo"
+          echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
+
+      - name: Cache
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        with:
+          operation: bind-env
+          cache-key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Restore Cargo cache
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        with:
+          operation: restore
+
+      - name: Install Rust
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+
+      - name: Resolve develop version for nightly
+        id: nightly_v
+        env:
+          FORCE_VERSION: ${{ github.event.inputs.force_version }}
+        run: |
+          chmod +x scripts/*.sh
+          if [ -n "${{ needs.publish-develop-set.outputs.version }}" ]; then
+            V="${{ needs.publish-develop-set.outputs.version }}"
+          elif [ -n "${FORCE_VERSION}" ]; then
+            V=$(bash scripts/compute-develop-version.sh --force-version "${FORCE_VERSION}")
+          else
+            V=$(bash scripts/compute-develop-version.sh)
+          fi
+          echo "version=${V}" >> "$GITHUB_OUTPUT"
+
+      - name: Pin develop crate set for nightly binary
+        run: |
+          chmod +x scripts/resolve-develop-registry-deps.sh scripts/resolve-develop-registry-deps.py
+          V="${{ steps.nightly_v.outputs.version }}"
+          bash scripts/resolve-develop-registry-deps.sh --mode publish --version "${V}" Cargo.toml
+
+      - name: Verify dependency tree (develop)
+        run: |
+          V="${{ steps.nightly_v.outputs.version }}"
+          cargo tree -p blvm-node -i blvm-protocol 2>/dev/null | head -20
+          cargo tree -p blvm-node -i blvm-consensus 2>/dev/null | head -20
+          if ! cargo tree -p blvm-node 2>/dev/null | grep -q "${V}"; then
+            echo "::warning::Expected develop version ${V} in dependency tree (continuing)"
+          fi
+
+      - name: Build Linux release binary
+        env:
+          CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
+          CARGO_BUILD_JOBS: 8
+        run: |
+          unset CC CXX CPP AR || true
+          cargo build --release
+
+      - name: Build Windows x86_64 release binary
+        env:
+          CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+          CC_x86_64_pc_windows_gnu: x86_64-w64-mingw32-gcc
+          CXX_x86_64_pc_windows_gnu: x86_64-w64-mingw32-g++
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          CARGO_BUILD_JOBS: 8
+        run: |
+          unset CC CXX CPP AR || true
+          echo "=== Windows cross-compile (same feature set as main release) ==="
+          cargo build --release \
+            --target x86_64-pc-windows-gnu \
+            --no-default-features \
+            --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
+            2>&1 || { echo "❌ Windows cross-compile failed"; exit 1; }
+          EXE="${{ env.CARGO_NIGHTLY_TARGET }}/x86_64-pc-windows-gnu/release/blvm.exe"
+          if [ ! -f "$EXE" ]; then
+            echo "❌ .exe not found after build: $EXE"
+            exit 1
+          fi
+          echo "✅ Windows binary: $(ls -lh "$EXE")"
+
+      - name: Collect nightly artifacts (Linux + Windows)
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+          GITHUB_SHA: ${{ github.sha }}
+          CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
+        run: |
+          chmod +x scripts/ci-nightly-artifacts.sh
+          bash scripts/ci-nightly-artifacts.sh
+
+      - name: Update nightly tag and GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.email "ci@btcdecoded.com"
+          git config user.name "BLVM CI"
+          git tag -f nightly "${GITHUB_SHA}"
+          git push -f origin nightly
+
+          BUILT_UTC="$(date -u +'%Y-%m-%d %H:%M UTC')"
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "**BLVM Nightly** — rolling prerelease from \`develop\`."
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Develop crates | \`${{ steps.nightly_v.outputs.version }}\` (crates.io pre-releases) |"
+            echo "| Commit | \`${GITHUB_SHA}\` |"
+            echo "| Built | ${BUILT_UTC} |"
+            echo ""
+            echo "Verify downloads with \`checksums.sha256\`."
+            echo ""
+            echo "Artifact names match stable releases with \`version=nightly\` (e.g. \`blvm-nightly-linux-x86_64\`, \`blvm_nightly_amd64.deb\`)."
+            echo "Rolling tag \`nightly\` replaces file contents each push; names stay the same."
+            echo ""
+            echo "- \`checksums.sha256\`, \`SHA256SUMS-*\` as on stable releases"
+            echo ""
+            echo "Container: \`ghcr.io/${{ github.repository }}:nightly\`"
+          } > "${NOTES_FILE}"
+
+          if ! gh release view nightly >/dev/null 2>&1; then
+            gh release create nightly \
+              --target "${GITHUB_SHA}" \
+              --title "BLVM Nightly" \
+              --prerelease \
+              --notes-file "${NOTES_FILE}"
+          else
+            gh release edit nightly \
+              --prerelease \
+              --notes-file "${NOTES_FILE}"
+          fi
+
+          gh release upload nightly release-artifacts/* --clobber
+
+      - name: Cleanup nightly build dir
+        if: always()
+        run: rm -rf "${{ env.CARGO_NIGHTLY_TARGET }}" || true
+
+  docker-ghcr-nightly:
+    name: Publish container nightly (GHCR)
+    needs: [setup, nightly-release]
+    runs-on: [self-hosted, Linux, X64, builds]
+    permissions:
+      contents: read
+      packages: write
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      needs.nightly-release.result == 'success' &&
+      (github.ref == 'refs/heads/develop' ||
+        (github.event_name == 'repository_dispatch' && github.event.action == 'develop-chain')) &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Strip [patch.crates-io] for crates.io-only build
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+
+      - name: Regenerate Cargo.lock without path patches
+        run: cargo generate-lockfile
+
+      - name: Set GHCR image name (must be lowercase)
+        id: ghcr
+        run: |
+          R='${{ github.repository }}'
+          echo "image=ghcr.io/${R,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push nightly image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ghcr.outputs.image }}:nightly
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
   docker-ghcr:
     name: Publish container (GHCR)

@@ -1,0 +1,35 @@
+name: Resolve develop registry deps (test)
+description: >
+  After strip-patch, optionally pin sibling crates to latest develop pre-release
+  on crates.io when patch(D) > patch(S). No-op on main or when scripts missing.
+
+inputs:
+  scripts-path:
+    description: Directory containing resolve-develop-registry-deps.sh
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve develop deps in Cargo.toml
+      if: |
+        github.ref == 'refs/heads/develop' || github.base_ref == 'develop'
+      shell: bash
+      run: |
+        set -euo pipefail
+        SCRIPTS="${{ inputs.scripts-path }}"
+        if [ -z "${SCRIPTS}" ]; then
+          for c in "../blvm/scripts" "_develop-blvm/scripts"; do
+            if [ -f "${c}/resolve-develop-registry-deps.sh" ]; then
+              SCRIPTS="${c}"
+              break
+            fi
+          done
+        fi
+        if [ -z "${SCRIPTS}" ] || [ ! -f "${SCRIPTS}/resolve-develop-registry-deps.sh" ]; then
+          echo "::notice::develop resolver scripts not found — skipping"
+          exit 0
+        fi
+        chmod +x "${SCRIPTS}"/*.sh "${SCRIPTS}"/*.py 2>/dev/null || true
+        bash "${SCRIPTS}/resolve-develop-registry-deps.sh" --mode resolve Cargo.toml || true

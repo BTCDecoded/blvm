@@ -1,0 +1,7 @@
+# Ordered crates.io develop publish set (one coordinated V per pipeline run).
+# Used by compute-develop-version.sh --verify-set and develop-chain orchestration.
+# Ordered publish set (one coordinated V). blvm-sdk includes blvm-sdk-macros at the same V.
+blvm-consensus
+blvm-protocol
+blvm-node
+blvm-sdk

@@ -22,6 +22,17 @@ This directory contains build, CI, and release scripts for the Bitcoin Commons b
 - `verify_formal_coverage.sh` - Verify formal verification coverage
 - `verify-versions.sh` - Verify version consistency
 
+### Develop channel scripts
+- `compute-develop-version.sh` — Next coordinated develop version **V** from crates.io
+- `resolve-develop-registry-deps.py` / `.sh` — Rewrite sibling deps (`resolve` or `publish` mode)
+- `develop-release-set.txt` — Ordered publish set
+- `ci-publish-develop.sh` — Publish one crate at **V** (optional `--wait-for` deps)
+- `ci-wait-develop-set.sh` — Wait until all set crates are on crates.io at **V**
+- `ci-develop-scripts-dir.sh` — Locate `blvm/scripts` on runner or clone
+- `ci-nightly-artifacts.sh` — Linux + Windows nightly artifacts (`version=nightly`)
+- `ci-publish-develop-sdk.sh` — Publish `blvm-sdk` + `blvm-sdk-macros` at **V**
+- `update-versions-develop-metadata.py` — Refresh `versions.toml` `[versions.develop]`
+
 ### Release Scripts
 - `bump-release-set.sh` / `bump-release-set.py` - Bump coordinated semver (`patch`|`minor`|`major`), update `versions.toml` (before `[metadata]`) and `blvm/Cargo.toml` `[package].version`; use `--dry-run` to preview
 - `create-release.sh` - Create release

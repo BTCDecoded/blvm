@@ -325,6 +325,57 @@ For release builds, the pipeline switches to published crates:
 blvm-protocol = "=0.1.0"
 ```
 
+## Develop channel (`develop` branch)
+
+Parallel integration channel beside stable `main`. Full design: workspace **`docs/DEVELOP_CHANNEL_PLAN.md`**.
+
+| | Stable (`main`) | Develop (`develop`) |
+|---|----------------|---------------------|
+| crates.io | `0.1.N` | `0.1.(N+1)-dev.M` (one coordinated **V** per run) |
+| GitHub Release | `v0.1.N` | Rolling **`nightly`** prerelease (`blvm` only) |
+| GHCR | `:version`, `:latest` | **`:nightly` only** |
+| CI publish jobs | `release` | `publish-dev` (libraries), `publish-develop-set` + `nightly-release` (`blvm`) |
+| PRs | Quality gates only | Same (no publish / no nightly) |
+
+### Version **V**
+
+Computed by `blvm/scripts/compute-develop-version.sh` from crates.io stable **S** (anchor `blvm-consensus`):
+
+`V = 0.1.(patch(S)+1)-dev.M` (e.g. stable `0.1.21` → `0.1.22-dev.1`).
+
+### Publish order
+
+1. `blvm-consensus` → 2. `blvm-protocol` → 3. `blvm-node` → (optional `blvm-sdk`)
+
+Jobs: `publish-dev` in each library repo on **push** to `develop`; `publish-develop-set` on `blvm` waits for the set (or publishes siblings on the runner when present), then `nightly-release` pins `=V` and builds binaries.
+
+### Dependency rewriting
+
+Committed manifests keep `>=0.1, <1`. CI uses `resolve-develop-registry-deps.py`:
+
+- **`publish` mode** — siblings `=V` before `cargo publish` / nightly build
+- **`resolve` mode** — pin latest dev when `patch(D) > patch(S)` on the index (tests on `develop`)
+
+No version-bump commits on `develop`; publish uses `--allow-dirty`.
+
+### Orchestration
+
+`repository_dispatch` event **`develop-chain`** carries `{ "version": "…" }` from consensus → protocol/node → `blvm`.
+
+### Prerequisites
+
+- `develop` branch on GitHub (per repo)
+- `CARGO_REGISTRY_TOKEN` for publish jobs
+- `REPO_ACCESS_TOKEN` for cross-repo `develop-chain` dispatch (optional)
+
+### Recovery and skip tokens
+
+See workspace [DEVELOP_CHANNEL_GO_LIVE.md](../../docs/DEVELOP_CHANNEL_GO_LIVE.md) for the full operator checklist.
+
+- **`workflow_dispatch`** on `blvm` CI: `force_version`, `skip_publish_dev`
+- **`[skip_publish_dev]`** on push commits: skip crates.io develop publish
+- After publish, CI may update `versions.toml` `[versions.develop]` (informational)
+
 ## Future Enhancements
 
 Planned improvements:

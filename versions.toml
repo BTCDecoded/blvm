@@ -28,6 +28,21 @@ blvm-sdk = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", binaries = 
 governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-sdk=0.1.0"], binaries = ["governance-app", "key-manager", "test-content-hash", "test-content-hash-standalone"] }
 
 # Metadata
+# Rolling develop channel metadata (optional; CI may update after successful publish-develop-set).
+# Authoritative version at publish time comes from compute-develop-version.sh + crates.io index.
+[versions.develop]
+version = ""
+based_on_stable = ""
+dev_prefix = ""
+published_at = ""
+git_sha = ""
+
+[versions.develop.dependencies]
+blvm-consensus = ""
+blvm-protocol = ""
+blvm-node = ""
+blvm-sdk = ""
+
 [metadata]
 last_updated = "2025-01-XX"
 updated_by = "System Review"
