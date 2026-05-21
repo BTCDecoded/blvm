@@ -26,9 +26,9 @@ struct Cli {
     #[arg(short, long, value_enum, default_value = "regtest")]
     network: Network,
 
-    /// RPC server address
-    #[arg(short, long, default_value = "127.0.0.1:18332")]
-    rpc_addr: SocketAddr,
+    /// RPC server address (default depends on --network when omitted)
+    #[arg(short, long)]
+    rpc_addr: Option<SocketAddr>,
 
     /// P2P listen address
     #[arg(short, long, default_value = "0.0.0.0:8333")]
@@ -358,34 +358,34 @@ async fn main() -> Result<()> {
     // Handle subcommands
     match cli.command {
         Some(Command::Status { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_status(rpc_addr, &config).await
         }
         Some(Command::Health { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_health(rpc_addr, &config).await
         }
         Some(Command::Version) => handle_version(),
         Some(Command::Chain { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_chain(rpc_addr, &config).await
         }
         Some(Command::Peers { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_peers(rpc_addr, &config).await
         }
         Some(Command::Network { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_network(rpc_addr, &config).await
         }
         Some(Command::Sync { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_sync(rpc_addr, &config).await
         }
         Some(Command::Config { ref subcommand }) => {
@@ -438,8 +438,8 @@ async fn main() -> Result<()> {
             ref params,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             let params: Value = serde_json::from_str(params).context("Invalid JSON parameters")?;
             handle_rpc(rpc_addr, method, params, &config).await
         }
@@ -447,8 +447,8 @@ async fn main() -> Result<()> {
             ref subcommand,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(rpc_addr, subcommand, &config).await
         }
         Some(Command::ConfigPath { ref module }) => {
@@ -459,8 +459,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Load {
@@ -474,8 +474,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Unload {
@@ -489,8 +489,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Reload {
@@ -501,8 +501,8 @@ async fn main() -> Result<()> {
             .await
         }
         Some(Command::ModuleCli(ref args)) => {
-            let (config, _, _, _, _) = build_final_config(&cli)?;
-            handle_module_cli(cli.rpc_addr, args, &config).await
+            let (config, _, _, rpc_addr, _) = build_final_config(&cli)?;
+            handle_module_cli(rpc_addr, args, &config).await
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
@@ -830,7 +830,10 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
         .unwrap_or_else(|| "./data".to_string());
     let listen_addr = cli.listen_addr;
-    let rpc_addr = cli.rpc_addr;
+    let rpc_addr = cli
+        .rpc_addr
+        .or(env_overrides.rpc_addr)
+        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(&format!("{network:?}")));
 
     // Apply CLI overrides to config (CLI overrides ENV and config file)
     config.listen_addr = Some(listen_addr);

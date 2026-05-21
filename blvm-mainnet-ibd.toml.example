@@ -1,0 +1,49 @@
+# Mainnet initial block download (IBD) — example configuration
+#
+# Copy and edit before first mainnet sync:
+#   mkdir -p ~/.config/blvm
+#   cp blvm-mainnet-ibd.toml.example ~/.config/blvm/blvm.toml
+#
+# Or pass explicitly:
+#   blvm --config blvm-mainnet-ibd.toml.example --network mainnet --data-dir ~/.local/share/blvm-mainnet
+#
+# LAN Bitcoin Core on your network (recommended for fast sync):
+#   BLVM_IBD_PEERS=<ip>:8333 blvm --config ... --network mainnet
+# Optional: BLVM_IBD_MODE=earliest (fresh chain also defaults to earliest in the node)
+
+transport_preference = "tcponly"
+listen_addr = "0.0.0.0:8333"
+protocol_version = "BitcoinV1"
+
+# Optional: connect early to a trusted peer (e.g. LAN Core)
+# persistent_peers = ["<your-lan-core>:8333"]
+
+[storage]
+data_dir = "~/.local/share/blvm-mainnet"
+database_backend = "rocksdb"
+
+[storage.pruning]
+[storage.pruning.mode]
+type = "normal"
+keep_from_height = 0
+min_recent_blocks = 144
+
+incremental_prune_during_ibd = true
+prune_window_size = 144
+min_blocks_for_incremental_prune = 288
+auto_prune = true
+auto_prune_interval = 144
+min_blocks_to_keep = 144
+
+[ibd]
+chunk_size = 16
+download_timeout_secs = 30
+mode = "parallel"
+# preferred_peers = ["<your-lan-core>:8333"]
+eviction = "fifo"
+
+[rpc]
+max_request_size_bytes = 1048576
+
+[logging]
+level = "info"

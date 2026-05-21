@@ -66,6 +66,8 @@ blvm-node = "=${VERSION_TAG#v}"
 
 **Includes**:
 - Core \`blvm\` binary
+- \`blvm-mainnet-ibd.toml.example\` — mainnet IBD config template
+- \`scripts/start-ibd-mainnet.sh\` — start mainnet sync without building from source
 - Associated governance / SDK tools collected by \`collect-artifacts.sh\`
 
 ## Binaries Included
@@ -82,19 +84,21 @@ blvm-node = "=${VERSION_TAG#v}"
 ## Installation
 
 \`\`\`bash
-tar -xzf blvm-${VERSION_TAG}-linux-x86_64.tar.gz
-sudo mv blvm /usr/local/bin/
+tar xzf blvm-${VERSION_TAG}-linux-x86_64.tar.gz
+sha256sum -c SHA256SUMS-blvm-linux-x86_64
+./scripts/start-ibd-mainnet.sh --init-config   # optional
+BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
 \`\`\`
 
 (On Windows, extract the \`.zip\` and run \`blvm.exe\` from the archive root.)
 
 ## Verification
 
-Verify checksums:
+Verify checksums (per-platform file inside the archive):
 
 \`\`\`bash
-sha256sum -c SHA256SUMS-linux-x86_64
-sha256sum -c SHA256SUMS-windows-x86_64
+sha256sum -c SHA256SUMS-blvm-linux-x86_64
+sha256sum -c SHA256SUMS-blvm-windows-x86_64
 \`\`\`
 
 Verify component provenance:

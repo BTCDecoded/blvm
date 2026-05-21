@@ -75,6 +75,31 @@ blvm --data-dir /var/lib/blvm
 blvm --verbose
 ```
 
+### First mainnet sync (release binary)
+
+Download `blvm-vX.Y.Z-linux-x86_64.tar.gz` from [GitHub Releases](https://github.com/BTCDecoded/blvm/releases), then verify and run:
+
+```bash
+tar xzf blvm-v0.1.27-linux-x86_64.tar.gz
+sha256sum -c SHA256SUMS-blvm-linux-x86_64
+
+# Optional: install example config (edit LAN peer if you have local Core)
+./scripts/start-ibd-mainnet.sh --init-config
+
+# Start sync (RPC defaults to 127.0.0.1:8332 on mainnet)
+blvm --config blvm-mainnet-ibd.toml.example \
+  --network mainnet \
+  --data-dir ~/.local/share/blvm-mainnet \
+  --verbose
+
+# Or use the helper script (same binary, logs to ~/.local/share/blvm-mainnet/ibd.log)
+BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
+```
+
+If you have Bitcoin Core on your LAN, set `BLVM_IBD_PEERS=<ip>:8333` for reliable downloads. The node logs a hint when it discovers LAN peers. Fresh chains use **earliest** download mode by default (override with `BLVM_IBD_MODE`).
+
+Monitor progress in logs (`IBD: <height> / <tip>`) or `blvm sync` once RPC is up. Resume later with the **same** `--data-dir` (do not wipe the directory between runs).
+
 ## Commands
 
 The `blvm` binary supports subcommands for node management and information queries. If no subcommand is provided, the node starts (default behavior).
@@ -175,7 +200,7 @@ blvm --config blvm.toml --network regtest
 | `--config` | `-c` | Config file path (TOML or JSON) | Auto-detected |
 | `--verbose` | `-v` | Enable verbose logging | `false` |
 
-**RPC default:** With `--network regtest` (the CLI default), `--rpc-addr` still defaults to **`127.0.0.1:18332`** — the same default used if you omit `--network`. This is **not** Bitcoin Core’s usual regtest RPC port; set `--rpc-addr` and `BLVM_RPC_ADDR` to whatever socket your deployment uses (e.g. `127.0.0.1:18443` if you align with Core-style regtest).
+**RPC default:** When `--rpc-addr` is omitted, mainnet uses **`127.0.0.1:8332`**; testnet and regtest use **`127.0.0.1:18332`**. `BLVM_RPC_ADDR` overrides this. Regtest’s default is **not** Bitcoin Core’s usual `18443`; set `--rpc-addr` or `BLVM_RPC_ADDR` if you need Core-aligned ports.
 
 #### Feature Flags
 

@@ -76,6 +76,18 @@ collect_blvm_binary() {
         # Always collect governance tools to ensure they're fresh
         collect_governance_binaries
         
+        # Mainnet IBD onboarding (example config + helper script)
+        if [ -f "${repo_path}/blvm-mainnet-ibd.toml.example" ]; then
+            cp "${repo_path}/blvm-mainnet-ibd.toml.example" "${BLVM_DIR}/"
+            log_success "Included: blvm-mainnet-ibd.toml.example"
+        fi
+        if [ -f "${repo_path}/scripts/start-ibd-mainnet.sh" ]; then
+            mkdir -p "${BLVM_DIR}/scripts"
+            cp "${repo_path}/scripts/start-ibd-mainnet.sh" "${BLVM_DIR}/scripts/"
+            chmod +x "${BLVM_DIR}/scripts/start-ibd-mainnet.sh"
+            log_success "Included: scripts/start-ibd-mainnet.sh"
+        fi
+
         # Copy governance tools into the blvm archive
         if [ -d "$GOVERNANCE_DIR" ] && [ "$(ls -A "$GOVERNANCE_DIR" 2>/dev/null)" ]; then
             log_info "Including governance tools in blvm archive..."
