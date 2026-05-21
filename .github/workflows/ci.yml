@@ -338,17 +338,20 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+      # build-dev may run on another self-hosted host; ensure shared target path exists here too.
+      - name: Ensure shared target dir on this runner
+        run: mkdir -p "${{ env.BLVM_BUILD_TARGET }}"
+
       # Integration tests: compiled in the `test` job. Clippy matches blvm-node CI: lib + bins only
       # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
-      - name: Clippy (default features)
+      - name: Clippy (default + all features)
         env:
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
-
-      - name: Clippy (all features, incremental)
-        env:
-          CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
-        run: cargo clippy --lib --bins --all-features -- -D clippy::uninlined_format_args -D warnings
+        run: |
+          # Runner CC/CXX exports (or empty ccache placeholders) break librocksdb-sys and other -sys builds.
+          unset CC CXX CPP AR || true
+          cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
+          cargo clippy --lib --bins --all-features -- -D clippy::uninlined_format_args -D warnings
 
   fmt:
     name: Format
@@ -421,8 +424,15 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+      - name: Ensure shared target dir on this runner
+        run: mkdir -p "${{ env.BLVM_BUILD_TARGET }}"
+
       - name: Build docs
-        run: cargo doc --no-deps --document-private-items
+        env:
+          CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
+        run: |
+          unset CC CXX CPP AR || true
+          cargo doc --no-deps --document-private-items
 
   security:
     name: Security
