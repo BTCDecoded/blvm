@@ -1216,6 +1216,19 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
 }
 
 // RPC client helper
+
+fn rpc_connect_failure_hint(rpc_addr: SocketAddr) -> String {
+    match rpc_addr.port() {
+        18332 => format!(
+            "\nHint: CLI default RPC is regtest ({rpc_addr}). For mainnet use --network mainnet (repeat --config if you started with one), or --rpc-addr 127.0.0.1:8332"
+        ),
+        8332 => format!(
+            "\nHint: is the mainnet node running on {rpc_addr}? Start it first with blvm --network mainnet --config …"
+        ),
+        _ => String::new(),
+    }
+}
+
 async fn rpc_call(rpc_addr: SocketAddr, method: &str, params: Value) -> Result<Value> {
     rpc_call_with_auth(rpc_addr, method, params, None, None).await
 }
@@ -1244,10 +1257,10 @@ async fn rpc_call_with_auth(
     let rpc_password = password.unwrap_or("");
     req = req.basic_auth(rpc_user, Some(rpc_password));
 
-    let response = req
-        .send()
-        .await
-        .context("Failed to connect to RPC server")?;
+    let response = req.send().await.map_err(|e| {
+        let hint = rpc_connect_failure_hint(rpc_addr);
+        anyhow::anyhow!("Failed to connect to RPC server at {rpc_addr}{hint}: {e}")
+    })?;
 
     let status = response.status();
     if !status.is_success() {
@@ -1459,16 +1472,28 @@ async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
         .get("verificationprogress")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
+    let initial_block_download = info
+        .get("initialblockdownload")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     println!("=== Sync Status ===");
     println!("Blocks: {blocks}");
     println!("Headers: {headers}");
     println!("Progress: {:.2}%", progress * 100.0);
+    if initial_block_download {
+        println!("Initial block download: yes (active IBD)");
+    }
 
     if blocks == headers && progress >= 1.0 {
         println!("Status: ✅ Fully synced");
     } else if headers > blocks {
         println!("Status: ⏳ Syncing ({} blocks behind)", headers - blocks);
+    } else if progress < 0.999 && blocks > 0 {
+        println!("Status: ⏳ Verifying downloaded blocks");
+        println!(
+            "Note: During active IBD, node logs (`IBD: <height> / <tip>`) are often ahead of this RPC view."
+        );
     } else {
         println!("Status: ⏳ Verifying");
     }

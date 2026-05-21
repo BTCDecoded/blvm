@@ -65,9 +65,6 @@ blvm
 # Start node on testnet
 blvm --network testnet
 
-# Start node on mainnet (use with caution)
-blvm --network mainnet
-
 # Custom data directory
 blvm --data-dir /var/lib/blvm
 
@@ -75,30 +72,25 @@ blvm --data-dir /var/lib/blvm
 blvm --verbose
 ```
 
+**Mainnet:** use [First mainnet sync](#first-mainnet-sync-release-binary) below (example config + IBD tuning). Bare `blvm --network mainnet` skips that and is for advanced use only.
+
 ### First mainnet sync (release binary)
 
-Download `blvm-vX.Y.Z-linux-x86_64.tar.gz` from [GitHub Releases](https://github.com/BTCDecoded/blvm/releases), then verify and run:
+See [Mainnet initial sync](https://docs.thebitcoincommons.org/getting-started/mainnet-sync.html) for full detail.
 
 ```bash
 tar xzf blvm-v0.1.27-linux-x86_64.tar.gz
+cd blvm-v0.1.27-linux-x86_64
 sha256sum -c SHA256SUMS-blvm-linux-x86_64
-
-# Optional: install example config (edit LAN peer if you have local Core)
-./scripts/start-ibd-mainnet.sh --init-config
-
-# Start sync (RPC defaults to 127.0.0.1:8332 on mainnet)
-blvm --config blvm-mainnet-ibd.toml.example \
-  --network mainnet \
-  --data-dir ~/.local/share/blvm-mainnet \
-  --verbose
-
-# Or use the helper script (same binary, logs to ~/.local/share/blvm-mainnet/ibd.log)
-BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
+./scripts/start-ibd-mainnet.sh
+# BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
 ```
 
-If you have Bitcoin Core on your LAN, set `BLVM_IBD_PEERS=<ip>:8333` for reliable downloads. The node logs a hint when it discovers LAN peers. Fresh chains use **earliest** download mode by default (override with `BLVM_IBD_MODE`).
+Uses bundled `blvm-mainnet-ibd.toml.example` and `~/.local/share/blvm-mainnet`. No `BLVM_IBD_*` env vars required.
 
-Monitor progress in logs (`IBD: <height> / <tip>`) or `blvm sync` once RPC is up. Resume later with the **same** `--data-dir` (do not wipe the directory between runs).
+**Manual:** `blvm --config blvm-mainnet-ibd.toml.example --network mainnet --data-dir ~/.local/share/blvm-mainnet --verbose`
+
+**Monitor / resume:** `blvm --network mainnet --config blvm-mainnet-ibd.toml.example sync` — same flags as start; keep the same `--data-dir`.
 
 ## Commands
 
@@ -125,9 +117,12 @@ blvm peers
 # Show network information
 blvm network
 
-# Show sync status
+# Show sync status (default RPC is regtest :18332 — pass --network for mainnet)
 blvm sync
+blvm --network mainnet --config blvm-mainnet-ibd.toml.example sync
 ```
+
+Subcommands use the same `--network`, `--config`, and `--rpc-addr` as node start. Bare `blvm sync` targets regtest RPC (`18332`); a mainnet node listens on `8332`.
 
 ### Configuration Commands
 
@@ -194,7 +189,7 @@ blvm --config blvm.toml --network regtest
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
 | `--network` | `-n` | Network to connect to (regtest/testnet/mainnet) | `regtest` |
-| `--rpc-addr` | `-r` | RPC server address | `127.0.0.1:18332` |
+| `--rpc-addr` | `-r` | RPC server address (network-aware when omitted; see note below) | regtest/testnet: `127.0.0.1:18332`; mainnet: `127.0.0.1:8332` |
 | `--listen-addr` | `-l` | P2P listen address | `0.0.0.0:8333` |
 | `--data-dir` | `-d` | Data directory | `./data` |
 | `--config` | `-c` | Config file path (TOML or JSON) | Auto-detected |
@@ -705,6 +700,17 @@ utxo_commitment_request_timeout_seconds = 30
 ---
 
 ## Troubleshooting
+
+### Mainnet IBD
+
+| Symptom | Fix |
+|---------|-----|
+| Quiet 15–60s after start | Wait for peer discovery → `IBD:` lines |
+| P2P **8333** in use | Stop Core or change `listen_addr` |
+| `blvm sync` won't connect | `blvm --network mainnet --config … sync` (same flags as start) |
+| Slow / stalled sync | Auto-LAN when Core on LAN; else optional `BLVM_IBD_PEERS=<ip>:8333` |
+| Slow near ~900k+ | Normal after assume-valid — see [mainnet sync docs](https://docs.thebitcoincommons.org/getting-started/mainnet-sync.html) |
+| Lost progress on restart | Same `--data-dir`; don't delete `rocksdb/` |
 
 ### Common Issues
 

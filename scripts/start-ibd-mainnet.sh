@@ -52,6 +52,9 @@ if [ -z "$CONFIG_FILE" ]; then
 fi
 
 mkdir -p "$DATA_DIR"
+if [ -d "$DATA_DIR/rocksdb" ]; then
+    echo "Existing chain data found — resuming sync (keep the same data dir; do not wipe rocksdb/)."
+fi
 export RUST_LOG="${RUST_LOG:-blvm=info}"
 
 echo "Binary:  $BINARY"
@@ -61,7 +64,10 @@ echo "Log:     $LOG_FILE"
 [ -n "${BLVM_IBD_PEERS:-}" ] && echo "IBD peers: $BLVM_IBD_PEERS"
 
 if [ -n "${BLVM_BACKGROUND:-}" ]; then
-    nohup env BLVM_IBD_PEERS="${BLVM_IBD_PEERS:-}" BLVM_IBD_MODE="${BLVM_IBD_MODE:-}" \
+    IBD_ENV=()
+    [ -n "${BLVM_IBD_PEERS:-}" ] && IBD_ENV+=(BLVM_IBD_PEERS="$BLVM_IBD_PEERS")
+    [ -n "${BLVM_IBD_MODE:-}" ] && IBD_ENV+=(BLVM_IBD_MODE="$BLVM_IBD_MODE")
+    nohup env "${IBD_ENV[@]}" \
         "$BINARY" \
         --config "$CONFIG_FILE" \
         --network mainnet \
@@ -71,7 +77,10 @@ if [ -n "${BLVM_BACKGROUND:-}" ]; then
     echo "PID: $! (background; tail -f $LOG_FILE)"
     disown 2>/dev/null || true
 else
-    env BLVM_IBD_PEERS="${BLVM_IBD_PEERS:-}" BLVM_IBD_MODE="${BLVM_IBD_MODE:-}" \
+    IBD_ENV=()
+    [ -n "${BLVM_IBD_PEERS:-}" ] && IBD_ENV+=(BLVM_IBD_PEERS="$BLVM_IBD_PEERS")
+    [ -n "${BLVM_IBD_MODE:-}" ] && IBD_ENV+=(BLVM_IBD_MODE="$BLVM_IBD_MODE")
+    env "${IBD_ENV[@]}" \
         "$BINARY" \
         --config "$CONFIG_FILE" \
         --network mainnet \
