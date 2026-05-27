@@ -18,6 +18,7 @@ jobs:
   cleanup:
     name: Cleanup self-hosted runner disk
     runs-on: [self-hosted, Linux, X64, builds]
+
     steps:
       - name: Report disk before
         run: df -h /

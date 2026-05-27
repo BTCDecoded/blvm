@@ -49,6 +49,7 @@ jobs:
   build:
     # Prefer runners with rust label, fallback to basic
     runs-on: [self-hosted, Linux, X64, builds]
+
     timeout-minutes: ${{ inputs.timeout_minutes }}
     
     steps:
