@@ -24,13 +24,13 @@ jobs:
 
     steps:
       - name: Checkout commons
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/commons
           path: commons
       
       - name: Checkout target repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/${{ inputs.repo-name }}
           path: ${{ inputs.repo-name }}
@@ -51,7 +51,7 @@ jobs:
           components: rustfmt clippy
 
       - name: Cache cargo dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -105,7 +105,7 @@ jobs:
       
       - name: Upload artifacts
         if: contains(fromJSON('["blvm-node", "blvm-sdk", "governance-app"]'), inputs.repo-name)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.repo-name }}-binaries
           path: artifacts/

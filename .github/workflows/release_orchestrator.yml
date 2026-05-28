@@ -39,7 +39,7 @@ jobs:
       trigger_repo: ${{ steps.refs.outputs.trigger_repo }}
       use_latest_crates: ${{ steps.scope.outputs.use_latest_crates }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Debug event information
         run: |
@@ -173,7 +173,7 @@ jobs:
       ds: ${{ steps.parse.outputs.ds }}
       ga: ${{ steps.parse.outputs.ga }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Parse versions.toml or use latest crates
         id: parse
         run: |

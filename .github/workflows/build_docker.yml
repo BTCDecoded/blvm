@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Checkout target repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/${{ inputs.repo }}
           ref: ${{ inputs.ref }}

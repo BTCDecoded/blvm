@@ -66,7 +66,7 @@ jobs:
           fi
       
       - name: Checkout target repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/${{ inputs.repo }}
           ref: ${{ inputs.ref }}
@@ -225,7 +225,7 @@ jobs:
           echo "Deterministic build verified: hashes match"
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ inputs.repo }}-artifacts
           path: |

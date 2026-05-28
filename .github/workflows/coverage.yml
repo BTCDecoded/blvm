@@ -31,7 +31,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_coverage == true
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
 
       - name: Strip [patch.crates-io] for crates.io-only CI

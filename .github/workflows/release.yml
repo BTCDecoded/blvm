@@ -57,7 +57,7 @@ jobs:
       previous_version: ${{ steps.version.outputs.previous_version }}
     steps:
       - name: Checkout blvm
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/blvm
           path: blvm
@@ -145,7 +145,7 @@ jobs:
     timeout-minutes: 240
     steps:
       - name: Checkout blvm
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/blvm
           path: blvm

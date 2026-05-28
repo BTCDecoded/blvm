@@ -69,7 +69,7 @@ jobs:
       - name: Disk check
         uses: BTCDecoded/rust-ci/runner-disk-guard@main
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -121,7 +121,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_tests]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -211,7 +211,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -276,7 +276,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -300,7 +300,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -352,7 +352,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_security]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -393,7 +393,7 @@ jobs:
         (needs.docs.result == 'success' || needs.docs.result == 'skipped') &&
         (needs.security.result == 'success' || needs.security.result == 'skipped')))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -497,7 +497,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -869,7 +869,7 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.version_tag }}
           fetch-depth: 0

@@ -23,16 +23,16 @@ struct Cli {
     command: Option<Command>,
 
     /// Network to connect to
-    #[arg(short, long, value_enum, default_value = "regtest")]
-    network: Network,
+    #[arg(short, long, value_enum)]
+    network: Option<Network>,
 
     /// RPC server address (default depends on --network when omitted)
     #[arg(short, long)]
     rpc_addr: Option<SocketAddr>,
 
-    /// P2P listen address
-    #[arg(short, long, default_value = "0.0.0.0:8333")]
-    listen_addr: SocketAddr,
+    /// P2P listen address (default depends on --network: 8333/18333/18444)
+    #[arg(short, long)]
+    listen_addr: Option<SocketAddr>,
 
     /// Data directory (CLI overrides ENV and config; default ./data when not specified)
     #[arg(short, long)]
@@ -418,8 +418,8 @@ async fn main() -> Result<()> {
                 verify,
                 verbose,
             } => {
-                use blvm_node::storage::bitcoin_core_detection::BitcoinCoreNetwork;
-                let network_parsed: BitcoinCoreNetwork = network
+                use blvm_node::storage::bitcoin_detection::CoreDataNetwork;
+                let network_parsed: CoreDataNetwork = network
                     .parse()
                     .map_err(|e: String| anyhow::anyhow!("Invalid network: {}", e))?;
                 let source_path = source.as_ref().map(std::path::PathBuf::from);
@@ -717,6 +717,21 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 }
 
 /// Build final configuration with hierarchy: CLI > ENV > Config > Defaults
+/// Derive a Network from a loaded NodeConfig's `protocol_version`, defaulting to Regtest.
+fn network_from_config_or_default(config: &NodeConfig) -> Network {
+    match config
+        .protocol_version
+        .as_deref()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "bitcoinv1" | "mainnet" => Network::Mainnet,
+        "testnet" => Network::Testnet,
+        _ => Network::Regtest,
+    }
+}
+
 fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
     // 1. Start with defaults
     let mut config = NodeConfig::default();
@@ -792,34 +807,28 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     // Apply ENV overrides for new config options
     apply_env_config_overrides(&mut config, &env_overrides);
 
-    // 4. Determine final values (CLI > ENV > Config file > Defaults)
-    // Network: ENV wins; else if a config file was **successfully** loaded, use its
-    // `protocol_version`; else use CLI (default `regtest`). Without this, `NodeConfig::default()`
-    // always has `protocol_version = BitcoinV1`, which incorrectly forced mainnet for
-    // `blvm -n regtest -d …` with no usable config file.
-    let network = if let Some(network_str) = &env_overrides.network {
+    // 4. Determine final values — precedence: CLI explicit > ENV > config file > built-in default
+
+    // Network: CLI explicit → BLVM_NETWORK env → config file protocol_version → regtest
+    let network = if let Some(ref cli_net) = cli.network {
+        cli_net.clone()
+    } else if let Some(network_str) = &env_overrides.network {
         match network_str.to_lowercase().as_str() {
             "regtest" => Network::Regtest,
             "testnet" => Network::Testnet,
             "mainnet" => Network::Mainnet,
             _ => {
-                warn!("Unknown network in ENV: {}. Using config/CLI.", network_str);
-                cli.network.clone()
+                warn!(
+                    "Unknown network in BLVM_NETWORK: '{}'. Falling back to config/default.",
+                    network_str
+                );
+                network_from_config_or_default(&config)
             }
         }
     } else if config_loaded_from_file {
-        if let Some(pv) = &config.protocol_version {
-            match pv.to_lowercase().as_str() {
-                "bitcoinv1" | "mainnet" => Network::Mainnet,
-                "testnet" => Network::Testnet,
-                "regtest" => Network::Regtest,
-                _ => cli.network.clone(),
-            }
-        } else {
-            cli.network.clone()
-        }
+        network_from_config_or_default(&config)
     } else {
-        cli.network.clone()
+        Network::Regtest
     };
 
     // data_dir: CLI > ENV > config.storage.data_dir > default
@@ -829,13 +838,25 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .or_else(|| env_overrides.data_dir.clone())
         .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
         .unwrap_or_else(|| "./data".to_string());
-    let listen_addr = cli.listen_addr;
+
+    // listen_addr: CLI explicit → BLVM_LISTEN_ADDR env → config file → network-aware default
+    let default_listen_port = match network {
+        Network::Mainnet => 8333u16,
+        Network::Testnet => 18333,
+        Network::Regtest => 18444,
+    };
+    let listen_addr = cli
+        .listen_addr
+        .or(env_overrides.listen_addr)
+        .or(config.listen_addr)
+        .unwrap_or_else(|| SocketAddr::from(([0, 0, 0, 0], default_listen_port)));
+
     let rpc_addr = cli
         .rpc_addr
         .or(env_overrides.rpc_addr)
         .unwrap_or_else(|| blvm::default_rpc_addr_for_network(&format!("{network:?}")));
 
-    // Apply CLI overrides to config (CLI overrides ENV and config file)
+    // Apply resolved values to config so downstream code reads them from one place
     config.listen_addr = Some(listen_addr);
     config.protocol_version = Some(format!("{network:?}"));
 

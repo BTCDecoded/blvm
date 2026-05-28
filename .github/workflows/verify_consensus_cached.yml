@@ -41,7 +41,7 @@ jobs:
           df -h
       
       - name: Checkout target repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/${{ inputs.repo }}
           ref: ${{ inputs.ref }}
@@ -128,7 +128,7 @@ jobs:
       
       - name: Upload logs (optional)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: verify-logs-${{ inputs.repo }}
           path: |
