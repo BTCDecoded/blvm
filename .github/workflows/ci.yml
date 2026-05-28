@@ -53,7 +53,6 @@ jobs:
   setup:
     name: Setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -82,7 +81,7 @@ jobs:
       - name: Disk check
         uses: BTCDecoded/rust-ci/runner-disk-guard@main
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -121,11 +120,11 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+
   test:
     name: Test
     needs: setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -135,7 +134,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_tests]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -182,6 +181,8 @@ jobs:
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
       - name: Run tests
+        env:
+          CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: |
           unset CC CXX CPP AR || true
           cargo test --lib --bins --tests
@@ -192,9 +193,14 @@ jobs:
           df -h /
           du -sh /tmp/gh-blvm-build/* 2>/dev/null | sort -rh | head -10
 
-      - name: Clean stale run dirs
+      - name: Clean test executables and stale run dirs
         if: always()
         run: |
+          TARGET="${{ env.BLVM_BUILD_TARGET }}"
+          if [ -d "$TARGET/debug" ]; then
+            find "$TARGET/debug" -maxdepth 1 -type f -executable ! -name "*.so" ! -name "*.rlib" ! -name "*.d" \
+              -delete 2>/dev/null || true
+          fi
           find /tmp/gh-blvm-build -mindepth 1 -maxdepth 1 -type d \
             -not -name "${{ github.run_id }}" \
             -exec rm -rf {} + 2>/dev/null || true
@@ -215,7 +221,6 @@ jobs:
     name: Clippy
     needs: setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -227,7 +232,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -268,17 +273,22 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+      # Integration tests: compiled in the `test` job. Clippy matches blvm-node CI: lib + bins only
+      # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
       - name: Clippy (default features)
+        env:
+          CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
 
-      - name: Clippy (all features)
+      - name: Clippy (all features, incremental)
+        env:
+          CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: cargo clippy --lib --bins --all-features -- -D clippy::uninlined_format_args -D warnings
 
   fmt:
     name: Format
     needs: setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -290,7 +300,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -305,7 +315,6 @@ jobs:
     name: Docs
     needs: setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -315,7 +324,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -354,7 +363,6 @@ jobs:
     name: Security
     needs: setup
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       (github.event_name != 'push' || github.event.head_commit == null ||
        (!contains(github.event.head_commit.message, '[skip ci]') &&
@@ -366,7 +374,7 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_security]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -392,7 +400,6 @@ jobs:
       - docs
       - security
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: |
       always() &&
       needs.setup.result == 'success' &&
@@ -408,7 +415,7 @@ jobs:
         (needs.docs.result == 'success' || needs.docs.result == 'skipped') &&
         (needs.security.result == 'success' || needs.security.result == 'skipped')))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -480,7 +487,6 @@ jobs:
     name: Release
     needs: [setup, build, test, clippy, fmt, docs, security]
     runs-on: [self-hosted, Linux, X64, builds]
-
     permissions:
       contents: write
       id-token: write
@@ -513,7 +519,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -844,8 +850,7 @@ jobs:
   notify-website-deploy:
     name: Dispatch marketing site rebuilds
     needs: release
-    runs-on: [self-hosted, Linux, X64, builds]
-
+    runs-on: ubuntu-latest
     if: ${{ always() && needs.release.result == 'success' }}
     steps:
       - name: repository_dispatch(blvm-release) → website & commons-website
@@ -875,7 +880,6 @@ jobs:
     name: Publish / verify develop crate set
     needs: [setup, build, test, clippy, fmt, docs, security]
     runs-on: [self-hosted, Linux, X64, builds]
-
     outputs:
       version: ${{ steps.ensure.outputs.version }}
       based_on_stable: ${{ steps.ensure.outputs.based_on_stable }}
@@ -890,7 +894,7 @@ jobs:
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_publish_dev]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_publish_dev]')) &&
-      (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_publish_dev != true) &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_publish_dev != 'true') &&
       ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
        (
          (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
@@ -902,7 +906,7 @@ jobs:
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Strip [patch.crates-io] for crates.io-only CI
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
@@ -966,10 +970,14 @@ jobs:
             --git-sha "${{ github.sha }}"
 
       - name: Commit versions.toml develop metadata
-        if: steps.ensure.outputs.version != '' && secrets.REPO_ACCESS_TOKEN != ''
+        if: steps.ensure.outputs.version != ''
         env:
           REPO_ACCESS_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
+          if [ -z "${REPO_ACCESS_TOKEN:-}" ]; then
+            echo "REPO_ACCESS_TOKEN not set — skipping versions.toml push"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add versions.toml
@@ -986,7 +994,6 @@ jobs:
     name: Nightly Release (develop)
     needs: [setup, build, test, clippy, fmt, docs, security, publish-develop-set]
     runs-on: [self-hosted, Linux, X64, builds]
-
     permissions:
       contents: write
     if: |
@@ -1020,7 +1027,7 @@ jobs:
     env:
       CARGO_NIGHTLY_TARGET: /tmp/gh-blvm-nightly-build/${{ github.run_id }}/target
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -1179,6 +1186,7 @@ jobs:
               --notes-file "${NOTES_FILE}"
           else
             gh release edit nightly \
+              --target "${GITHUB_SHA}" \
               --prerelease \
               --notes-file "${NOTES_FILE}"
           fi
@@ -1193,7 +1201,6 @@ jobs:
     name: Publish container nightly (GHCR)
     needs: [setup, nightly-release]
     runs-on: [self-hosted, Linux, X64, builds]
-
     permissions:
       contents: read
       packages: write
@@ -1206,7 +1213,7 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
@@ -1247,7 +1254,6 @@ jobs:
     name: Publish container (GHCR)
     needs: [setup, release]
     runs-on: [self-hosted, Linux, X64, builds]
-
     permissions:
       contents: read
       packages: write
@@ -1260,7 +1266,7 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.release.outputs.version_tag }}
           fetch-depth: 0
@@ -1307,7 +1313,6 @@ jobs:
   teardown:
     name: Teardown (cleanup runner disk)
     runs-on: [self-hosted, Linux, X64, builds]
-
     if: always()
     needs:
       - setup

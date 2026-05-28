@@ -45,7 +45,7 @@ This directory contains build, CI, and release scripts for the Bitcoin Commons b
 
 ## Usage
 
-See the [main `blvm` README](../README.md) for build, releases, and operator-focused docs. Workspace-wide cross-repo plans live under the multi-repo checkout: **`docs/`** at the workspace root (see project documentation rules), not in this `blvm/docs/` tree.
+See the [main `blvm` README](../README.md) for build, releases, and operator-focused docs. **`blvm/docs/`** in **this repo** carries **Bitcoin Commons **`blvm`** crate** release and workflow notes (also see **`README.md`** on **`main`**).
 
 ## Related Scripts
 

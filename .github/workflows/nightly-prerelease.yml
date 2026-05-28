@@ -15,11 +15,12 @@ jobs:
   create-nightly-prerelease:
     name: Create Nightly Prerelease
     runs-on: [self-hosted, Linux, X64, builds]
+
     timeout-minutes: 120
     
     steps:
       - name: Checkout commons
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/commons
           path: commons

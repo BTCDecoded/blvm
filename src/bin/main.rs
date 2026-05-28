@@ -23,16 +23,16 @@ struct Cli {
     command: Option<Command>,
 
     /// Network to connect to
-    #[arg(short, long, value_enum, default_value = "regtest")]
-    network: Network,
+    #[arg(short, long, value_enum)]
+    network: Option<Network>,
 
-    /// RPC server address
-    #[arg(short, long, default_value = "127.0.0.1:18332")]
-    rpc_addr: SocketAddr,
+    /// RPC server address (default depends on --network when omitted)
+    #[arg(short, long)]
+    rpc_addr: Option<SocketAddr>,
 
-    /// P2P listen address
-    #[arg(short, long, default_value = "0.0.0.0:8333")]
-    listen_addr: SocketAddr,
+    /// P2P listen address (default depends on --network: 8333/18333/18444)
+    #[arg(short, long)]
+    listen_addr: Option<SocketAddr>,
 
     /// Data directory (CLI overrides ENV and config; default ./data when not specified)
     #[arg(short, long)]
@@ -358,34 +358,34 @@ async fn main() -> Result<()> {
     // Handle subcommands
     match cli.command {
         Some(Command::Status { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_status(rpc_addr, &config).await
         }
         Some(Command::Health { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_health(rpc_addr, &config).await
         }
         Some(Command::Version) => handle_version(),
         Some(Command::Chain { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_chain(rpc_addr, &config).await
         }
         Some(Command::Peers { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_peers(rpc_addr, &config).await
         }
         Some(Command::Network { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_network(rpc_addr, &config).await
         }
         Some(Command::Sync { rpc_addr }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_sync(rpc_addr, &config).await
         }
         Some(Command::Config { ref subcommand }) => {
@@ -418,8 +418,8 @@ async fn main() -> Result<()> {
                 verify,
                 verbose,
             } => {
-                use blvm_node::storage::bitcoin_core_detection::BitcoinCoreNetwork;
-                let network_parsed: BitcoinCoreNetwork = network
+                use blvm_node::storage::bitcoin_detection::CoreDataNetwork;
+                let network_parsed: CoreDataNetwork = network
                     .parse()
                     .map_err(|e: String| anyhow::anyhow!("Invalid network: {}", e))?;
                 let source_path = source.as_ref().map(std::path::PathBuf::from);
@@ -438,8 +438,8 @@ async fn main() -> Result<()> {
             ref params,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             let params: Value = serde_json::from_str(params).context("Invalid JSON parameters")?;
             handle_rpc(rpc_addr, method, params, &config).await
         }
@@ -447,8 +447,8 @@ async fn main() -> Result<()> {
             ref subcommand,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(rpc_addr, subcommand, &config).await
         }
         Some(Command::ConfigPath { ref module }) => {
@@ -459,8 +459,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Load {
@@ -474,8 +474,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Unload {
@@ -489,8 +489,8 @@ async fn main() -> Result<()> {
             ref module,
             rpc_addr,
         }) => {
-            let rpc_addr = rpc_addr.unwrap_or(cli.rpc_addr);
-            let (config, _, _, _, _) = build_final_config(&cli)?;
+            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_module(
                 rpc_addr,
                 &ModuleCommand::Reload {
@@ -501,8 +501,8 @@ async fn main() -> Result<()> {
             .await
         }
         Some(Command::ModuleCli(ref args)) => {
-            let (config, _, _, _, _) = build_final_config(&cli)?;
-            handle_module_cli(cli.rpc_addr, args, &config).await
+            let (config, _, _, rpc_addr, _) = build_final_config(&cli)?;
+            handle_module_cli(rpc_addr, args, &config).await
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
@@ -717,6 +717,21 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 }
 
 /// Build final configuration with hierarchy: CLI > ENV > Config > Defaults
+/// Derive a Network from a loaded NodeConfig's `protocol_version`, defaulting to Regtest.
+fn network_from_config_or_default(config: &NodeConfig) -> Network {
+    match config
+        .protocol_version
+        .as_deref()
+        .unwrap_or("")
+        .to_lowercase()
+        .as_str()
+    {
+        "bitcoinv1" | "mainnet" => Network::Mainnet,
+        "testnet" => Network::Testnet,
+        _ => Network::Regtest,
+    }
+}
+
 fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
     // 1. Start with defaults
     let mut config = NodeConfig::default();
@@ -792,34 +807,28 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     // Apply ENV overrides for new config options
     apply_env_config_overrides(&mut config, &env_overrides);
 
-    // 4. Determine final values (CLI > ENV > Config file > Defaults)
-    // Network: ENV wins; else if a config file was **successfully** loaded, use its
-    // `protocol_version`; else use CLI (default `regtest`). Without this, `NodeConfig::default()`
-    // always has `protocol_version = BitcoinV1`, which incorrectly forced mainnet for
-    // `blvm -n regtest -d …` with no usable config file.
-    let network = if let Some(network_str) = &env_overrides.network {
+    // 4. Determine final values — precedence: CLI explicit > ENV > config file > built-in default
+
+    // Network: CLI explicit → BLVM_NETWORK env → config file protocol_version → regtest
+    let network = if let Some(ref cli_net) = cli.network {
+        cli_net.clone()
+    } else if let Some(network_str) = &env_overrides.network {
         match network_str.to_lowercase().as_str() {
             "regtest" => Network::Regtest,
             "testnet" => Network::Testnet,
             "mainnet" => Network::Mainnet,
             _ => {
-                warn!("Unknown network in ENV: {}. Using config/CLI.", network_str);
-                cli.network.clone()
+                warn!(
+                    "Unknown network in BLVM_NETWORK: '{}'. Falling back to config/default.",
+                    network_str
+                );
+                network_from_config_or_default(&config)
             }
         }
     } else if config_loaded_from_file {
-        if let Some(pv) = &config.protocol_version {
-            match pv.to_lowercase().as_str() {
-                "bitcoinv1" | "mainnet" => Network::Mainnet,
-                "testnet" => Network::Testnet,
-                "regtest" => Network::Regtest,
-                _ => cli.network.clone(),
-            }
-        } else {
-            cli.network.clone()
-        }
+        network_from_config_or_default(&config)
     } else {
-        cli.network.clone()
+        Network::Regtest
     };
 
     // data_dir: CLI > ENV > config.storage.data_dir > default
@@ -829,10 +838,25 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .or_else(|| env_overrides.data_dir.clone())
         .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
         .unwrap_or_else(|| "./data".to_string());
-    let listen_addr = cli.listen_addr;
-    let rpc_addr = cli.rpc_addr;
 
-    // Apply CLI overrides to config (CLI overrides ENV and config file)
+    // listen_addr: CLI explicit → BLVM_LISTEN_ADDR env → config file → network-aware default
+    let default_listen_port = match network {
+        Network::Mainnet => 8333u16,
+        Network::Testnet => 18333,
+        Network::Regtest => 18444,
+    };
+    let listen_addr = cli
+        .listen_addr
+        .or(env_overrides.listen_addr)
+        .or(config.listen_addr)
+        .unwrap_or_else(|| SocketAddr::from(([0, 0, 0, 0], default_listen_port)));
+
+    let rpc_addr = cli
+        .rpc_addr
+        .or(env_overrides.rpc_addr)
+        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(&format!("{network:?}")));
+
+    // Apply resolved values to config so downstream code reads them from one place
     config.listen_addr = Some(listen_addr);
     config.protocol_version = Some(format!("{network:?}"));
 
@@ -1213,6 +1237,19 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
 }
 
 // RPC client helper
+
+fn rpc_connect_failure_hint(rpc_addr: SocketAddr) -> String {
+    match rpc_addr.port() {
+        18332 => format!(
+            "\nHint: CLI default RPC is regtest ({rpc_addr}). For mainnet use --network mainnet (repeat --config if you started with one), or --rpc-addr 127.0.0.1:8332"
+        ),
+        8332 => format!(
+            "\nHint: is the mainnet node running on {rpc_addr}? Start it first with blvm --network mainnet --config …"
+        ),
+        _ => String::new(),
+    }
+}
+
 async fn rpc_call(rpc_addr: SocketAddr, method: &str, params: Value) -> Result<Value> {
     rpc_call_with_auth(rpc_addr, method, params, None, None).await
 }
@@ -1241,10 +1278,10 @@ async fn rpc_call_with_auth(
     let rpc_password = password.unwrap_or("");
     req = req.basic_auth(rpc_user, Some(rpc_password));
 
-    let response = req
-        .send()
-        .await
-        .context("Failed to connect to RPC server")?;
+    let response = req.send().await.map_err(|e| {
+        let hint = rpc_connect_failure_hint(rpc_addr);
+        anyhow::anyhow!("Failed to connect to RPC server at {rpc_addr}{hint}: {e}")
+    })?;
 
     let status = response.status();
     if !status.is_success() {
@@ -1456,16 +1493,28 @@ async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
         .get("verificationprogress")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
+    let initial_block_download = info
+        .get("initialblockdownload")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
 
     println!("=== Sync Status ===");
     println!("Blocks: {blocks}");
     println!("Headers: {headers}");
     println!("Progress: {:.2}%", progress * 100.0);
+    if initial_block_download {
+        println!("Initial block download: yes (active IBD)");
+    }
 
     if blocks == headers && progress >= 1.0 {
         println!("Status: ✅ Fully synced");
     } else if headers > blocks {
         println!("Status: ⏳ Syncing ({} blocks behind)", headers - blocks);
+    } else if progress < 0.999 && blocks > 0 {
+        println!("Status: ⏳ Verifying downloaded blocks");
+        println!(
+            "Note: During active IBD, node logs (`IBD: <height> / <tip>`) are often ahead of this RPC view."
+        );
     } else {
         println!("Status: ⏳ Verifying");
     }

@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout blvm
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/blvm
           path: blvm

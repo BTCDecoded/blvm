@@ -65,15 +65,32 @@ blvm
 # Start node on testnet
 blvm --network testnet
 
-# Start node on mainnet (use with caution)
-blvm --network mainnet
-
 # Custom data directory
 blvm --data-dir /var/lib/blvm
 
 # Verbose logging
 blvm --verbose
 ```
+
+**Mainnet:** use [First mainnet sync](#first-mainnet-sync-release-binary) below (example config + IBD tuning). Bare `blvm --network mainnet` skips that and is for advanced use only.
+
+### First mainnet sync (release binary)
+
+See [Mainnet initial sync](https://docs.thebitcoincommons.org/getting-started/mainnet-sync.html) for full detail.
+
+```bash
+tar xzf blvm-v0.1.27-linux-x86_64.tar.gz
+cd blvm-v0.1.27-linux-x86_64
+sha256sum -c SHA256SUMS-blvm-linux-x86_64
+./scripts/start-ibd-mainnet.sh
+# BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
+```
+
+Uses bundled `blvm-mainnet-ibd.toml.example` and `~/.local/share/blvm-mainnet`. No `BLVM_IBD_*` env vars required.
+
+**Manual:** `blvm --config blvm-mainnet-ibd.toml.example --network mainnet --data-dir ~/.local/share/blvm-mainnet --verbose`
+
+**Monitor / resume:** `blvm --network mainnet --config blvm-mainnet-ibd.toml.example sync` — same flags as start; keep the same `--data-dir`.
 
 ## Commands
 
@@ -100,9 +117,12 @@ blvm peers
 # Show network information
 blvm network
 
-# Show sync status
+# Show sync status (default RPC is regtest :18332 — pass --network for mainnet)
 blvm sync
+blvm --network mainnet --config blvm-mainnet-ibd.toml.example sync
 ```
+
+Subcommands use the same `--network`, `--config`, and `--rpc-addr` as node start. Bare `blvm sync` targets regtest RPC (`18332`); a mainnet node listens on `8332`.
 
 ### Configuration Commands
 
@@ -169,13 +189,13 @@ blvm --config blvm.toml --network regtest
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
 | `--network` | `-n` | Network to connect to (regtest/testnet/mainnet) | `regtest` |
-| `--rpc-addr` | `-r` | RPC server address | `127.0.0.1:18332` |
+| `--rpc-addr` | `-r` | RPC server address (network-aware when omitted; see note below) | regtest/testnet: `127.0.0.1:18332`; mainnet: `127.0.0.1:8332` |
 | `--listen-addr` | `-l` | P2P listen address | `0.0.0.0:8333` |
 | `--data-dir` | `-d` | Data directory | `./data` |
 | `--config` | `-c` | Config file path (TOML or JSON) | Auto-detected |
 | `--verbose` | `-v` | Enable verbose logging | `false` |
 
-**RPC default:** With `--network regtest` (the CLI default), `--rpc-addr` still defaults to **`127.0.0.1:18332`** — the same default used if you omit `--network`. This is **not** Bitcoin Core’s usual regtest RPC port; set `--rpc-addr` and `BLVM_RPC_ADDR` to whatever socket your deployment uses (e.g. `127.0.0.1:18443` if you align with Core-style regtest).
+**RPC default:** When `--rpc-addr` is omitted, mainnet uses **`127.0.0.1:8332`**; testnet and regtest use **`127.0.0.1:18332`**. `BLVM_RPC_ADDR` overrides this. Regtest’s default is **not** Bitcoin Core’s usual `18443`; set `--rpc-addr` or `BLVM_RPC_ADDR` if you need Core-aligned ports.
 
 #### Feature Flags
 
@@ -680,6 +700,17 @@ utxo_commitment_request_timeout_seconds = 30
 ---
 
 ## Troubleshooting
+
+### Mainnet IBD
+
+| Symptom | Fix |
+|---------|-----|
+| Quiet 15–60s after start | Wait for peer discovery → `IBD:` lines |
+| P2P **8333** in use | Stop Core or change `listen_addr` |
+| `blvm sync` won't connect | `blvm --network mainnet --config … sync` (same flags as start) |
+| Slow / stalled sync | Auto-LAN when Core on LAN; else optional `BLVM_IBD_PEERS=<ip>:8333` |
+| Slow near ~900k+ | Normal after assume-valid — see [mainnet sync docs](https://docs.thebitcoincommons.org/getting-started/mainnet-sync.html) |
+| Lost progress on restart | Same `--data-dir`; don't delete `rocksdb/` |
 
 ### Common Issues
 

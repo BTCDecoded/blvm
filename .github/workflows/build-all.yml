@@ -30,7 +30,7 @@ jobs:
     
     steps:
       - name: Checkout commons
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: BTCDecoded/commons
           path: commons
@@ -46,7 +46,7 @@ jobs:
           components: rustfmt clippy
 
       - name: Cache cargo dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -72,7 +72,7 @@ jobs:
         run: commons/scripts/collect-artifacts.sh
       
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: all-binaries
           path: commons/artifacts/
