@@ -143,6 +143,19 @@ def process_file(
                             changed = True
                         out.append(new_line)
                         continue
+                if mode == "stable":
+                    versions = fetch_versions(crate)
+                    s = max_stable(versions)
+                    if s:
+                        new_line = rewrite_version_in_line(line, s)
+                        if new_line != line:
+                            print(
+                                f"{path}: {crate} → ={s} (main/stable crates.io)",
+                                file=sys.stderr,
+                            )
+                            changed = True
+                        out.append(new_line)
+                        continue
 
         out.append(line)
 
@@ -153,7 +166,7 @@ def process_file(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("resolve", "publish"), required=True)
+    parser.add_argument("--mode", choices=("resolve", "publish", "stable"), required=True)
     parser.add_argument("--version", help="Coordinated develop version V (publish mode)")
     parser.add_argument(
         "--sibling",

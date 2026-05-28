@@ -5,7 +5,7 @@ name: CI
 # [skip_docs] also skips clippy and fmt.
 # [skip_verify] skips the release-profile build job (cargo build --release).
 # [skip_release] prevents the release job (main) and nightly-release job (develop) from running.
-# [skip_publish_dev] skips crates.io develop publish (still waits for V on index before nightly).
+# [skip_publish_dev] skips crates.io develop publish; nightly falls back to main/stable crates if dev set missing.
 # [skip_docker] skips GHCR publish (docker-ghcr on main, docker-ghcr-nightly on develop).
 # Tokens are matched against setup.commit_msg_bundle (git log range) plus head_commit when set.
 #
@@ -875,7 +875,7 @@ jobs:
               -d "${BODY}"
           done
 
-  # develop: ensure coordinated dev crate set V on crates.io, then nightly binaries use =V deps.
+  # develop: publish coordinated dev set when possible; nightly uses =V or falls back to main/stable crates.
   publish-develop-set:
     name: Publish / verify develop crate set
     needs: [setup, build, test, clippy, fmt, docs, security]
@@ -883,6 +883,7 @@ jobs:
     outputs:
       version: ${{ steps.ensure.outputs.version }}
       based_on_stable: ${{ steps.ensure.outputs.based_on_stable }}
+      use_develop: ${{ steps.ensure.outputs.use_develop }}
     if: |
       always() &&
       needs.setup.result == 'success' &&
@@ -927,7 +928,6 @@ jobs:
             eval "$(bash scripts/compute-develop-version.sh --emit-shell)"
           fi
           V="${DEVELOP_VERSION:-${V}}"
-          echo "version=${V}" >> "$GITHUB_OUTPUT"
           echo "based_on_stable=${DEVELOP_BASED_ON_STABLE:-}" >> "$GITHUB_OUTPUT"
           echo "Coordinated develop version: ${V}"
 
@@ -958,10 +958,16 @@ jobs:
             echo "::notice::CARGO_REGISTRY_TOKEN not set — only verifying index, not publishing siblings"
           fi
 
-          bash scripts/ci-wait-develop-set.sh "${V}"
+          eval "$(bash scripts/ci-wait-develop-set.sh "${V}" --allow-stable-fallback --emit-shell)"
+          echo "use_develop=${USE_DEVELOP}" >> "$GITHUB_OUTPUT"
+          if [ "${USE_DEVELOP}" -eq 1 ]; then
+            echo "version=${V}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Update versions.toml develop metadata
-        if: steps.ensure.outputs.version != ''
+        if: steps.ensure.outputs.use_develop == '1'
         run: |
           python3 scripts/update-versions-develop-metadata.py \
             --version "${{ steps.ensure.outputs.version }}" \
@@ -970,7 +976,7 @@ jobs:
             --git-sha "${{ github.sha }}"
 
       - name: Commit versions.toml develop metadata
-        if: steps.ensure.outputs.version != ''
+        if: steps.ensure.outputs.use_develop == '1'
         env:
           REPO_ACCESS_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
@@ -1084,28 +1090,42 @@ jobs:
           FORCE_VERSION: ${{ github.event.inputs.force_version }}
         run: |
           chmod +x scripts/*.sh
-          if [ -n "${{ needs.publish-develop-set.outputs.version }}" ]; then
+          USE_DEVELOP="${{ needs.publish-develop-set.outputs.use_develop }}"
+          if [ "${USE_DEVELOP}" = "1" ] && [ -n "${{ needs.publish-develop-set.outputs.version }}" ]; then
             V="${{ needs.publish-develop-set.outputs.version }}"
+            echo "use_develop=1" >> "$GITHUB_OUTPUT"
           elif [ -n "${FORCE_VERSION}" ]; then
             V=$(bash scripts/compute-develop-version.sh --force-version "${FORCE_VERSION}")
+            echo "use_develop=0" >> "$GITHUB_OUTPUT"
           else
             V=$(bash scripts/compute-develop-version.sh)
+            echo "use_develop=0" >> "$GITHUB_OUTPUT"
           fi
           echo "version=${V}" >> "$GITHUB_OUTPUT"
 
-      - name: Pin develop crate set for nightly binary
+      - name: Pin crate deps for nightly binary
         run: |
           chmod +x scripts/resolve-develop-registry-deps.sh scripts/resolve-develop-registry-deps.py
-          V="${{ steps.nightly_v.outputs.version }}"
-          bash scripts/resolve-develop-registry-deps.sh --mode publish --version "${V}" Cargo.toml
+          if [ "${{ steps.nightly_v.outputs.use_develop }}" = "1" ]; then
+            V="${{ steps.nightly_v.outputs.version }}"
+            bash scripts/resolve-develop-registry-deps.sh --mode publish --version "${V}" Cargo.toml
+          else
+            bash scripts/resolve-develop-registry-deps.sh --mode stable Cargo.toml
+          fi
 
       - name: Verify dependency tree (develop)
         run: |
-          V="${{ steps.nightly_v.outputs.version }}"
-          cargo tree -p blvm-node -i blvm-protocol 2>/dev/null | head -20
-          cargo tree -p blvm-node -i blvm-consensus 2>/dev/null | head -20
-          if ! cargo tree -p blvm-node 2>/dev/null | grep -q "${V}"; then
-            echo "::warning::Expected develop version ${V} in dependency tree (continuing)"
+          if [ "${{ steps.nightly_v.outputs.use_develop }}" = "1" ]; then
+            V="${{ steps.nightly_v.outputs.version }}"
+            cargo tree -p blvm-node -i blvm-protocol 2>/dev/null | head -20
+            cargo tree -p blvm-node -i blvm-consensus 2>/dev/null | head -20
+            if ! cargo tree -p blvm-node 2>/dev/null | grep -q "${V}"; then
+              echo "::warning::Expected develop version ${V} in dependency tree (continuing)"
+            fi
+          else
+            echo "Using main/stable crates.io (develop pre-release set unavailable)"
+            cargo tree -p blvm-node -i blvm-protocol 2>/dev/null | head -20
+            cargo tree -p blvm-node -i blvm-consensus 2>/dev/null | head -20
           fi
 
       - name: Build Linux release binary
@@ -1159,12 +1179,17 @@ jobs:
 
           BUILT_UTC="$(date -u +'%Y-%m-%d %H:%M UTC')"
           NOTES_FILE="$(mktemp)"
+          if [ "${{ steps.nightly_v.outputs.use_develop }}" = "1" ]; then
+            CRATES_LINE="| Develop crates | \`${{ steps.nightly_v.outputs.version }}\` (crates.io pre-releases) |"
+          else
+            CRATES_LINE="| Crates | main/stable from crates.io (develop pre-release set unavailable) |"
+          fi
           {
             echo "**BLVM Nightly** — rolling prerelease from \`develop\`."
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| Develop crates | \`${{ steps.nightly_v.outputs.version }}\` (crates.io pre-releases) |"
+            echo "${CRATES_LINE}"
             echo "| Commit | \`${GITHUB_SHA}\` |"
             echo "| Built | ${BUILT_UTC} |"
             echo ""
