@@ -12,7 +12,8 @@ use serde_json::{json, Value};
 use std::env;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use tokio::signal;
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 use tracing::{error, info, warn};
 
 #[derive(Parser)]
@@ -553,16 +554,52 @@ async fn main() -> Result<()> {
                 }
             };
 
-            tokio::select! {
-                result = node.start() => {
-                    if let Err(e) = result {
-                        error!("Node error: {}", e);
-                        return Err(e);
+            // Pin the node future so we can poll it again after a signal without
+            // dropping it (dropping would orphan the IBD validation thread and skip the
+            // final watermark flush).
+            let mut node_fut = std::pin::pin!(node.start());
+            let mut shutdown_initiated = false;
+
+            loop {
+                if shutdown_initiated {
+                    // Signal received: give the IBD loop up to 60 s to drain in-flight
+                    // work and persist the watermark checkpoint, then force-exit.
+                    match tokio::time::timeout(Duration::from_secs(60), &mut node_fut).await {
+                        Ok(Ok(())) => {}
+                        Ok(Err(e)) => {
+                            // IBD_STOP_REQUESTED causes the validation loop to exit before
+                            // reaching `effective_end_height`; that surfaces as an error
+                            // with the word "shutdown" or "disconnected".  Treat it as a
+                            // clean stop rather than a hard failure.
+                            let msg = e.to_string();
+                            if msg.contains("shutdown") || msg.contains("disconnected") || msg.contains("Graceful") {
+                                info!("Node exited cleanly after shutdown signal");
+                            } else {
+                                error!("Node error after shutdown: {}", e);
+                            }
+                        }
+                        Err(_elapsed) => {
+                            warn!("Graceful IBD shutdown timed out after 60 s — forcing exit");
+                        }
                     }
+                    break;
                 }
-                _ = signal::ctrl_c() => {
-                    info!("Shutting down BLVM node...");
-                    info!("Node stopped");
+
+                tokio::select! {
+                    result = &mut node_fut => {
+                        if let Err(e) = result {
+                            error!("Node error: {}", e);
+                            return Err(e);
+                        }
+                        break;
+                    }
+                    _ = blvm_node::utils::wait_for_shutdown_signal() => {
+                        info!("Shutdown signal received — waiting for IBD to flush watermark…");
+                        blvm_node::node::parallel_ibd::IBD_SHUTDOWN_REQUESTED
+                            .store(true, Ordering::Release);
+                        shutdown_initiated = true;
+                        // Loop again: poll node_fut with a timeout instead of dropping it.
+                    }
                 }
             }
 
