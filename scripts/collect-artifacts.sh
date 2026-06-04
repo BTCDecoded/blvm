@@ -30,6 +30,16 @@ if [[ "$PLATFORM" == *"windows"* ]]; then
         BLVM_DIR="${ARTIFACTS_DIR}/blvm-experimental-windows"
         GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-experimental-windows"
     fi
+elif [[ "$PLATFORM" == *"aarch64"* ]] || [[ "$PLATFORM" == *"arm64"* ]]; then
+    TARGET_DIR="target/aarch64-unknown-linux-gnu/release"
+    BIN_EXT=""
+    if [ "$VARIANT" = "base" ]; then
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-linux-aarch64"
+        GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-linux-aarch64"
+    else
+        BLVM_DIR="${ARTIFACTS_DIR}/blvm-experimental-linux-aarch64"
+        GOVERNANCE_DIR="${ARTIFACTS_DIR}/governance-experimental-linux-aarch64"
+    fi
 else
     TARGET_DIR="target/release"
     BIN_EXT=""

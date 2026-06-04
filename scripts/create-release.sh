@@ -129,7 +129,7 @@ rename_archives() {
 
     pushd "$ARTIFACTS_DIR" > /dev/null
 
-    for platform in linux-x86_64 windows-x86_64; do
+    for platform in linux-x86_64 linux-aarch64 windows-x86_64; do
         for ext in tar.gz zip; do
             if [ -f "blvm-${platform}.${ext}" ]; then
                 mv "blvm-${platform}.${ext}" "blvm-${VERSION_TAG}-${platform}.${ext}"

@@ -612,20 +612,24 @@ jobs:
           [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
           echo "✅ Cargo.toml bumped to ${VERSION}"
 
-      - name: Install packaging tools and Windows cross-compiler
+      - name: Install packaging tools and cross-compilers
         run: |
           if command -v apt-get >/dev/null 2>&1; then
             bash scripts/apt-get-retry.sh update -qq
             bash scripts/apt-get-retry.sh install -y -qq \
               gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 \
+              gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
               rpm dpkg-dev fakeroot zip alien || true
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Qq mingw-w64-gcc aarch64-linux-gnu-gcc >/dev/null 2>&1 || \
+              sudo pacman -Sy --noconfirm --needed mingw-w64-gcc aarch64-linux-gnu-gcc aarch64-linux-gnu-binutils
           fi
           # Self-hosted Arch runners: install zip, dpkg, fakeroot, mingw-w64-* on the host
-          # (not here) so collect-artifacts, package-deb.sh, and Windows cross-compile work.
+          # (not here) so collect-artifacts, package-deb.sh, and cross-compile work.
           export PATH="$HOME/.cargo/bin:$PATH"
           cargo install cargo-deb --locked --quiet || true
           cargo install cargo-generate-rpm --locked --quiet || true
-          rustup target add x86_64-pc-windows-gnu
+          rustup target add x86_64-pc-windows-gnu aarch64-unknown-linux-gnu
 
       - name: Build Linux x86_64 release binary
         id: build_linux
@@ -669,6 +673,15 @@ jobs:
             echo "built=false" >> $GITHUB_OUTPUT
             exit 1
           fi
+
+      - name: Build Linux aarch64 release binary (Raspberry Pi 64-bit)
+        id: build_aarch64
+        env:
+          CARGO_BUILD_JOBS: 8
+        run: |
+          chmod +x scripts/ci-build-aarch64.sh
+          export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          scripts/ci-build-aarch64.sh "$CARGO_TARGET_DIR" "${{ steps.version.outputs.version }}"
 
       # Linux .tar.gz + Windows .zip (base), SHA256SUMS-blvm-*, RELEASE_NOTES.md,
       # Arch-style .pkg.tar.gz; SHA256SUMS-linux-packages.txt filled when staging.
@@ -728,10 +741,20 @@ jobs:
         id: checksums
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          VERSION_TAG="${{ steps.version.outputs.version_tag }}"
           mkdir -p release-artifacts
+          # Required release binaries (fail if aarch64 cross-build did not produce output)
           for f in \
-            blvm-${VERSION}-linux-x86_64 \
-            blvm-${VERSION}-windows-x86_64.exe \
+            "blvm-${VERSION}-linux-x86_64" \
+            "blvm-${VERSION}-linux-aarch64" \
+            "blvm-${VERSION}-windows-x86_64.exe"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::Missing required release binary: $f"
+              exit 1
+            fi
+            cp "$f" release-artifacts/
+          done
+          for f in \
             blvm_${VERSION}_amd64.deb \
             blvm-${VERSION}-1.x86_64.rpm; do
             [ -f "$f" ] && cp "$f" release-artifacts/
@@ -739,6 +762,16 @@ jobs:
           if [ -d artifacts ]; then
             cp -a artifacts/. release-artifacts/
           fi
+          # Archives from collect-artifacts + create-release.sh (uploaded via files: release-artifacts/*)
+          for f in \
+            "blvm-${VERSION_TAG}-linux-x86_64.tar.gz" \
+            "blvm-${VERSION_TAG}-linux-aarch64.tar.gz" \
+            "blvm-${VERSION_TAG}-windows-x86_64.zip"; do
+            if [ ! -f "release-artifacts/${f}" ]; then
+              echo "::error::Missing required release archive: ${f} (check collect-artifacts / create-release.sh)"
+              exit 1
+            fi
+          done
           # After cargo deb / generate-rpm: all Linux packages live in release-artifacts
           (
             cd release-artifacts
@@ -784,7 +817,9 @@ jobs:
             | Platform | File | Notes |
             |---|---|---|
             | **Linux x86_64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64` | Full features (default `cargo build`) |
+            | **Linux aarch64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-aarch64` | Raspberry Pi 4/5 (64-bit OS); portable cross-build (sled/redb) |
             | **Linux x86_64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm` + governance CLIs (+ checksum file inside) |
+            | **Linux aarch64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz` | `blvm` for 64-bit ARM Linux (+ checksum file inside) |
             | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | `pacman -U` |
             | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | `cargo deb` (matches standalone binary) |
             | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | `cargo generate-rpm` |
@@ -809,10 +844,26 @@ jobs:
             sudo mv blvm-${{ steps.version.outputs.version }}-linux-x86_64 /usr/local/bin/blvm
             ```
 
+            **Linux aarch64 (Raspberry Pi 4/5, 64-bit OS):**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-linux-aarch64
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/checksums.sha256
+            sha256sum -c checksums.sha256
+            chmod +x blvm-${{ steps.version.outputs.version }}-linux-aarch64
+            sudo mv blvm-${{ steps.version.outputs.version }}-linux-aarch64 /usr/local/bin/blvm
+            ```
+
             **Linux (tarball):**
             ```bash
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
             tar -xzf blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
+            sudo mv blvm /usr/local/bin/
+            ```
+
+            **Linux aarch64 (tarball, Raspberry Pi 4/5):**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz
+            tar -xzf blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz
             sudo mv blvm /usr/local/bin/
             ```
 

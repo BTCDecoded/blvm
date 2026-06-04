@@ -24,6 +24,7 @@ CARGO_TARGET_DIR="${CARGO_TARGET_DIR:?}"
 
 LINUX_BIN="${CARGO_TARGET_DIR}/release/blvm"
 WIN_BIN="${CARGO_TARGET_DIR}/x86_64-pc-windows-gnu/release/blvm.exe"
+AARCH64_BIN="${CARGO_TARGET_DIR}/aarch64-unknown-linux-gnu/release/blvm"
 
 log() { echo "[ci-release-extra] $*"; }
 
@@ -68,6 +69,13 @@ sync_main_blvm_binaries_to_repo_targets() {
   else
     log "WARN: Windows blvm.exe missing: $WIN_BIN"
   fi
+  if [[ ! -f "$AARCH64_BIN" ]]; then
+    log "ERROR: aarch64 blvm required for release but missing: $AARCH64_BIN"
+    exit 1
+  fi
+  mkdir -p "${BLVM_ROOT}/target/aarch64-unknown-linux-gnu/release"
+  cp -f "$AARCH64_BIN" "${BLVM_ROOT}/target/aarch64-unknown-linux-gnu/release/blvm"
+  chmod +x "${BLVM_ROOT}/target/aarch64-unknown-linux-gnu/release/blvm"
 }
 
 clone_sibling() {
@@ -116,6 +124,7 @@ collect_base_variants() {
   else
     log "Skipping Windows base collect (no exe)"
   fi
+  (cd "${BLVM_ROOT}" && ./scripts/collect-artifacts.sh linux-aarch64 base)
 }
 
 # --- main ---
