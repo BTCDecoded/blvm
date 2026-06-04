@@ -12,6 +12,10 @@ __pycache__/
 
 # Build artifacts (when testing locally)
 target/
+blvm-*-linux-*
+blvm-*-windows-*
+blvm-*-aarch64
+.hermes.md
 
 # Local node data (rocksdb etc. when running blvm from this checkout)
 data/
