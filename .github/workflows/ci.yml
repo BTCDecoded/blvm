@@ -455,6 +455,15 @@ jobs:
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
+      - name: Upgrade blvm-* to latest crates.io versions
+        run: |
+          # Cargo.lock contains path-dep entries (no source) for blvm-* when built locally with
+          # [patch.crates-io].  After patch stripping those entries become stale and cargo may
+          # re-lock them to an older crates.io version instead of upgrading.  Force a fresh
+          # resolution so the release binary always builds against the newest published crates.
+          cargo update -p blvm-node -p blvm-consensus -p blvm-protocol \
+            -p blvm-spec-lock -p blvm-primitives -p blvm-muhash || true
+
       - name: Build release
         env:
           CARGO_BUILD_JOBS: 8
@@ -537,6 +546,15 @@ jobs:
 
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+
+      - name: Upgrade blvm-* to latest crates.io versions
+        run: |
+          # Cargo.lock contains path-dep entries (no source) for blvm-* when built locally with
+          # [patch.crates-io].  After patch stripping those entries become stale and cargo may
+          # re-lock them to an older crates.io version instead of upgrading.  Force a fresh
+          # resolution so the release binary always builds against the newest published crates.
+          cargo update -p blvm-node -p blvm-consensus -p blvm-protocol \
+            -p blvm-spec-lock -p blvm-primitives -p blvm-muhash || true
 
       - name: Determine version
         id: version
