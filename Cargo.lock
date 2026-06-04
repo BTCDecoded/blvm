@@ -427,8 +427,6 @@ dependencies = [
 [[package]]
 name = "blvm-consensus"
 version = "0.1.25"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a15b5094a0d4deaf07f5646024b4d3ebbbf4d09a1fa60e949c7380a16aafeb0d"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -460,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.23"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cbaada2b1f78576df71dd0da8a869262a2dfa2fa9931ac812571042598837ef"
+checksum = "03d2ec6b15821aac9db46fcd36009012f7b6bd68cfca764d2179bda12223309f"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -489,6 +487,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "io-uring",
  "iroh",
  "libc",
  "libmimalloc-sys",
@@ -499,6 +498,7 @@ dependencies = [
  "parking_lot 0.12.5",
  "quinn",
  "rand 0.8.5",
+ "rayon",
  "rcgen",
  "redb",
  "reqwest",
@@ -618,9 +618,7 @@ dependencies = [
 
 [[package]]
 name = "blvm-spec-lock"
-version = "0.1.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcd3e0b0a0d7f41602b109010d0879c54e6c91f497f17724af26cdc9a09b8863"
+version = "0.1.26"
 dependencies = [
  "anyhow",
  "clap",
@@ -2384,6 +2382,17 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "io-uring"
+version = "0.7.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d09b98f7eace8982db770e4408e7470b028ce513ac28fecdc6bf4c30fe92b62"
+dependencies = [
+ "bitflags 2.11.1",
+ "cfg-if 1.0.4",
+ "libc",
 ]
 
 [[package]]
@@ -6450,10 +6459,6 @@ dependencies = [
 ]
 
 [[patch.unused]]
-name = "blvm-consensus"
-version = "0.1.24"
-
-[[patch.unused]]
 name = "blvm-node"
 version = "0.1.13"
 
@@ -6468,7 +6473,3 @@ version = "0.1.0"
 [[patch.unused]]
 name = "blvm-secp256k1"
 version = "0.1.6"
-
-[[patch.unused]]
-name = "blvm-spec-lock"
-version = "0.1.23"
