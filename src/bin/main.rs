@@ -572,7 +572,10 @@ async fn main() -> Result<()> {
                             // with the word "shutdown" or "disconnected".  Treat it as a
                             // clean stop rather than a hard failure.
                             let msg = e.to_string();
-                            if msg.contains("shutdown") || msg.contains("disconnected") || msg.contains("Graceful") {
+                            if msg.contains("shutdown")
+                                || msg.contains("disconnected")
+                                || msg.contains("Graceful")
+                            {
                                 info!("Node exited cleanly after shutdown signal");
                             } else {
                                 error!("Node error after shutdown: {}", e);

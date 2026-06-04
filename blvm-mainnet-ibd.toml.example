@@ -25,7 +25,8 @@ auto_prune_interval = 144
 min_blocks_to_keep = 144
 
 [ibd]
-chunk_size = 16
+chunk_size = 128
+max_blocks_in_transit_per_peer = 128
 download_timeout_secs = 30
 mode = "parallel"
 eviction = "fifo"
