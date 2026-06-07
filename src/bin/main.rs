@@ -547,10 +547,7 @@ async fn main() -> Result<()> {
                     protocol_version,
                     config.storage.as_ref(),
                 )?;
-                info!(
-                    "Core migration complete. BLVM store at {}",
-                    store.display()
-                );
+                info!("Core migration complete. BLVM store at {}", store.display());
                 return Ok(());
             }
 
