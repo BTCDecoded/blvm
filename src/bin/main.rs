@@ -54,6 +54,19 @@ struct Cli {
     /// Advanced configuration options
     #[command(flatten)]
     advanced: AdvancedConfig,
+
+    /// Do not auto-migrate from a Bitcoin Core datadir on start
+    #[arg(long)]
+    no_auto_migrate: bool,
+
+    /// BLVM store path when auto-migrating from Core (default: `<datadir>/blvm`)
+    #[arg(long, value_name = "PATH")]
+    migrate_destination: Option<String>,
+
+    /// Migrate from Core datadir and exit without starting the node
+    #[cfg(feature = "rocksdb")]
+    #[arg(long)]
+    migrate_core_only: bool,
 }
 
 #[derive(Subcommand)]
@@ -507,7 +520,39 @@ async fn main() -> Result<()> {
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
-            let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli)?;
+            let (mut config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli)?;
+
+            #[cfg(feature = "rocksdb")]
+            if cli.migrate_core_only {
+                use blvm_node::storage::Storage;
+                if !blvm_node::storage::bitcoin_detection::BitcoinCoreDetection::is_core_layout_at(
+                    std::path::Path::new(&data_dir),
+                ) {
+                    anyhow::bail!(
+                        "--migrate-core-only requires a Bitcoin Core datadir at {}",
+                        data_dir
+                    );
+                }
+                if let Some(storage) = config.storage.as_mut() {
+                    storage.auto_migrate_core = true;
+                } else {
+                    config.storage = Some(blvm_node::config::StorageConfig {
+                        auto_migrate_core: true,
+                        ..Default::default()
+                    });
+                }
+                let protocol_version: ProtocolVersion = network.into();
+                let store = Storage::prepare_node_store_from_protocol(
+                    &data_dir,
+                    protocol_version,
+                    config.storage.as_ref(),
+                )?;
+                info!(
+                    "Core migration complete. BLVM store at {}",
+                    store.display()
+                );
+                return Ok(());
+            }
 
             info!("Starting Bitcoin Commons BLVM Node");
             info!("Network: {:?}", network);
@@ -518,11 +563,12 @@ async fn main() -> Result<()> {
             std::env::set_var("DATA_DIR", &data_dir);
 
             let protocol_version: ProtocolVersion = network.into();
-            let mut node = match ReferenceNode::new(
+            let mut node = match ReferenceNode::with_storage_config(
                 &data_dir,
                 listen_addr,
                 rpc_addr,
                 Some(protocol_version),
+                config.storage.as_ref(),
             ) {
                 Ok(node) => node,
                 Err(e) => {
@@ -906,6 +952,8 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     // Apply CLI advanced config (CLI overrides everything)
     apply_cli_advanced_config(&mut config, &cli.advanced);
 
+    apply_cli_core_migrate_config(&mut config, cli);
+
     // Per-network default assume-valid when block_validation is None and not regtest
     if config.block_validation.is_none() {
         let default_height =
@@ -1182,6 +1230,24 @@ fn apply_env_config_overrides(config: &mut NodeConfig, env: &EnvOverrides) {
             info!("Module socket max attempts overridden by ENV: {}", v);
             limits.module_socket_max_attempts = v;
         }
+    }
+}
+
+/// Apply CLI Core migration options into storage config.
+fn apply_cli_core_migrate_config(config: &mut NodeConfig, cli: &Cli) {
+    if !cli.no_auto_migrate && cli.migrate_destination.is_none() {
+        return;
+    }
+    let storage = config
+        .storage
+        .get_or_insert_with(blvm_node::config::StorageConfig::default);
+    if cli.no_auto_migrate {
+        info!("Core auto-migrate disabled via --no-auto-migrate");
+        storage.auto_migrate_core = false;
+    }
+    if let Some(ref dest) = cli.migrate_destination {
+        info!("Core migrate destination set via CLI: {}", dest);
+        storage.core_migrate_destination = Some(dest.clone());
     }
 }
 
