@@ -447,7 +447,7 @@ burst_size = 20
 # data_dir = "data/modules"
 # socket_dir = "data/modules/sockets"
 # registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# enabled_modules = ["blvm-miniscript", "blvm-zmq"]  # default: bootstrap if missing; [] = on-disk only
+# blvm-miniscript = "0.1.*"   # see blvm.toml.example for version-pinned modules
 ```
 
 See `blvm.toml.example` for a complete example configuration file.
@@ -591,7 +591,7 @@ Some features require compile-time flags. Runtime flags will warn if a feature i
 - `dandelion` - Dandelion++ privacy relay
 - `sigop` - Signature operations counting
 - `iroh` - Iroh transport support
-- `governance` - HTTP client for module bootstrap (download official `enabled_modules` from `registry_url`; **enabled by default** in `blvm` default features)
+- `governance` - HTTP client for module bootstrap (download **version-pinned** modules from `registry_url` when missing on disk; **enabled by default** in `blvm` default features)
 
 **Always in default `blvm-node` builds:** BIP157/158 compact block filter **code** (no `bip158` Cargo feature flag).
 
@@ -620,7 +620,7 @@ blvm
 
 The module system allows extending node functionality with external modules.
 
-**Configuration:**
+**Configuration** (see `blvm.toml.example` for the recommended pinned defaults):
 
 ```toml
 [modules]
@@ -629,16 +629,16 @@ modules_dir = "modules"
 data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
 registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# Default list bootstraps official GitHub Release binaries when missing under modules_dir:
-enabled_modules = ["blvm-miniscript", "blvm-zmq"]
-# Use enabled_modules = [] for on-disk-only (no HTTP bootstrap). Requires `governance` on the blvm build (default).
+blvm-miniscript = "0.1.*"
+[modules.blvm-zmq]
+version = "0.3.*"
 ```
+
+Pins are **config-only** (no hardcoded list in the node). Omit pins to auto-load modules already on disk without HTTP bootstrap. Legacy unpinned: `enabled_modules = ["blvm-miniscript"]`.
 
 #### Module registry
 
-`registry/modules.json` maps each module name to a `module_toml_url`. Download URLs and hashes are in that file’s **`[downloads]`** section, not in the JSON.
-
-Only use bootstrap downloads when **`[downloads]`** has real `url` and `sha256` values for your platform on the branch you trust (usually `main`). Empty placeholders mean the release is not ready yet; do a quick install test after a release before relying on it in production.
+`registry/modules.json` maps each module **name** to a GitHub **`repo`** (`owner/name`). Bootstrap resolves the pinned semver constraint against **GitHub Releases** (`sha256sums.txt` + platform binary on tag `v{version}`). Unpinned modules (`*` or legacy array) still read `module.toml` from **`main`**.
 
 **Resource Limits:**
 

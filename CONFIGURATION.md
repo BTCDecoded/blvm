@@ -156,7 +156,7 @@ enable_self_advertisement = true
 # data_dir = "data/modules"
 # socket_dir = "data/modules/sockets"
 # registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# enabled_modules = ["blvm-miniscript", "blvm-zmq"]  # default; [] = on-disk only, no bootstrap
+# blvm-miniscript = "0.1.*"   # version pins; see blvm.toml.example
 ```
 
 ## Stratum V2 (module-first)

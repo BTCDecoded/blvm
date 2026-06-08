@@ -59,13 +59,20 @@ enabled = true
 modules_dir = "modules"
 data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
-# Discovery index for bootstrap-download of modules listed in enabled_modules but missing on disk.
-# Default matches shipped `blvm` / `ModuleConfig::default()`.
+# Discovery index for bootstrap-download of modules listed below but missing on disk.
 registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# Official modules: auto-load on disk, or bootstrap from each repo’s GitHub Release (module.toml [downloads]).
-# Set to [] to skip bootstrap and only load modules already under modules_dir.
-# Optional: add "blvm-marketplace" for loadmodule / registry browsing.
-enabled_modules = ["blvm-miniscript", "blvm-zmq"]
+# Enabled modules with version constraints (`*` = unpinned / track main).
+# Omit both lines (or use no [modules] pins) to auto-discover on-disk modules only.
+blvm-miniscript = "0.1.*"
+# Per-module spawn overrides; `version` pins bootstrap when inline `name = "…"` would conflict:
+[modules.blvm-zmq]
+version = "0.3.*"
+hashblock = "tcp://127.0.0.1:28332"
+hashtx = "tcp://127.0.0.1:28333"
+rawblock = "tcp://127.0.0.1:28334"
+rawtx = "tcp://127.0.0.1:28335"
+sequence = "tcp://127.0.0.1:28336"
+# Legacy array form still supported: enabled_modules = ["blvm-miniscript"]  # unpinned (*)
 # Opt-out: never auto-load or bootstrap-download these names (manifest `name`), even if on disk.
 # disabled_modules = ["some-module"]
 
@@ -73,10 +80,3 @@ enabled_modules = ["blvm-miniscript", "blvm-zmq"]
 [modules.blvm-marketplace]
 # modules_dir is inherited from [modules].modules_dir above
 # (Legacy: you could set registry_url here instead of under [modules].)
-
-[modules.blvm-zmq]
-hashblock = "tcp://127.0.0.1:28332"
-hashtx = "tcp://127.0.0.1:28333"
-rawblock = "tcp://127.0.0.1:28334"
-rawtx = "tcp://127.0.0.1:28335"
-sequence = "tcp://127.0.0.1:28336"
