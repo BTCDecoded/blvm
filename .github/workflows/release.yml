@@ -196,7 +196,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          toolchain: stable
+          toolchain: 1.88.0
           components: rustfmt clippy
 
       - name: Check for performance tools and configure environment

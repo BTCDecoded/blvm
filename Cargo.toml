@@ -1,7 +1,7 @@
 [package]
 name = "blvm"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Bitcoin Commons Team"]
 description = "Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine node binary"
 license = "MIT"
@@ -9,7 +9,7 @@ repository = "https://github.com/BTCDecoded/blvm"
 homepage = "https://btcdecoded.org"
 keywords = ["bitcoin", "node", "blockchain", "cryptocurrency", "p2p"]
 categories = ["cryptography::cryptocurrencies", "network-programming"]
-rust-version = "1.82"
+rust-version = "1.85"
 
 [lib]
 name = "blvm"
@@ -30,7 +30,7 @@ tracing-subscriber = { version = "=0.3.20", features = ["env-filter"] }
 anyhow = "=1.0.93"
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "=1.0.108"
+serde_json = "=1.0.133"
 reqwest = { version = "0.12", features = ["json"], default-features = false }
 hex = "0.4"
 # Pin ed25519 + pkcs8: iroh 0.95 → ed25519-dalek 3.0.0-pre.1 → ed25519 =3.0.0-rc.4
@@ -40,6 +40,8 @@ hex = "0.4"
 # Remove both pins once iroh ships with a stable ed25519-dalek.
 ed25519 = "=3.0.0-rc.4"
 pkcs8 = "=0.11.0-rc.11"
+# RUSTSEC-2026-0009: iroh/rcgen pull time 0.3.45; force patched release (strip-patch CI has no blvm-node git patch).
+time = { version = ">=0.3.47", default-features = false }
 
 # Local monorepo: use sibling checkouts instead of crates.io (omit this file on CI if you need a pure registry build).
 [patch.crates-io]
@@ -55,6 +57,7 @@ blvm-sdk = { path = "../blvm-sdk" }
 [features]
 default = [
     "blvm-node/sysinfo",
+    "heed3",
     "rocksdb",
     "blvm-node/redb",
     "blvm-node/nix",
@@ -77,6 +80,8 @@ rocksdb = ["blvm-node/rocksdb"]
 sled = ["blvm-node/sled"]
 # Redb embedded storage backend (cross-platform)
 redb = ["blvm-node/redb"]
+# heed3 / LMDB (MVCC mmap store; requires liblmdb)
+heed3 = ["blvm-node/heed3"]
 # Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
 profile = ["blvm-node/profile"]
 # Experimental features (passed through from blvm-node)

@@ -66,10 +66,12 @@ B = { version = "0.1.0", git_tag = "v0.1.0", requires = ["A=0.1.0"] }
     let result = manifest.build_order();
 
     assert!(result.is_err(), "Should fail with circular dependency");
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Circular dependency"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Circular dependency")
+    );
 }
 
 /// Test parallel builds (repos with no dependencies can be built in parallel)

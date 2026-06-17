@@ -103,7 +103,7 @@ jobs:
       - name: Install Rust toolchain
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          toolchain: stable
+          toolchain: 1.88.0
 
       - name: Cargo test (all features)
         run: cargo test --all-features --locked

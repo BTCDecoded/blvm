@@ -433,7 +433,7 @@ burst_size = 20
 
 # Storage and pruning configuration
 # [storage]
-# database_backend = "auto"  # typical release: RocksDB; or "rocksdb", "redb", "sled", "tidesdb"
+# database_backend = "auto"  # typical release: heed3 (LMDB); or "rocksdb", "redb", "sled", "tidesdb"
 # 
 # [storage.pruning]
 # mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }

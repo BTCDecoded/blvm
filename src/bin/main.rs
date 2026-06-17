@@ -4,11 +4,11 @@
 //! This binary starts a full Bitcoin node using the blvm-node library.
 
 use anyhow::{Context, Result};
+use blvm_node::ProtocolVersion;
 use blvm_node::config::NodeConfig;
 use blvm_node::node::Node as ReferenceNode;
-use blvm_node::ProtocolVersion;
 use clap::{Parser, Subcommand, ValueEnum};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -410,9 +410,7 @@ async fn main() -> Result<()> {
                     handle_config_validate(path.clone(), &cli.config)
                 }
                 ConfigCommand::Path => handle_config_path(&cli.config),
-                ConfigCommand::Set { ref assignments } => {
-                    handle_config_set(&cli.config, assignments)
-                }
+                ConfigCommand::Set { assignments } => handle_config_set(&cli.config, assignments),
                 ConfigCommand::ConvertCore {
                     input,
                     output,
@@ -557,7 +555,9 @@ async fn main() -> Result<()> {
             info!("P2P listen address: {}", listen_addr);
             info!("Data directory: {}", data_dir);
 
-            std::env::set_var("DATA_DIR", &data_dir);
+            unsafe {
+                std::env::set_var("DATA_DIR", &data_dir);
+            }
 
             let protocol_version: ProtocolVersion = network.into();
             let mut node = match ReferenceNode::with_storage_config(
@@ -994,7 +994,9 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
         #[cfg(not(feature = "stratum-v2"))]
         {
             if enabled {
-                warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
+                warn!(
+                    "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
+                );
             }
         }
     }
@@ -1012,7 +1014,9 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
         #[cfg(not(feature = "dandelion"))]
         {
             if enabled {
-                warn!("Dandelion++ feature not compiled in. Rebuild with --features dandelion to enable.");
+                warn!(
+                    "Dandelion++ feature not compiled in. Rebuild with --features dandelion to enable."
+                );
             }
         }
     }

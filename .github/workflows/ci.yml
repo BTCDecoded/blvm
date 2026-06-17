@@ -161,6 +161,18 @@ jobs:
             pacman -Qq openssl pkgconf >/dev/null 2>&1 || sudo pacman -Sy --noconfirm openssl pkgconf
           fi
 
+      - name: Install liblmdb (heed3 default backend)
+        run: |
+          if pkg-config --exists lmdb 2>/dev/null; then
+            echo "liblmdb already present."
+          elif command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh install -y -qq liblmdb-dev
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Qq lmdb >/dev/null 2>&1 || sudo pacman -Sy --noconfirm lmdb
+          else
+            echo "::warning::liblmdb not installed; heed3 link may fail"
+          fi
+
       - name: Isolate CARGO_HOME for this runner
         run: |
           mkdir -p "${RUNNER_TEMP}/cargo"

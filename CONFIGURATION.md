@@ -142,7 +142,7 @@ enable_self_advertisement = true
 
 # Storage and pruning
 # [storage]
-# database_backend = "auto"  # typical `blvm` build: resolves to RocksDB
+# database_backend = "auto"  # typical `blvm` build: resolves to heed3 (LMDB); use "rocksdb" for existing RocksDB datadir
 # 
 # [storage.pruning]
 # mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }

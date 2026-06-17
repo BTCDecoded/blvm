@@ -91,9 +91,11 @@ transport_preference = "tcponly"
 #[test]
 fn test_env_override() {
     // Set environment variables
-    env::set_var("BLVM_NETWORK", "testnet");
-    env::set_var("BLVM_RPC_ADDR", "127.0.0.1:18333");
-    env::set_var("BLVM_NODE_MAX_PEERS", "100");
+    unsafe {
+        env::set_var("BLVM_NETWORK", "testnet");
+        env::set_var("BLVM_RPC_ADDR", "127.0.0.1:18333");
+        env::set_var("BLVM_NODE_MAX_PEERS", "100");
+    }
 
     // Verify they can be read (this tests the EnvOverrides struct in main.rs)
     // Note: This is a basic test - full integration would require running the binary
@@ -102,9 +104,11 @@ fn test_env_override() {
     assert_eq!(env::var("BLVM_NODE_MAX_PEERS").unwrap(), "100");
 
     // Cleanup
-    env::remove_var("BLVM_NETWORK");
-    env::remove_var("BLVM_RPC_ADDR");
-    env::remove_var("BLVM_NODE_MAX_PEERS");
+    unsafe {
+        env::remove_var("BLVM_NETWORK");
+        env::remove_var("BLVM_RPC_ADDR");
+        env::remove_var("BLVM_NODE_MAX_PEERS");
+    }
 }
 
 /// Test default configuration

@@ -43,10 +43,12 @@ blvm-node = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-protocol=
 
     // Verify blvm-protocol requires blvm-consensus
     let protocol = manifest.versions.get("blvm-protocol").unwrap();
-    assert!(protocol
-        .requires
-        .iter()
-        .any(|r| r.contains("blvm-consensus")));
+    assert!(
+        protocol
+            .requires
+            .iter()
+            .any(|r| r.contains("blvm-consensus"))
+    );
 
     // Verify blvm-node requires blvm-protocol
     let node = manifest.versions.get("blvm-node").unwrap();
@@ -143,10 +145,12 @@ blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", requires = ["blvm-conse
         !validation.is_valid(),
         "Missing dependencies should fail validation"
     );
-    assert!(validation
-        .errors()
-        .iter()
-        .any(|e| e.contains("blvm-consensus")));
+    assert!(
+        validation
+            .errors()
+            .iter()
+            .any(|e| e.contains("blvm-consensus"))
+    );
 }
 
 /// Test build order calculation
@@ -198,8 +202,10 @@ B = { version = "0.1.0", git_tag = "v0.1.0", requires = ["A=0.1.0"] }
     let manifest = VersionsManifest::from_file(&versions_path).expect("Should parse");
     let result = manifest.build_order();
     assert!(result.is_err(), "Should fail with circular dependency");
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Circular dependency"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Circular dependency")
+    );
 }

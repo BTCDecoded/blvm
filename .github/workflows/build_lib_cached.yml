@@ -143,7 +143,7 @@ jobs:
       - name: Install Rust toolchain
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
         with:
-          toolchain: stable
+          toolchain: 1.88.0
 
       - name: Build
         run: |
