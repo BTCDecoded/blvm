@@ -70,6 +70,7 @@ default = [
     "blvm-node/dandelion",
     "blvm-node/rest-api",
     "blvm-node/bip70-http",
+    "blvm-node/compression",
     "governance",
 ]
 # Production optimizations (enables blvm-node production features)
@@ -99,6 +100,8 @@ quinn = ["blvm-node/quinn"]
 # REST API + BIP70 HTTP payment protocol (bip70-http implies rest-api in blvm-node)
 rest-api = ["blvm-node/rest-api"]
 bip70-http = ["blvm-node/bip70-http"]
+# Block/witness/UTXO zstd + index blob compression (blvm default features; omitted from portable aarch64/Windows release CI)
+compression = ["blvm-node/compression"]
 # Miniscript: descriptor / policy parsing
 # Descriptor / miniscript RPCs: use the `blvm-miniscript` module (no blvm-node feature).
 miniscript = []

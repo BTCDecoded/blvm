@@ -922,7 +922,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
         .unwrap_or_else(|| "./data".to_string());
 
-    // listen_addr: CLI explicit → BLVM_LISTEN_ADDR env → config file → network-aware default
+    // listen_addr: CLI → ENV → config file (if loaded) → network-aware default
     let default_listen_port = match network {
         Network::Mainnet => 8333u16,
         Network::Testnet => 18333,
@@ -931,7 +931,11 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     let listen_addr = cli
         .listen_addr
         .or(env_overrides.listen_addr)
-        .or(config.listen_addr)
+        .or(if config_loaded_from_file {
+            config.listen_addr
+        } else {
+            None
+        })
         .unwrap_or_else(|| SocketAddr::from(([0, 0, 0, 0], default_listen_port)));
 
     let rpc_addr = cli
@@ -1361,6 +1365,80 @@ async fn rpc_call(rpc_addr: SocketAddr, method: &str, params: Value) -> Result<V
     rpc_call_with_auth(rpc_addr, method, params, None, None).await
 }
 
+/// JSON-RPC to a running node using credentials from the loaded `blvm.toml` (`[rpc_auth]`).
+async fn rpc_call_with_config(
+    rpc_addr: SocketAddr,
+    config: &NodeConfig,
+    method: &str,
+    params: Value,
+) -> Result<Value> {
+    if let Some(auth) = &config.rpc_auth {
+        if let Some(token) = auth.admin_tokens.first() {
+            return rpc_call_with_bearer(rpc_addr, method, params, token).await;
+        }
+        if let Some(token) = auth.tokens.first() {
+            return rpc_call_with_bearer(rpc_addr, method, params, token).await;
+        }
+        if let Some(ref password) = auth.password {
+            let user = auth.username.as_deref().unwrap_or("btc");
+            return rpc_call_with_auth(
+                rpc_addr,
+                method,
+                params,
+                Some(user),
+                Some(password.as_str()),
+            )
+            .await;
+        }
+        if auth.required {
+            anyhow::bail!(
+                "RPC authentication required: set [rpc_auth].admin_tokens, tokens, or password in the same config file used with --config"
+            );
+        }
+    }
+    rpc_call(rpc_addr, method, params).await
+}
+
+async fn rpc_call_with_bearer(
+    rpc_addr: SocketAddr,
+    method: &str,
+    params: Value,
+    token: &str,
+) -> Result<Value> {
+    let url = format!("http://{rpc_addr}");
+    let client = reqwest::Client::new();
+    let request = json!({
+        "jsonrpc": "2.0",
+        "method": method,
+        "params": params,
+        "id": 1
+    });
+    let response = client
+        .post(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| {
+            let hint = rpc_connect_failure_hint(rpc_addr);
+            anyhow::anyhow!("Failed to connect to RPC server at {rpc_addr}{hint}: {e}")
+        })?;
+    let status = response.status();
+    if !status.is_success() {
+        anyhow::bail!("RPC request failed with status: {}", status);
+    }
+    let json: Value = response
+        .json()
+        .await
+        .context("Failed to parse RPC response")?;
+    if let Some(error) = json.get("error") {
+        anyhow::bail!("RPC error: {}", error);
+    }
+    json.get("result")
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("No result in RPC response"))
+}
+
 async fn rpc_call_with_auth(
     rpc_addr: SocketAddr,
     method: &str,
@@ -1410,10 +1488,10 @@ async fn rpc_call_with_auth(
 }
 
 // Subcommand handlers
-async fn handle_status(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    let chain_info = rpc_call(rpc_addr, "getblockchaininfo", json!([])).await?;
-    let network_info = rpc_call(rpc_addr, "getnetworkinfo", json!([])).await?;
-    let peer_info = rpc_call(rpc_addr, "getpeerinfo", json!([])).await?;
+async fn handle_status(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    let chain_info = rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await?;
+    let network_info = rpc_call_with_config(rpc_addr, config, "getnetworkinfo", json!([])).await?;
+    let peer_info = rpc_call_with_config(rpc_addr, config, "getpeerinfo", json!([])).await?;
 
     println!("=== Node Status ===");
     println!(
@@ -1453,8 +1531,8 @@ async fn handle_status(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()>
     Ok(())
 }
 
-async fn handle_health(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    match rpc_call(rpc_addr, "getblockchaininfo", json!([])).await {
+async fn handle_health(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    match rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await {
         Ok(_) => {
             println!("✅ Node is healthy");
             Ok(())
@@ -1497,8 +1575,8 @@ fn handle_version() -> Result<()> {
     Ok(())
 }
 
-async fn handle_chain(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    let info = rpc_call(rpc_addr, "getblockchaininfo", json!([])).await?;
+async fn handle_chain(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    let info = rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await?;
 
     println!("=== Blockchain Information ===");
     println!(
@@ -1528,8 +1606,8 @@ async fn handle_chain(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
     Ok(())
 }
 
-async fn handle_peers(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    let peers = rpc_call(rpc_addr, "getpeerinfo", json!([])).await?;
+async fn handle_peers(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    let peers = rpc_call_with_config(rpc_addr, config, "getpeerinfo", json!([])).await?;
 
     println!("=== Connected Peers ===");
     if let Some(peer_array) = peers.as_array() {
@@ -1554,8 +1632,8 @@ async fn handle_peers(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> 
     Ok(())
 }
 
-async fn handle_network(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    let info = rpc_call(rpc_addr, "getnetworkinfo", json!([])).await?;
+async fn handle_network(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    let info = rpc_call_with_config(rpc_addr, config, "getnetworkinfo", json!([])).await?;
 
     println!("=== Network Information ===");
     println!(
@@ -1591,8 +1669,8 @@ async fn handle_network(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()
     Ok(())
 }
 
-async fn handle_sync(rpc_addr: SocketAddr, _config: &NodeConfig) -> Result<()> {
-    let info = rpc_call(rpc_addr, "getblockchaininfo", json!([])).await?;
+async fn handle_sync(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
+    let info = rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await?;
 
     let blocks = info.get("blocks").and_then(|v| v.as_u64()).unwrap_or(0);
     let headers = info.get("headers").and_then(|v| v.as_u64()).unwrap_or(0);
@@ -1791,9 +1869,9 @@ async fn handle_rpc(
     rpc_addr: SocketAddr,
     method: &str,
     params: Value,
-    _config: &NodeConfig,
+    config: &NodeConfig,
 ) -> Result<()> {
-    let result = rpc_call(rpc_addr, method, params).await?;
+    let result = rpc_call_with_config(rpc_addr, config, method, params).await?;
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
 }
@@ -1801,7 +1879,7 @@ async fn handle_rpc(
 async fn handle_module(
     rpc_addr: SocketAddr,
     subcommand: &ModuleCommand,
-    _config: &NodeConfig,
+    config: &NodeConfig,
 ) -> Result<()> {
     let (method, params) = match subcommand {
         ModuleCommand::Load { name } => ("loadmodule", json!([name])),
@@ -1809,7 +1887,7 @@ async fn handle_module(
         ModuleCommand::Reload { name } => ("reloadmodule", json!([name])),
         ModuleCommand::List => ("listmodules", json!([])),
     };
-    let result = rpc_call(rpc_addr, method, params).await?;
+    let result = rpc_call_with_config(rpc_addr, config, method, params).await?;
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
 }
@@ -1818,7 +1896,7 @@ async fn handle_module(
 async fn handle_module_cli(
     rpc_addr: SocketAddr,
     args: &[String],
-    _config: &NodeConfig,
+    config: &NodeConfig,
 ) -> Result<()> {
     if args.len() < 2 {
         anyhow::bail!(
@@ -1835,7 +1913,7 @@ async fn handle_module_cli(
         p.extend(sub_args.into_iter().map(Value::from));
         Value::Array(p)
     };
-    let result = rpc_call(rpc_addr, "runmodulecli", params).await?;
+    let result = rpc_call_with_config(rpc_addr, config, "runmodulecli", params).await?;
     let stdout = result.get("stdout").and_then(|v| v.as_str()).unwrap_or("");
     let stderr = result.get("stderr").and_then(|v| v.as_str()).unwrap_or("");
     let exit_code = result

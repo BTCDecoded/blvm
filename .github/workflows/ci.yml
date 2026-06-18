@@ -907,7 +907,9 @@ jobs:
         run: rm -rf /tmp/gh-blvm-release-build/${{ github.run_id }} || true
 
   # Sends repository_dispatch(blvm-release) to BTCDecoded/website and
-  # BTCDecoded/commons-website so both refresh install/blvm version metadata.
+  # BTCDecoded/commons-website so btcdecoded.org/install refreshes after each
+  # stable release. blvm-docs book install page is timeless (btcdecoded.org/install);
+  # docs deploy only on pushes to blvm-docs main.
   # Org secret on this repo: WEBSITE_REPO_DISPATCH_TOKEN — PAT must be able to
   # dispatch workflows on both repos (classic `repo` or fine-grained on each).
   notify-website-deploy:
@@ -916,7 +918,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() && needs.release.result == 'success' }}
     steps:
-      - name: repository_dispatch(blvm-release) → website & commons-website
+      - name: repository_dispatch(blvm-release) → website, commons-website
         env:
           TOKEN: ${{ secrets.WEBSITE_REPO_DISPATCH_TOKEN }}
           VERSION_TAG: ${{ needs.release.outputs.version_tag }}

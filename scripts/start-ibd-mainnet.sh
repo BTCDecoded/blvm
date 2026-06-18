@@ -52,8 +52,8 @@ if [ -z "$CONFIG_FILE" ]; then
 fi
 
 mkdir -p "$DATA_DIR"
-if [ -d "$DATA_DIR/rocksdb" ]; then
-    echo "Existing chain data found — resuming sync (keep the same data dir; do not wipe rocksdb/)."
+if [ -d "$DATA_DIR/heed3" ] || [ -d "$DATA_DIR/rocksdb" ] || [ -d "$DATA_DIR/redb" ] || [ -d "$DATA_DIR/sled" ]; then
+    echo "Existing chain data found — resuming sync (keep the same data dir; do not wipe the active backend directory)."
 fi
 export RUST_LOG="${RUST_LOG:-blvm=info}"
 

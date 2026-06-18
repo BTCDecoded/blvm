@@ -47,12 +47,15 @@ The binary will be at `target/release/blvm`.
 
 ### From Packages
 
-Official and prerelease workflows attach artifacts to **GitHub Releases** (built on self-hosted Linux):
+Official stable releases attach artifacts to **GitHub Releases** (built on self-hosted Linux and Windows):
 
-- **Debian/Ubuntu**: `.deb` packages (`blvm` and `blvm-experimental` where published; install with `sudo apt install ./blvm_*.deb` or `sudo dpkg -i`)
-- **RPM-based distros**: `.rpm` (native builds and/or conversions from `.deb` depending on the release)
-- **Arch-style**: `.pkg.tar.gz` payload tarball (manual `pacman -U` or unpack `usr/bin`)
-- **Windows**: `.exe` installer and cross-compiled `.zip` archives for `x86_64-pc-windows-gnu` — download the asset names listed on the **release page**
+- **Debian/Ubuntu**: `.deb` (`sudo dpkg -i` or `sudo apt install ./blvm_*.deb`)
+- **Fedora/RHEL**: `.rpm`
+- **Arch**: `.pkg.tar.gz` (`pacman -U`)
+- **Linux**: standalone `blvm-*-linux-x86_64` and `blvm-*-linux-aarch64` binaries, plus `.tar.gz` archives
+- **Windows**: portable `blvm-*-windows-x86_64.exe` (verify with `checksums.sha256` on the release page)
+
+See [Installation](https://docs.thebitcoincommons.org/getting-started/installation.html) for download links and verify steps.
 
 ---
 
