@@ -18,7 +18,7 @@ use tracing::{error, info, warn};
 
 #[derive(Parser)]
 #[command(name = "blvm")]
-#[command(about = "Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine Node", long_about = None)]
+#[command(about = "Bitcoin Commons BLVM — Bitcoin node", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,

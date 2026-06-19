@@ -44,7 +44,7 @@ cat > "${PKGBUILD_DIR}/PKGBUILD" <<EOF
 pkgname=${PACKAGE_NAME}
 pkgver=${VERSION}
 pkgrel=1
-pkgdesc="Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine Node"
+pkgdesc="Bitcoin Commons BLVM - Bitcoin node"
 arch=('x86_64')
 url="https://btcdecoded.org"
 license=('MIT')

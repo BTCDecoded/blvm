@@ -820,7 +820,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.version_tag }}
           name: blvm ${{ steps.version.outputs.version_tag }}
           body: |
-            **Bitcoin Commons BLVM** — Bitcoin Low-Level Virtual Machine node CLI.
+            **Bitcoin Commons BLVM** — Bitcoin node CLI.
 
             > [!NOTE]
             > Verify your download against `checksums.sha256` before running.

@@ -3,7 +3,7 @@ name = "blvm"
 version = "0.1.0"
 edition = "2024"
 authors = ["Bitcoin Commons Team"]
-description = "Bitcoin Commons BLVM - Bitcoin Low-Level Virtual Machine node binary"
+description = "Bitcoin Commons BLVM - Bitcoin node binary"
 license = "MIT"
 repository = "https://github.com/BTCDecoded/blvm"
 homepage = "https://btcdecoded.org"
@@ -158,7 +158,7 @@ maintainer = "Bitcoin Commons Team <team@btcdecoded.org>"
 section = "net"
 priority = "optional"
 extended-description = """\
-Bitcoin Commons BLVM is a Bitcoin Low-Level Virtual Machine node binary.
+Bitcoin Commons BLVM is a Bitcoin node binary.
 It provides a full Bitcoin node with module system support, RPC interface,
 and cross-transport networking (TCP, QUIC/Iroh)."""
 assets = [
