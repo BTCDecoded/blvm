@@ -17,8 +17,7 @@ use std::time::Duration;
 use tracing::{error, info, warn};
 
 #[derive(Parser)]
-#[command(name = "blvm")]
-#[command(about = "Bitcoin Commons BLVM — Bitcoin node", long_about = None)]
+#[command(name = "blvm", version, about = "Bitcoin Commons BLVM — Bitcoin node", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -44,7 +43,7 @@ struct Cli {
     config: Option<PathBuf>,
 
     /// Enable verbose logging
-    #[arg(short, long)]
+    #[arg(short, long, global = true)]
     verbose: bool,
 
     /// Feature flags (runtime-configurable features)
@@ -1477,10 +1476,13 @@ async fn rpc_call_with_auth(
 
     let mut req = client.post(&url).json(&request);
 
-    // Use provided credentials or defaults
-    let rpc_user = user.unwrap_or("btc");
-    let rpc_password = password.unwrap_or("");
-    req = req.basic_auth(rpc_user, Some(rpc_password));
+    // Only attach credentials when explicitly configured — sending default btc/"" causes 401
+    // against localhost nodes in rate-limit-only mode (auth manager present, auth not required).
+    if user.is_some() || password.is_some() {
+        let rpc_user = user.unwrap_or("btc");
+        let rpc_password = password.unwrap_or("");
+        req = req.basic_auth(rpc_user, Some(rpc_password));
+    }
 
     let response = req.send().await.map_err(|e| {
         let hint = rpc_connect_failure_hint(rpc_addr);

@@ -38,14 +38,28 @@ fn test_invalid_network() {
         .stderr(predicate::str::contains("invalid"));
 }
 
-/// Test verbose flag parsing
+/// Test verbose flag parsing (global: works before or after subcommand)
 #[test]
 fn test_verbose_flag() {
     let mut cmd = Command::cargo_bin("blvm").unwrap();
     cmd.arg("--verbose");
     cmd.timeout(std::time::Duration::from_secs(1));
-    // Should parse successfully (will fail when starting node, but parsing works)
     let _ = cmd.assert();
+
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
+    cmd.arg("start").arg("--verbose");
+    cmd.timeout(std::time::Duration::from_secs(1));
+    let _ = cmd.assert();
+}
+
+/// Test --version flag (in addition to `blvm version` subcommand)
+#[test]
+fn test_version_flag() {
+    let mut cmd = Command::cargo_bin("blvm").unwrap();
+    cmd.arg("--version");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("blvm"));
 }
 
 /// Test feature flags parsing

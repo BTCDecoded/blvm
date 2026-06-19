@@ -775,6 +775,10 @@ jobs:
           if [ -d artifacts ]; then
             cp -a artifacts/. release-artifacts/
           fi
+          # Standalone IBD onboarding files (direct download without extracting tarball)
+          cp blvm-mainnet-ibd.toml.example release-artifacts/
+          cp scripts/start-ibd-mainnet.sh release-artifacts/
+          chmod +x release-artifacts/start-ibd-mainnet.sh
           # Archives from collect-artifacts + create-release.sh (uploaded via files: release-artifacts/*)
           for f in \
             "blvm-${VERSION_TAG}-linux-x86_64.tar.gz" \
@@ -1341,6 +1345,14 @@ jobs:
             org.opencontainers.image.source=${{ github.repositoryUrl }}
             org.opencontainers.image.revision=${{ github.sha }}
 
+      - name: Set GHCR package visibility to public
+        continue-on-error: true
+        run: |
+          gh api -X PATCH "/orgs/BTCDecoded/packages/container/blvm/visibility" \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   docker-ghcr:
     name: Publish container (GHCR)
     needs: [setup, release]
@@ -1400,6 +1412,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Set GHCR package visibility to public
+        continue-on-error: true
+        run: |
+          gh api -X PATCH "/orgs/BTCDecoded/packages/container/blvm/visibility" \
+            -f visibility=public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   teardown:
     name: Teardown (cleanup runner disk)
