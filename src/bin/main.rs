@@ -328,6 +328,8 @@ enum Network {
     Regtest,
     /// Bitcoin test network
     Testnet,
+    /// Bitcoin signet (BIP325 test network)
+    Signet,
     /// Bitcoin mainnet (use with caution)
     Mainnet,
 }
@@ -336,6 +338,7 @@ impl From<Network> for ProtocolVersion {
     fn from(network: Network) -> Self {
         match network {
             Network::Regtest => ProtocolVersion::Regtest,
+            Network::Signet => ProtocolVersion::Signet,
             Network::Testnet => ProtocolVersion::Testnet3,
             Network::Mainnet => ProtocolVersion::BitcoinV1,
         }
@@ -686,6 +689,8 @@ struct EnvOverrides {
     module_socket_timeout: Option<u64>,
     module_socket_check_interval: Option<u64>,
     module_socket_max_attempts: Option<usize>,
+    /// BIP325 signet challenge script override (hex)
+    signet_challenge: Option<String>,
 }
 
 impl EnvOverrides {
@@ -763,6 +768,7 @@ impl EnvOverrides {
             module_socket_max_attempts: env::var("BLVM_MODULE_SOCKET_MAX_ATTEMPTS")
                 .ok()
                 .and_then(|s| s.parse().ok()),
+            signet_challenge: env::var("BLVM_SIGNET_CHALLENGE").ok(),
         }
     }
 }
@@ -800,19 +806,32 @@ fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
 }
 
 /// Build final configuration with hierarchy: CLI > ENV > Config > Defaults
+fn network_from_cli_enum(network: &Network) -> &'static str {
+    match network {
+        Network::Mainnet => "mainnet",
+        Network::Testnet => "testnet",
+        Network::Regtest => "regtest",
+        Network::Signet => "signet",
+    }
+}
+
+fn network_from_str(s: &str) -> Option<Network> {
+    match blvm::canonical_network_name(s)? {
+        "mainnet" => Some(Network::Mainnet),
+        "testnet" => Some(Network::Testnet),
+        "signet" => Some(Network::Signet),
+        "regtest" => Some(Network::Regtest),
+        _ => None,
+    }
+}
+
 /// Derive a Network from a loaded NodeConfig's `protocol_version`, defaulting to Regtest.
 fn network_from_config_or_default(config: &NodeConfig) -> Network {
-    match config
+    config
         .protocol_version
         .as_deref()
-        .unwrap_or("")
-        .to_lowercase()
-        .as_str()
-    {
-        "bitcoinv1" | "mainnet" => Network::Mainnet,
-        "testnet" => Network::Testnet,
-        _ => Network::Regtest,
-    }
+        .and_then(network_from_str)
+        .unwrap_or(Network::Regtest)
 }
 
 fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
@@ -896,11 +915,9 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     let network = if let Some(ref cli_net) = cli.network {
         cli_net.clone()
     } else if let Some(network_str) = &env_overrides.network {
-        match network_str.to_lowercase().as_str() {
-            "regtest" => Network::Regtest,
-            "testnet" => Network::Testnet,
-            "mainnet" => Network::Mainnet,
-            _ => {
+        match network_from_str(network_str) {
+            Some(net) => net,
+            None => {
                 warn!(
                     "Unknown network in BLVM_NETWORK: '{}'. Falling back to config/default.",
                     network_str
@@ -923,11 +940,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .unwrap_or_else(|| "./data".to_string());
 
     // listen_addr: CLI → ENV → config file (if loaded) → network-aware default
-    let default_listen_port = match network {
-        Network::Mainnet => 8333u16,
-        Network::Testnet => 18333,
-        Network::Regtest => 18444,
-    };
+    let default_listen_port = blvm::default_p2p_port_for_network(network_from_cli_enum(&network));
     let listen_addr = cli
         .listen_addr
         .or(env_overrides.listen_addr)
@@ -941,11 +954,11 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     let rpc_addr = cli
         .rpc_addr
         .or(env_overrides.rpc_addr)
-        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(&format!("{network:?}")));
+        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(network_from_cli_enum(&network)));
 
     // Apply resolved values to config so downstream code reads them from one place
     config.listen_addr = Some(listen_addr);
-    config.protocol_version = Some(format!("{network:?}"));
+    config.protocol_version = Some(network_from_cli_enum(&network).to_string());
 
     // Apply CLI feature flags (CLI overrides ENV and config file)
     apply_feature_flags(&mut config, &cli.features);
@@ -957,8 +970,9 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 
     // Per-network default assume-valid when block_validation is None and not regtest
     if config.block_validation.is_none() {
-        let default_height =
-            blvm_node::config::default_assume_valid_height_for_network(&format!("{network:?}"));
+        let default_height = blvm_node::config::default_assume_valid_height_for_network(
+            network_from_cli_enum(&network),
+        );
         if default_height > 0 {
             config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
                 assume_valid_height: default_height,
@@ -1141,6 +1155,11 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
 /// Apply environment config overrides (non-feature flags)
 /// ENV overrides config file; values are written to config for downstream use.
 fn apply_env_config_overrides(config: &mut NodeConfig, env: &EnvOverrides) {
+    if let Some(ref challenge) = env.signet_challenge {
+        info!("Signet challenge overridden by ENV");
+        config.signet_challenge = Some(challenge.clone());
+    }
+
     // Network timing config
     if env.target_peer_count.is_some()
         || env.peer_connection_delay.is_some()
