@@ -703,6 +703,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           VERSION_TAG: ${{ steps.version.outputs.version_tag }}
           CARGO_TARGET_DIR: /tmp/gh-blvm-release-build/${{ github.run_id }}/target
+          CARGO_BUILD_JOBS: 4
         run: |
           chmod +x scripts/ci-release-extra-artifacts.sh
           bash scripts/ci-release-extra-artifacts.sh

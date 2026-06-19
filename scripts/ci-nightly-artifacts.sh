@@ -3,11 +3,12 @@
 # Run from blvm repo root after Linux + Windows release builds in CARGO_TARGET_DIR.
 #
 # Env (required):
-#   CARGO_TARGET_DIR — same path as ci.yml nightly-release job
+#   CARGO_TARGET_DIR — blvm release binary target (governance builds use sibling target/)
 #   GITHUB_SHA         — commit being released (release notes only)
 #
 # Env (optional):
 #   GITHUB_WORKSPACE   — blvm repo root (default: pwd)
+#   CARGO_BUILD_JOBS   — rustc parallelism for governance builds (default 4)
 #
 set -euo pipefail
 
@@ -24,61 +25,6 @@ LINUX_BIN="${CARGO_TARGET_DIR}/release/blvm"
 WIN_BIN="${CARGO_TARGET_DIR}/x86_64-pc-windows-gnu/release/blvm.exe"
 
 log() { echo "[ci-nightly-artifacts] $*"; }
-
-strip_patches_in() {
-  local dir="$1"
-  [ -d "$dir" ] || return 0
-  (
-    cd "$dir" || exit 0
-    while IFS= read -r -d '' f; do
-      grep -q '^\[patch\.crates-io\]' "$f" 2>/dev/null || continue
-      awk '
-        /^\[patch\.crates-io\]/ { skip = 1; next }
-        skip && /^\[/ { skip = 0 }
-        !skip { print }
-      ' "$f" > "${f}.tmp" && mv "${f}.tmp" "$f"
-    done < <(find . -name Cargo.toml -not -path './target/*' -print0 2>/dev/null)
-  )
-}
-
-clone_sibling() {
-  local repo="$1"
-  local dest="${PARENT}/${repo}"
-  if [[ -d "${dest}/.git" ]]; then
-    log "Using existing clone: ${dest}"
-    return 0
-  fi
-  log "Cloning ${repo}…"
-  git clone --depth 1 "https://github.com/BTCDecoded/${repo}.git" "${dest}"
-}
-
-build_governance_binaries() {
-  unset CC CXX CPP AR || true
-  clone_sibling blvm-sdk
-  clone_sibling blvm-commons
-  strip_patches_in "${PARENT}/blvm-sdk"
-  strip_patches_in "${PARENT}/blvm-commons"
-
-  log "Building blvm-sdk (Linux)…"
-  (cd "${PARENT}/blvm-sdk" && cargo build --release --bins)
-
-  if rustup target list --installed | grep -q x86_64-pc-windows-gnu; then
-    log "Building blvm-sdk (Windows)…"
-    (
-      cd "${PARENT}/blvm-sdk"
-      export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
-      export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
-      export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
-      export PKG_CONFIG_ALLOW_CROSS=1
-      cargo build --release --bins --target x86_64-pc-windows-gnu
-    ) || log "WARN: blvm-sdk Windows build failed (non-fatal)"
-  else
-    log "WARN: x86_64-pc-windows-gnu not installed; skip blvm-sdk Windows"
-  fi
-
-  log "Building blvm-commons (Linux, best-effort)…"
-  (cd "${PARENT}/blvm-commons" && cargo build --release --bins) || log "WARN: blvm-commons build failed (non-fatal)"
-}
 
 stage_release_artifacts() {
   # Same layout as ci.yml release job "Stage release artifacts and checksums"
@@ -139,9 +85,10 @@ chmod +x "${BLVM_ROOT}/scripts/collect-artifacts.sh" \
   "${BLVM_ROOT}/scripts/create-release.sh" \
   "${BLVM_ROOT}/scripts/package-arch.sh" \
   "${BLVM_ROOT}/scripts/package-deb.sh" \
-  "${BLVM_ROOT}/scripts/package-rpm-from-deb.sh" 2>/dev/null || true
+  "${BLVM_ROOT}/scripts/package-rpm-from-deb.sh" \
+  "${BLVM_ROOT}/scripts/ci-build-governance-bins.sh" 2>/dev/null || true
 
-build_governance_binaries
+"${BLVM_ROOT}/scripts/ci-build-governance-bins.sh" "$PARENT"
 "${BLVM_ROOT}/scripts/collect-artifacts.sh" linux-x86_64 base
 
 if [[ -f "$WIN_BIN" ]]; then
