@@ -120,12 +120,12 @@ blvm peers
 # Show network information
 blvm network
 
-# Show sync status (default RPC is regtest :18332 — pass --network for mainnet)
+# Show sync status (default RPC is regtest :18443 — pass --network for mainnet)
 blvm sync
 blvm --network mainnet --config blvm-mainnet-ibd.toml.example sync
 ```
 
-Subcommands use the same `--network`, `--config`, and `--rpc-addr` as node start. Bare `blvm sync` targets regtest RPC (`18332`); a mainnet node listens on `8332`.
+Subcommands use the same `--network`, `--config`, and `--rpc-addr` as node start. Bare `blvm sync` targets regtest RPC (**18443**); a mainnet node listens on **8332**.
 
 ### Configuration Commands
 
@@ -192,13 +192,13 @@ blvm --config blvm.toml --network regtest
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
 | `--network` | `-n` | Network to connect to (regtest/testnet/mainnet) | `regtest` |
-| `--rpc-addr` | `-r` | RPC server address (network-aware when omitted; see note below) | regtest/testnet: `127.0.0.1:18332`; mainnet: `127.0.0.1:8332` |
+| `--rpc-addr` | `-r` | RPC server address (network-aware when omitted; see note below) | mainnet: `127.0.0.1:8332`; testnet: `127.0.0.1:18332`; regtest: `127.0.0.1:18443` |
 | `--listen-addr` | `-l` | P2P listen address | `0.0.0.0:8333` |
 | `--data-dir` | `-d` | Data directory | `./data` |
 | `--config` | `-c` | Config file path (TOML or JSON) | Auto-detected |
 | `--verbose` | `-v` | Enable verbose logging | `false` |
 
-**RPC default:** When `--rpc-addr` is omitted, mainnet uses **`127.0.0.1:8332`**; testnet and regtest use **`127.0.0.1:18332`**. `BLVM_RPC_ADDR` overrides this. Regtest’s default is **not** Bitcoin Core’s usual `18443`; set `--rpc-addr` or `BLVM_RPC_ADDR` if you need Core-aligned ports.
+**RPC default:** When `--rpc-addr` is omitted, mainnet uses **`127.0.0.1:8332`**, testnet **`127.0.0.1:18332`**, regtest **`127.0.0.1:18443`** (Core-aligned). `BLVM_RPC_ADDR` overrides this.
 
 #### Feature Flags
 
@@ -248,7 +248,7 @@ Environment variables are ideal for deployment scenarios, especially in containe
 
 #### Deployment-Critical Variables
 
-Examples below use **mainnet-style** RPC `8332`. The `blvm` CLI default is **`127.0.0.1:18332`** unless you override it; set `BLVM_RPC_ADDR` to the same socket you pass to `--rpc-addr`.
+Examples below use **mainnet-style** RPC `8332`. Default CLI RPC without overrides: **`127.0.0.1:18443`** (regtest), **`127.0.0.1:18332`** (testnet), **`127.0.0.1:8332`** (mainnet). Set `BLVM_RPC_ADDR` to the same socket you pass to `--rpc-addr`.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
