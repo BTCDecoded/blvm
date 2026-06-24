@@ -1,0 +1,54 @@
+# Mainnet from a synced Bitcoin Core datadir — migrate UTXO/index into <datadir>/blvm/,
+# read block files in-place from Core blocks/ (reuse_core_block_files, default).
+#
+# Usage:
+#   ./scripts/start-mainnet-from-core.sh
+#   BLVM_CORE_DATADIR=/home/josh/bitcoin-core-data ./scripts/start-mainnet-from-core.sh
+#
+# Requirements:
+#   - bitcoind STOPPED (no live chainstate/blocks index lock)
+#   - Non-pruned Core blocks/ + chainstate/
+#   - blvm built with rocksdb (default release)
+
+transport_preference = "tcponly"
+# Avoid P2P clash if bitcoind is also on :8333 — stop Core or change listen_addr.
+listen_addr = "0.0.0.0:8333"
+protocol_version = "BitcoinV1"
+
+[storage]
+# Bitcoin Core datadir (contains blocks/ + chainstate/). BLVM store opens at <data_dir>/blvm/.
+data_dir = "/home/josh/bitcoin-core-data"
+# Migrate creates heed3 by default (auto); matches `blvm migrate core` without --backend override.
+database_backend = "auto"
+auto_migrate_core = true
+reuse_core_block_files = true
+# core_migrate_destination defaults to "<data_dir>/blvm"
+
+[storage.pruning]
+incremental_prune_during_ibd = true
+prune_window_size = 144
+min_blocks_for_incremental_prune = 288
+auto_prune = true
+auto_prune_interval = 144
+min_blocks_to_keep = 144
+
+[storage.pruning.mode]
+type = "normal"
+keep_from_height = 0
+min_recent_blocks = 144
+
+[ibd]
+chunk_size = 128
+max_blocks_in_transit_per_peer = 128
+download_timeout_secs = 30
+mode = "parallel"
+eviction = "fifo"
+
+[rpc]
+max_request_size_bytes = 1048576
+
+[logging]
+level = "info"
+
+[modules]
+enabled = false

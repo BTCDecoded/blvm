@@ -12,7 +12,6 @@ use serde_json::{Value, json};
 use std::env;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tracing::{error, info, warn};
 
@@ -603,13 +602,14 @@ async fn main() -> Result<()> {
             // dropping it (dropping would orphan the IBD validation thread and skip the
             // final watermark flush).
             let mut node_fut = std::pin::pin!(node.start());
+            let mut shutdown_rx = blvm_node::utils::create_shutdown_receiver();
             let mut shutdown_initiated = false;
 
             loop {
                 if shutdown_initiated {
-                    // Signal received: give the IBD loop up to 60 s to drain in-flight
-                    // work and persist the watermark checkpoint, then force-exit.
-                    match tokio::time::timeout(Duration::from_secs(60), &mut node_fut).await {
+                    // Signal received: give the node up to 30 s to drain (IBD watermark flush
+                    // when active, otherwise run-loop exit + storage flush).
+                    match tokio::time::timeout(Duration::from_secs(30), &mut node_fut).await {
                         Ok(Ok(())) => {}
                         Ok(Err(e)) => {
                             // IBD_STOP_REQUESTED causes the validation loop to exit before
@@ -627,10 +627,17 @@ async fn main() -> Result<()> {
                             }
                         }
                         Err(_elapsed) => {
-                            warn!("Graceful IBD shutdown timed out after 60 s — forcing exit");
+                            warn!("Graceful shutdown timed out after 30 s — forcing exit");
+                            std::process::exit(0);
                         }
                     }
                     break;
+                }
+
+                if *shutdown_rx.borrow() {
+                    info!("Shutdown signal received — waiting for node to stop…");
+                    shutdown_initiated = true;
+                    continue;
                 }
 
                 tokio::select! {
@@ -641,12 +648,11 @@ async fn main() -> Result<()> {
                         }
                         break;
                     }
-                    _ = blvm_node::utils::wait_for_shutdown_signal() => {
-                        info!("Shutdown signal received — waiting for IBD to flush watermark…");
-                        blvm_node::node::parallel_ibd::IBD_SHUTDOWN_REQUESTED
-                            .store(true, Ordering::Release);
-                        shutdown_initiated = true;
-                        // Loop again: poll node_fut with a timeout instead of dropping it.
+                    Ok(()) = shutdown_rx.changed() => {
+                        if *shutdown_rx.borrow() {
+                            info!("Shutdown signal received — waiting for node to stop…");
+                            shutdown_initiated = true;
+                        }
                     }
                 }
             }
