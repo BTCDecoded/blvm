@@ -42,6 +42,8 @@ ed25519 = "=3.0.0-rc.4"
 pkcs8 = "=0.11.0-rc.11"
 # RUSTSEC-2026-0009: iroh/rcgen pull time 0.3.45; force patched release (strip-patch CI has no blvm-node git patch).
 time = { version = ">=0.3.47", default-features = false }
+# RUSTSEC-2026-0185: iroh → reqwest → quinn → quinn-proto 0.11.14; force >=0.11.15 (strip-patch CI has no blvm-node git patch).
+quinn-proto = "=0.11.15"
 
 # Local monorepo: use sibling checkouts instead of crates.io (omit this file on CI if you need a pure registry build).
 [patch.crates-io]
