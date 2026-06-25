@@ -1,4 +1,4 @@
-# BLVM - Bitcoin Low-Level Virtual Machine Node
+# BLVM Node
 
 **Main binary for Bitcoin Commons BLVM node implementation.**
 

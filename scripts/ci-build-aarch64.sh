@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cross-compile blvm for aarch64-unknown-linux-gnu (Raspberry Pi 4/5, 64-bit OS).
-# Uses the same portable feature set as the Windows CI build (heed3 + redb/sled fallbacks;
-# bundled LMDB via lmdb-master3-sys; no rocksdb/OpenSSL sysroot).
+# Uses Linux release features (common + nix/libc); same parity target as x86_64 native.
+# OpenSSL: Cargo.toml enables vendored openssl for linux/aarch64 (iroh native-tls).
 #
 # Usage: ci-build-aarch64.sh <CARGO_TARGET_DIR> <VERSION>
 # Writes ./blvm-${VERSION}-linux-aarch64 in the current directory (blvm repo root).
@@ -29,11 +29,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ci-portable-cross-features.sh
 source "${SCRIPT_DIR}/ci-portable-cross-features.sh"
 
-echo "=== aarch64 cross-compile (Raspberry Pi 64-bit; portable feature set) ==="
+echo "=== aarch64 cross-compile (Raspberry Pi 64-bit; Linux release feature set) ==="
 cargo build --release \
   --target aarch64-unknown-linux-gnu \
   --no-default-features \
-  --features "${BLVM_PORTABLE_CROSS_FEATURES}"
+  --features "${BLVM_LINUX_RELEASE_FEATURES}"
 
 BIN="${CARGO_TARGET_DIR}/aarch64-unknown-linux-gnu/release/blvm"
 if [[ ! -f "$BIN" ]]; then

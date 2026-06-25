@@ -519,10 +519,11 @@ async fn main() -> Result<()> {
         }
         None | Some(Command::Start) => {
             // Start node (default behavior)
-            let (mut config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli)?;
+            let (config, data_dir, listen_addr, rpc_addr, network) = build_final_config(&cli)?;
 
             #[cfg(feature = "rocksdb")]
             if cli.migrate_core_only {
+                let mut config = config;
                 use blvm_node::storage::Storage;
                 if !blvm_node::storage::bitcoin_detection::BitcoinCoreDetection::is_core_layout_at(
                     std::path::Path::new(&data_dir),
