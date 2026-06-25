@@ -668,11 +668,12 @@ jobs:
           unset CC CXX CPP AR || true
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           VERSION="${{ steps.version.outputs.version }}"
-          echo "=== Windows cross-compile (pure-Rust features, no zmq/rocksdb/nix/libc) ==="
+          source scripts/ci-portable-cross-features.sh
+          echo "=== Windows cross-compile (heed3 + redb/sled; no rocksdb/nix/libc) ==="
           cargo build --release \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
-            --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
+            --features "${BLVM_PORTABLE_CROSS_FEATURES}" \
             2>&1 || { echo "❌ Windows cross-compile failed (see above)"; exit 1; }
           EXE=/tmp/gh-blvm-release-build/${{ github.run_id }}/target/x86_64-pc-windows-gnu/release/blvm.exe
           if [ -f "$EXE" ]; then
@@ -834,7 +835,7 @@ jobs:
             | Platform | File | Notes |
             |---|---|---|
             | **Linux x86_64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64` | Full features (default `cargo build`) |
-            | **Linux aarch64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-aarch64` | Raspberry Pi 4/5 (64-bit OS); portable cross-build (sled/redb) |
+            | **Linux aarch64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-aarch64` | Raspberry Pi 4/5 (64-bit OS); portable cross-build (heed3 + redb/sled fallbacks) |
             | **Linux x86_64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm` + governance CLIs (+ checksum file inside) |
             | **Linux aarch64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz` | `blvm` for 64-bit ARM Linux (+ checksum file inside) |
             | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | `pacman -U` |
@@ -1216,11 +1217,12 @@ jobs:
           CARGO_BUILD_JOBS: 8
         run: |
           unset CC CXX CPP AR || true
+          source scripts/ci-portable-cross-features.sh
           echo "=== Windows cross-compile (same feature set as main release) ==="
           cargo build --release \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
-            --features "blvm-node/sled,blvm-node/redb,blvm-node/production,blvm-node/protocol-verification,blvm-node/utxo-commitments" \
+            --features "${BLVM_PORTABLE_CROSS_FEATURES}" \
             2>&1 || { echo "❌ Windows cross-compile failed"; exit 1; }
           EXE="${{ env.CARGO_NIGHTLY_TARGET }}/x86_64-pc-windows-gnu/release/blvm.exe"
           if [ ! -f "$EXE" ]; then
