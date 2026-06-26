@@ -91,9 +91,8 @@ cargo build --release --locked --features rocksdb
 ```
 blvm (binary)
   └── blvm-node
-       ├── blvm-protocol
-       │    └── blvm-consensus
-       └── blvm-consensus
+       └── blvm-protocol
+            └── blvm-consensus
 ```
 
 [Stack overview](https://docs.thebitcoincommons.org/architecture/system-overview.html)
