@@ -2,55 +2,75 @@
 
 **Main binary for the Bitcoin Commons BLVM full node** — the `blvm` executable wrapping the [`blvm-node`](https://github.com/BTCDecoded/blvm-node) library.
 
-## Documentation
+Operator guides live in **[docs.thebitcoincommons.org](https://docs.thebitcoincommons.org)**. This README is a repo landing page only.
 
-**Operator and developer guides live in the book**, not in this README:
+## Install
 
-| Topic | Where |
-|-------|--------|
-| **Install** (releases, packages, verify checksums) | [btcdecoded.org/install](https://btcdecoded.org/install) · [GitHub Releases (latest)](https://github.com/BTCDecoded/blvm/releases/latest) |
-| **Full documentation** | [docs.thebitcoincommons.org](https://docs.thebitcoincommons.org) |
-| Regtest tutorial (~5 min) | [Quick Start](https://docs.thebitcoincommons.org/getting-started/quick-start.html) |
-| Config, networks, RPC ports | [First Node Setup](https://docs.thebitcoincommons.org/getting-started/first-node.html) |
-| **Mainnet initial sync (IBD)** | [First Node Setup — Mainnet IBD](https://docs.thebitcoincommons.org/getting-started/first-node.html#mainnet-initial-sync) |
-| Configuration reference | [Node configuration](https://docs.thebitcoincommons.org/node/configuration.html) · [Configuration reference](https://docs.thebitcoincommons.org/reference/configuration-reference.html) |
+**Downloads, current release tag, filenames, and checksum commands:** [btcdecoded.org/install](https://btcdecoded.org/install)
+
+Also: [GitHub Releases (latest)](https://github.com/BTCDecoded/blvm/releases/latest) · [Installation (book)](https://docs.thebitcoincommons.org/getting-started/installation.html)
+
+Always verify the checksum file shipped with the artifact you downloaded (`checksums.sha256`, `SHA256SUMS-*`, or per-file `.sha256` — names vary by release).
+
+### Stable release artifacts
+
+| Format | Linux x86_64 | Linux aarch64 | Windows x86_64 |
+|--------|--------------|---------------|----------------|
+| `.deb` (Debian/Ubuntu) | yes | — | — |
+| `.rpm` (Fedora/RHEL) | yes | — | — |
+| `.pkg.tar.gz` (Arch) | yes | — | — |
+| `.tar.gz` archive | yes | yes | — |
+| Standalone binary | yes | yes | — |
+| Portable `.exe` / `.zip` | — | — | yes |
+
+**Docker (stable):** [`ghcr.io/btcdecoded/blvm`](https://github.com/BTCDecoded/blvm/pkgs/container/blvm) — tag matches the GitHub Release (see install page).
+
+**Nightly (rolling):** `develop` branch → GitHub `nightly` assets and `ghcr.io/btcdecoded/blvm:nightly`. See [Release channels](https://docs.thebitcoincommons.org/development/release-process.html#release-channels).
+
+**Source:** clone this repo; toolchain in [`rust-toolchain.toml`](rust-toolchain.toml). Feature sets differ by platform — [build variants](https://docs.thebitcoincommons.org/development/release-process.html#build-variants).
+
+Release tarballs also ship helper scripts and example configs (e.g. [`blvm-mainnet-ibd.toml.example`](blvm-mainnet-ibd.toml.example), [`scripts/start-ibd-mainnet.sh`](scripts/start-ibd-mainnet.sh)).
+
+## Documentation map
+
+| Topic | Link |
+|-------|------|
+| Regtest tutorial | [Quick Start](https://docs.thebitcoincommons.org/getting-started/quick-start.html) |
+| Config & RPC ports | [First Node Setup](https://docs.thebitcoincommons.org/getting-started/first-node.html) |
+| **Mainnet IBD** | [Mainnet initial sync](https://docs.thebitcoincommons.org/getting-started/first-node.html#mainnet-initial-sync) |
+| Configuration | [Node configuration](https://docs.thebitcoincommons.org/node/configuration.html) · [`CONFIGURATION.md`](CONFIGURATION.md) · [`blvm.toml.example`](blvm.toml.example) |
 | Storage backends | [Storage Backends](https://docs.thebitcoincommons.org/node/storage-backends.html) |
 | RPC | [RPC API Reference](https://docs.thebitcoincommons.org/node/rpc-api.html) |
-| IBD tuning & engine | [IBD configuration](https://docs.thebitcoincommons.org/node/configuration.html#ibd-configuration) · [IBD UTXO engine](https://docs.thebitcoincommons.org/node/ibd-engine.html) |
+| IBD tuning | [IBD configuration](https://docs.thebitcoincommons.org/node/configuration.html#ibd-configuration) · [IBD engine](https://docs.thebitcoincommons.org/node/ibd-engine.html) |
 | Troubleshooting | [Troubleshooting](https://docs.thebitcoincommons.org/appendices/troubleshooting.html) |
-| Build variants & features | [Installation — build from source](https://docs.thebitcoincommons.org/getting-started/installation.html#build-from-source) · [Release process](https://docs.thebitcoincommons.org/development/release-process.html) |
 | Contributing | [Contributing](https://docs.thebitcoincommons.org/development/contributing.html) |
-
-**In this repository:** [`blvm.toml.example`](blvm.toml.example) (general config), [`blvm-mainnet-ibd.toml.example`](blvm-mainnet-ibd.toml.example) (mainnet IBD), [`CONFIGURATION.md`](CONFIGURATION.md) (detailed config notes), [`scripts/start-ibd-mainnet.sh`](scripts/start-ibd-mainnet.sh) (release tarball helper).
 
 ## Quick start (regtest)
 
-After [installing](https://btcdecoded.org/install) `blvm`:
+After install:
 
 ```bash
 blvm version
 blvm --network regtest --verbose
 ```
 
-For a guided regtest walkthrough (config, RPC, mine a block), see **[Quick Start](https://docs.thebitcoincommons.org/getting-started/quick-start.html)**.
+Guided walkthrough: [Quick Start](https://docs.thebitcoincommons.org/getting-started/quick-start.html).
 
-**Mainnet:** do not use bare `--network mainnet` for first sync — follow **[Mainnet initial sync](https://docs.thebitcoincommons.org/getting-started/first-node.html#mainnet-initial-sync)** (example config + `start-ibd-mainnet.sh` in release tarballs).
+**Mainnet first sync:** use the IBD example config — not bare `--network mainnet`. [Mainnet initial sync](https://docs.thebitcoincommons.org/getting-started/first-node.html#mainnet-initial-sync).
 
 ## Common commands
 
 ```bash
 blvm status
 blvm health
-blvm sync          # pass same --network / --config / --data-dir as the running node
+blvm sync          # same --network / --config / --data-dir as the running node
 blvm rpc getblockchaininfo
 blvm config show
 ```
 
-Subcommands share `--network`, `--config`, `--data-dir`, and `--rpc-addr` with the node process. RPC defaults are network-aware (mainnet **8332**, testnet **18332**, regtest **18443**). Details: [RPC API Reference](https://docs.thebitcoincommons.org/node/rpc-api.html).
+RPC defaults: mainnet **8332**, testnet **18332**, regtest **18443**. Details: [RPC API](https://docs.thebitcoincommons.org/node/rpc-api.html).
 
 ## Build from source
-
-Requires Rust **1.85+** (see [`rust-toolchain.toml`](rust-toolchain.toml) for the pinned toolchain used in CI).
 
 ```bash
 git clone https://github.com/BTCDecoded/blvm.git
@@ -58,9 +78,9 @@ cd blvm
 cargo build --release --locked
 ```
 
-Default features match [release build variants](https://docs.thebitcoincommons.org/development/release-process.html#build-variants). Pass explicit `--features` for optional backends (e.g. `rocksdb`) or experimental flags — see [Installation](https://docs.thebitcoincommons.org/getting-started/installation.html#experimental-variant).
+Optional backends and experimental flags: explicit `--features` — [Installation — experimental variant](https://docs.thebitcoincommons.org/getting-started/installation.html#experimental-variant).
 
-**Mainnet IBD with RocksDB** (when using `blvm-mainnet-ibd.toml.example`):
+**RocksDB** (when using `blvm-mainnet-ibd.toml.example`):
 
 ```bash
 cargo build --release --locked --features rocksdb
@@ -76,7 +96,7 @@ blvm (binary)
        └── blvm-consensus
 ```
 
-Stack overview: [docs.thebitcoincommons.org — Architecture](https://docs.thebitcoincommons.org/architecture/system-overview.html).
+[Stack overview](https://docs.thebitcoincommons.org/architecture/system-overview.html)
 
 ## License
 
