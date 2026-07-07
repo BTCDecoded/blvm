@@ -71,6 +71,22 @@ When adding new documentation:
 6. **Operations** → `ops/`
 7. **Scripts** → `scripts/`
 
+## Architecture and security (internal reference)
+
+- **[Repository Architecture ADR](./REPOSITORY_ARCHITECTURE_ADR.md)** — full monorepo vs multi-repo decision record (trade-off matrix, steelman, mitigations)
+- **[BLVM vs btc-verified](./BTC_VERIFIED_COMPARISON.md)** — comparison with [ProofOfKeags/btc-verified](https://github.com/ProofOfKeags/btc-verified) (Lean 4 proof leaves); local checkout at `../../btc-verified`
+- **[btc-verified lessons plan](./BTC_VERIFIED_LESSONS_PLAN.md)** — action plan: golden vectors, codec laws, merkle spec, Orange Paper amendments (**active tracker**)
+- **[Architecture objection responses](./ARCHITECTURE_OBJECTION_RESPONSES.md)** — copy-paste replies to common technical objections (internal; not published in the book)
+- **[Constant-time coverage](./security/CONSTANT_TIME_COVERAGE.md)** — audit of secret-path timing in `blvm-secp256k1` and upstream callers
+
+## Website / marketing (cross-repo)
+
+Implementation is in **`commons-website`** (`thebitcoincommons.org`). Plans:
+
+- **[Commons website — essential fixes](./COMMONS_WEBSITE_IMPROVEMENT_PLAN.md)** — whitepaper alignment + cross-links only (`commons-website`)
+- **[Landing page plan](../../docs/landing-page-plan.md)** — conversion waves C → A → B (`btc-commons/docs/`) — **after** essential fixes
+- **[Documentation tightening plan](../../docs/DOCS_TIGHTENING_PLAN.md)** — canonical tiers for book vs sites
+
 ## See Also
 
 - [Workflow Methodology](./workflows/WORKFLOW_METHODOLOGY.md) - Workflow details
