@@ -343,7 +343,12 @@ impl From<Network> for ProtocolVersion {
     }
 }
 
-#[tokio::main]
+// Cap Tokio worker threads. IBD is CPU-bound in validation OS threads, not async I/O.
+// Default num_cpus() workers share allocator arenas with those threads; under mimalloc
+// that produced abandoned pages and large RSS. production builds now default to jemalloc
+// (background purge), but extra Tokio workers still add arena/churn cost. 4 threads are
+// enough for peer I/O; keep the heavy work on dedicated OS threads.
+#[tokio::main(worker_threads = 4)]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -1261,6 +1266,7 @@ fn apply_env_config_overrides(config: &mut NodeConfig, env: &EnvOverrides) {
             limits.module_socket_max_attempts = v;
         }
     }
+
 }
 
 /// Apply CLI Core migration options into storage config.
@@ -1370,6 +1376,7 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
             limits.default_max_memory_bytes = v;
         }
     }
+
 }
 
 // RPC client helper

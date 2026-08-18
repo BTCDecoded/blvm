@@ -1,6 +1,30 @@
 # Mainnet IBD example — use via ./scripts/start-ibd-mainnet.sh or:
 #   blvm --config blvm-mainnet-ibd.toml.example --network mainnet --data-dir ~/.local/share/blvm-mainnet
 # IBD: parallel mode; auto-prefers LAN Core; optional BLVM_IBD_PEERS / BLVM_IBD_MODE
+#
+# ── Hardware requirements ──────────────────────────────────────────────────────
+#   Full IBD (no pruning):    ≥ 700 GB disk,  ≥ 16 GB RAM recommended
+#   Pruned IBD (this config): ≥ 80 GB disk,   ≥ 4 GB RAM minimum
+#   Minimum viable (slow):    ≥ 60 GB disk,   ≥ 4 GB RAM
+#
+#   Disk sizing (heed3/LMDB):  blvm auto-sizes the map to 70% of free disk space
+#     on startup (clamped 48 GiB–4 TiB), then raises to data.mdb+128 GiB when
+#     resuming an existing store.  Omit [storage.heed3] map_size_mb for auto-tune
+#     (default for soak/testing).  Override only when you must pin a ceiling.
+#
+#   RAM tiers (MemoryGuard auto-detects and scales UTXO cache + pipeline):
+#     ≥ 32 GB → Dedicated: 16 GB UTXO cache, 1024 blocks ahead
+#     16–31 GB → 1400 MB UTXO cache, 320–512 blocks ahead
+#     8–15 GB → 512–1536 MB UTXO cache, 256 blocks ahead
+#     4–7 GB  → 128–256 MB UTXO cache, 128 blocks ahead  ← budget VPS / Pi 5
+#     < 4 GB  → 64–128 MB UTXO cache,  64 blocks ahead   ← very constrained
+#
+# ── BPS notes ─────────────────────────────────────────────────────────────────
+#   BPS is limited by the number of archival (full-history) peers.  At high
+#   block heights (> 700k) most nodes prune; expect 4–12 archival peers which
+#   caps BPS at ~5–30 depending on peer bandwidth.  Set target_outbound_peers
+#   in [network_timing] higher (e.g. 16) to connect to more peers.
+# ──────────────────────────────────────────────────────────────────────────────
 
 transport_preference = "tcponly"
 # If bind fails: Core may be on :8333 — stop it or change port
@@ -9,7 +33,13 @@ protocol_version = "BitcoinV1"
 
 [storage]
 data_dir = "~/.local/share/blvm-mainnet"
-database_backend = "rocksdb"
+database_backend = "heed3"
+
+[storage.heed3]
+# map_size_mb: optional LMDB mmap ceiling override (MiB). When omitted, blvm auto-tunes
+# from free disk (70%, clamped 48 GiB–4 TiB) and bumps to data.mdb+128 GiB on resume.
+# Soak/testing should leave this unset. Pin only for operator policy, e.g.:
+# map_size_mb = 2097152
 
 [storage.pruning]
 incremental_prune_during_ibd = true
@@ -24,12 +54,27 @@ type = "normal"
 keep_from_height = 0
 min_recent_blocks = 144
 
+[network_timing]
+# Increase to get more archival peers. Each additional peer adds ~5–8 BPS on WAN.
+# Archival peer ratio at h>700k is ~30–50%, so set 2–3× your desired IBD worker count.
+target_peer_count = 128
+
 [ibd]
-chunk_size = 128
+# P2: 64-block chunks with P1 peer cap (24) → 2048/64 = 32 slots; better GetData efficiency
+# than 32 while still keeping many peers busy under W5/A1 ahead floor 512 (512/64 = 8 min).
+chunk_size = 64
 max_blocks_in_transit_per_peer = 128
-download_timeout_secs = 30
+download_timeout_secs = 45
+# W6/W8: 45s matches gap micro timeout; multi-block hard deadline scales to ≥90s in code.
 mode = "parallel"
 eviction = "fifo"
+# Leave false unless this machine runs ONLY blvm (no IDE, LLM, browser, GPU inference).
+# MemoryGuard auto-detects workload from MemAvailable; setting true on a shared host
+# (e.g. laptop + Cursor) was a common OOM cause — ignored when MemAvailable < 70% unless
+# BLVM_IBD_EXCLUSIVE=1 is set.
+dedicated = false
+# Age-tiered UTXO engine (default on). Legacy opt-out: utxo_engine = false or BLVM_IBD_ENGINE=0.
+# utxo_engine = true
 
 [rpc]
 max_request_size_bytes = 1048576
