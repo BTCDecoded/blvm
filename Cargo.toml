@@ -82,6 +82,8 @@ default = [
 ]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
+# In-tree CUDA batch verify via blvm-secp256k1/gpu (needs nvcc + CUDA runtime)
+secp-gpu = ["blvm-node/secp-gpu"]
 # RocksDB storage backend (Linux/macOS only — not available for Windows cross-compile)
 rocksdb = ["blvm-node/rocksdb"]
 # Sled embedded storage backend (cross-platform)
@@ -176,3 +178,7 @@ assets = [
 assets = [
   { source = "target/release/blvm", dest = "/usr/bin/blvm", mode = "0755" },
 ]
+[profile.release-debug]
+inherits = "release"
+debug = 1
+strip = false
