@@ -23,6 +23,9 @@ If you use a **workspace** that contains this repo next to `blvm-node`, `blvm-do
 ### `/guides/` - Quick Reference Guides
 - **QUICK_START.md** - Quick start guide for local builds
 
+### Active audits
+- **[UNSTAGED_CHANGES_ISSUES.md](./UNSTAGED_CHANGES_ISSUES.md)** — Per-file commit register for local unstaged changes (wave 1 vs peel vs leave)
+
 ## Quick Links
 
 ### Getting Started

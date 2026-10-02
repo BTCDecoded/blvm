@@ -149,13 +149,15 @@ export RUST_LOG="${RUST_LOG:-blvm=info}"
 # runs a dedicated purge thread applying MADV_DONTNEED after dirty_decay_ms milliseconds.
 # dirty_decay_ms=1000: pages idle for 1s are returned to OS. muzzy_decay_ms=30000: huge pages
 # decay after 30s. background_thread:true: enables the background purge thread.
+# retain:false: dest-bc jemalloc opt_retain=true kept 27G retained after 32G allocated
+# ([JEMALLOC_RETAINED_PURGE] NO_RECLAIM). RSS_HARD_GATE is RssAnon+VmSwap, not total RSS.
 # Enable jemalloc heap profiling if BLVM_JEMALLOC_PROF=1 (requires profiling feature compiled in).
 # Profiles are written to /tmp/blvm_heap_{h}.jep and analyzed with: jeprof /path/to/blvm /tmp/blvm_heap_{h}.jep
 if [ "${BLVM_JEMALLOC_PROF:-0}" = "1" ]; then
-    export MALLOC_CONF="${MALLOC_CONF:-background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:30000,prof:true,prof_active:true,lg_prof_sample:19}"
+    export MALLOC_CONF="${MALLOC_CONF:-background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:30000,retain:false,prof:true,prof_active:true,lg_prof_sample:19}"
     echo "jemalloc heap profiling ENABLED (lg_prof_sample=19 = ~512KB sampling). Profiles → /tmp/blvm_heap_*.jep"
 else
-    export MALLOC_CONF="${MALLOC_CONF:-background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:30000}"
+    export MALLOC_CONF="${MALLOC_CONF:-background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:30000,retain:false}"
 fi
 # Cap validation workers to 8. Default for 32+ GiB hosts scales to cpus-1 (up to 24), which
 # creates 24 mimalloc thread-local heaps, each accumulating ~100-200 MB of free-page caches

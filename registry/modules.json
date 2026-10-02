@@ -23,5 +23,10 @@
     "name": "blvm-zmq",
     "description": "ZeroMQ PUB notifications for blvm-node: hashblock, hashtx, rawblock, rawtx, sequence (Bitcoin-compatible).",
     "repo": "BTCDecoded/blvm-zmq"
+  },
+  {
+    "name": "blvm-selective-sync",
+    "description": "Selective sync: registry policy, P2P serve denylists, and IBD witness/OP_RETURN archival strip.",
+    "repo": "BTCDecoded/blvm-selective-sync"
   }
 ]

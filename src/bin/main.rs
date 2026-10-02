@@ -1266,7 +1266,6 @@ fn apply_env_config_overrides(config: &mut NodeConfig, env: &EnvOverrides) {
             limits.module_socket_max_attempts = v;
         }
     }
-
 }
 
 /// Apply CLI Core migration options into storage config.
@@ -1376,7 +1375,6 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
             limits.default_max_memory_bytes = v;
         }
     }
-
 }
 
 // RPC client helper

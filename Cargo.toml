@@ -94,6 +94,8 @@ redb = ["blvm-node/redb"]
 heed3 = ["blvm-node/heed3"]
 # Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
 profile = ["blvm-node/profile"]
+# Lab / rematch only: ALLOW_ZERO_PEERS. `cargo build --release --features ibd-dev`
+ibd-dev = ["blvm-node/ibd-dev"]
 # Experimental features (passed through from blvm-node)
 utxo-commitments = ["blvm-node/utxo-commitments"]
 governance = ["blvm-node/governance"]
@@ -111,9 +113,7 @@ rest-api = ["blvm-node/rest-api"]
 bip70-http = ["blvm-node/bip70-http"]
 # Block/witness/UTXO zstd + index blob compression (blvm default features)
 compression = ["blvm-node/compression"]
-# Miniscript: descriptor / policy parsing
 # Descriptor / miniscript RPCs: use the `blvm-miniscript` module (no blvm-node feature).
-miniscript = []
 # Filesystem watcher (`notify`) for modules dir: reload / pick up modules when files change (see blvm-node `ModuleWatcher`)
 module-watcher = ["blvm-node/module-watcher"]
 # WASM modules: inject blvm-sdk loader into node
