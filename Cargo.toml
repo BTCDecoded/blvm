@@ -44,6 +44,14 @@ pkcs8 = "=0.11.0-rc.11"
 time = { version = ">=0.3.47", default-features = false }
 # RUSTSEC-2026-0185: iroh → reqwest → quinn → quinn-proto 0.11.14; force >=0.11.15 (strip-patch CI has no blvm-node git patch).
 quinn-proto = "=0.11.15"
+# RUSTSEC-2026-0204: sled 0.34.7 allows crossbeam-epoch 0.9.5, which still resolves to 0.9.18.
+crossbeam-epoch = ">=0.9.20"
+# RUSTSEC-2026-0258 via reqwest/hyper.
+h2 = ">=0.4.16"
+# RUSTSEC-2026-0285. blvm-node allows the 0.23 line.
+rustls = ">=0.23.45, <0.24"
+# RUSTSEC-2026-0233/0234/0235. blvm-node 0.1.57 pins rkyv =0.8.18; older locks kept 0.8.16.
+rkyv = "=0.8.18"
 
 # iroh → reqwest/native-tls → openssl-sys: cross aarch64 linkers lack target libssl.
 # Vendored OpenSSL applies only when building for Linux aarch64 (CI cross + native Pi).
