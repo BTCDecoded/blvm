@@ -11,6 +11,7 @@ pub fn canonical_network_name(network: &str) -> Option<&'static str> {
     match network.to_lowercase().as_str() {
         "mainnet" | "bitcoinv1" => Some("mainnet"),
         "testnet" | "testnet3" => Some("testnet"),
+        "testnet4" => Some("testnet4"),
         "signet" => Some("signet"),
         "regtest" => Some("regtest"),
         _ => None,
@@ -22,6 +23,7 @@ pub fn default_p2p_port_for_network(network: &str) -> u16 {
     match network.to_lowercase().as_str() {
         "mainnet" | "bitcoinv1" => 8333,
         "testnet" | "testnet3" => 18333,
+        "testnet4" => 48333,
         "signet" => 38333,
         _ => 18444,
     }
@@ -32,6 +34,7 @@ pub fn default_rpc_addr_for_network(network: &str) -> SocketAddr {
     let addr = match network.to_lowercase().as_str() {
         "mainnet" | "bitcoinv1" => "127.0.0.1:8332",
         "signet" => "127.0.0.1:38332",
+        "testnet4" => "127.0.0.1:48332",
         "testnet" | "testnet3" => "127.0.0.1:18332",
         _ => "127.0.0.1:18443",
     };
@@ -47,6 +50,7 @@ mod network_tests {
         assert_eq!(canonical_network_name("Mainnet"), Some("mainnet"));
         assert_eq!(canonical_network_name("testnet3"), Some("testnet"));
         assert_eq!(canonical_network_name("signet"), Some("signet"));
+        assert_eq!(canonical_network_name("testnet4"), Some("testnet4"));
         assert!(canonical_network_name("unknown").is_none());
     }
 
@@ -55,6 +59,7 @@ mod network_tests {
         assert_eq!(default_p2p_port_for_network("mainnet"), 8333);
         assert_eq!(default_p2p_port_for_network("testnet"), 18333);
         assert_eq!(default_p2p_port_for_network("signet"), 38333);
+        assert_eq!(default_p2p_port_for_network("testnet4"), 48333);
         assert_eq!(default_p2p_port_for_network("regtest"), 18444);
     }
 

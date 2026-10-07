@@ -328,6 +328,8 @@ enum Network {
     Testnet,
     /// Bitcoin signet (BIP325 test network)
     Signet,
+    /// Bitcoin testnet4 (BIP94)
+    Testnet4,
     /// Bitcoin mainnet (use with caution)
     Mainnet,
 }
@@ -337,6 +339,7 @@ impl From<Network> for ProtocolVersion {
         match network {
             Network::Regtest => ProtocolVersion::Regtest,
             Network::Signet => ProtocolVersion::Signet,
+            Network::Testnet4 => ProtocolVersion::Testnet4,
             Network::Testnet => ProtocolVersion::Testnet3,
             Network::Mainnet => ProtocolVersion::BitcoinV1,
         }
@@ -821,6 +824,7 @@ fn network_from_cli_enum(network: &Network) -> &'static str {
     match network {
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
+        Network::Testnet4 => "testnet4",
         Network::Regtest => "regtest",
         Network::Signet => "signet",
     }
@@ -830,6 +834,7 @@ fn network_from_str(s: &str) -> Option<Network> {
     match blvm::canonical_network_name(s)? {
         "mainnet" => Some(Network::Mainnet),
         "testnet" => Some(Network::Testnet),
+        "testnet4" => Some(Network::Testnet4),
         "signet" => Some(Network::Signet),
         "regtest" => Some(Network::Regtest),
         _ => None,
