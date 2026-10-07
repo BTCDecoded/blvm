@@ -123,7 +123,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -134,7 +134,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.48"
+version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "484cf7fb1ee69e096e895a3058b4e4db703ec8c7f307ef3a82412f2f3f296cee"
+checksum = "36708ff28b4935c1dbe9b6d6f81c61f091064cb17b6ae0121648c0487f9b7a9f"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -460,9 +460,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.58"
+version = "0.1.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0eb13619e6fa68fe82a47d4649654b9d28e769befba0e27fea1a8befe3aca03a"
+checksum = "243bedd59893417d46611a082f4cf15f74957c0b2677374aadbea0291e3ac4b1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -534,9 +534,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.23"
+version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce770d8f641ac2021d275192b7d3e7a688988bd4cf25954513f778d80e1ebb32"
+checksum = "f75259eb6809cb87164f5e7e1e8daa656c30780578dbdca54fcbb9761b46823e"
 dependencies = [
  "bitcoin_hashes",
  "ripemd",
@@ -550,9 +550,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-protocol"
-version = "0.1.25"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705ec753fd754ad87e33f48c38a4b256de89459be6c8ae1d3d14445ffa4d00e7"
+checksum = "96fba33431c36411cabc51f092080b260fad7d9e64effa19feed5bc053957e9b"
 dependencies = [
  "anyhow",
  "bech32",
@@ -1554,7 +1554,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3367,7 +3367,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4008,7 +4008,7 @@ dependencies = [
  "once_cell",
  "socket2 0.6.5",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4363,7 +4363,7 @@ dependencies = [
  "errno 0.3.14",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4443,7 +4443,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs 1.0.9",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4833,7 +4833,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5031,7 +5031,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5979,7 +5979,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
