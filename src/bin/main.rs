@@ -4,11 +4,11 @@
 //! This binary starts a full Bitcoin node using the blvm-node library.
 
 use anyhow::{Context, Result};
-use blvm_node::ProtocolVersion;
 use blvm_node::config::NodeConfig;
 use blvm_node::node::Node as ReferenceNode;
+use blvm_node::ProtocolVersion;
 use clap::{Parser, Subcommand, ValueEnum};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::env;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -328,6 +328,8 @@ enum Network {
     Testnet,
     /// Bitcoin signet (BIP325 test network)
     Signet,
+    /// Bitcoin testnet4 (BIP94)
+    Testnet4,
     /// Bitcoin mainnet (use with caution)
     Mainnet,
 }
@@ -337,6 +339,7 @@ impl From<Network> for ProtocolVersion {
         match network {
             Network::Regtest => ProtocolVersion::Regtest,
             Network::Signet => ProtocolVersion::Signet,
+            Network::Testnet4 => ProtocolVersion::Testnet4,
             Network::Testnet => ProtocolVersion::Testnet3,
             Network::Mainnet => ProtocolVersion::BitcoinV1,
         }
@@ -821,6 +824,7 @@ fn network_from_cli_enum(network: &Network) -> &'static str {
     match network {
         Network::Mainnet => "mainnet",
         Network::Testnet => "testnet",
+        Network::Testnet4 => "testnet4",
         Network::Regtest => "regtest",
         Network::Signet => "signet",
     }
@@ -830,6 +834,7 @@ fn network_from_str(s: &str) -> Option<Network> {
     match blvm::canonical_network_name(s)? {
         "mainnet" => Some(Network::Mainnet),
         "testnet" => Some(Network::Testnet),
+        "testnet4" => Some(Network::Testnet4),
         "signet" => Some(Network::Signet),
         "regtest" => Some(Network::Regtest),
         _ => None,
@@ -1107,34 +1112,32 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
         }
     }
 
-    // Note: Dandelion and sigop may still be compile-time gated; BIP158 is always on.
-    // through the node's runtime configuration rather than NodeConfig.
-    // These features are typically controlled at compile-time via Cargo features,
-    // but some may have runtime toggles. Check the node implementation for details.
-
-    if features.enable_bip158 || features.disable_bip158 {
-        info!(
-            "BIP158 block filtering {} via CLI",
-            if features.enable_bip158 {
-                "enabled"
-            } else {
-                "disabled"
-            }
-        );
+    if features.enable_bip158 {
+        config.serve_compact_filters = true;
+        info!("BIP158 block filtering enabled via CLI");
+    } else if features.disable_bip158 {
+        config.serve_compact_filters = false;
+        info!("BIP158 block filtering disabled via CLI");
     }
 
     if features.enable_dandelion || features.disable_dandelion {
         #[cfg(feature = "dandelion")]
         {
-            info!(
-                "Dandelion++ privacy relay {} via CLI",
-                if features.enable_dandelion {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
-            );
-            // Dandelion may be controlled via relay policies in NodeConfig
+            if features.disable_dandelion && !features.enable_dandelion {
+                config.dandelion = None;
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = false;
+                info!("Dandelion++ privacy relay disabled via CLI");
+            }
+            if features.enable_dandelion {
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = true;
+                info!("Dandelion++ privacy relay enabled via CLI");
+            }
         }
         #[cfg(not(feature = "dandelion"))]
         {
@@ -1147,14 +1150,16 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
     if features.enable_sigop || features.disable_sigop {
         #[cfg(feature = "sigop")]
         {
-            info!(
-                "Signature operations counting {} via CLI",
-                if features.enable_sigop {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
-            );
+            let policy = config
+                .mempool
+                .get_or_insert_with(blvm_node::config::MempoolPolicyConfig::default);
+            if features.enable_sigop {
+                policy.count_sigops = true;
+                info!("Signature operations counting enabled via CLI");
+            } else if features.disable_sigop {
+                policy.count_sigops = false;
+                info!("Signature operations counting disabled via CLI");
+            }
         }
         #[cfg(not(feature = "sigop"))]
         {
