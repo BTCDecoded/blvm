@@ -13,4 +13,12 @@ ignore = [
     # Neither advisory affects blvm's own DNS resolution code paths.
     "RUSTSEC-2026-0118",
     "RUSTSEC-2026-0119",
+    # quinn-proto 0.11.15. The patched line is >=0.11.18, which pulls rand 0.10 and
+    # chacha20 0.10.2. iroh 0.95 pins crypto_box 0.10.0-pre.0 to chacha20 0.10.0-rc.2,
+    # and those two chacha20 versions do not unify. iroh stays =0.95 until that upgrade.
+    "RUSTSEC-2026-0338",
+    "RUSTSEC-2026-0339",
+    "RUSTSEC-2026-0340",
+    "RUSTSEC-2026-0341",
+    "RUSTSEC-2026-0342",
 ]
