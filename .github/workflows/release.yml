@@ -407,12 +407,25 @@ jobs:
         id: latest-versions
         run: |
           echo "=== Getting latest versions from crates.io ==="
-          
-          # Get latest versions from crates.io
-          CONSENSUS_VER=$(cargo search blvm-consensus --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-consensus = "([^"]+)".*/\1/' || echo "0.1.0")
-          PROTOCOL_VER=$(cargo search blvm-protocol --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-protocol = "([^"]+)".*/\1/' || echo "0.1.0")
-          NODE_VER=$(cargo search blvm-node --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-node = "([^"]+)".*/\1/' || echo "0.1.0")
-          SDK_VER=$(cargo search blvm-sdk --limit 1 2>/dev/null | head -1 | sed -E 's/^blvm-sdk = "([^"]+)".*/\1/' || echo "0.1.0")
+          # cargo search is colored in this job (CARGO_TERM_COLOR=always), so a sed
+          # of its first line captures the ANSI sequence and the crate description.
+          crate_version() {
+            local name="$1"
+            local ver
+            ver=$(curl -fsSL --retry 3 --retry-delay 2 \
+              -A 'blvm-publish (josh@btcdecoded.org)' \
+              "https://crates.io/api/v1/crates/${name}" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin)["crate"]["max_version"])')
+            if ! printf '%s' "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "ERROR: ${name} version '${ver}' is not a semver triple"
+              exit 1
+            fi
+            printf '%s' "$ver"
+          }
+          CONSENSUS_VER=$(crate_version blvm-consensus)
+          PROTOCOL_VER=$(crate_version blvm-protocol)
+          NODE_VER=$(crate_version blvm-node)
+          SDK_VER=$(crate_version blvm-sdk)
           
           echo "consensus=${CONSENSUS_VER}" >> $GITHUB_OUTPUT
           echo "protocol=${PROTOCOL_VER}" >> $GITHUB_OUTPUT
@@ -443,38 +456,45 @@ jobs:
           fi
           
           PARENT_DIR="${GITHUB_WORKSPACE}"
-          
-          # Update blvm-protocol to use published blvm-consensus
-          if [ -f "${PARENT_DIR}/blvm-protocol/Cargo.toml" ]; then
-            echo "Updating blvm-protocol/Cargo.toml..."
-            sed -i 's|blvm-consensus = { path = "\.\./blvm-consensus"|blvm-consensus = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-protocol/Cargo.toml"
-          fi
-          
-          # Update blvm-node to use published blvm-protocol
-          if [ -f "${PARENT_DIR}/blvm-node/Cargo.toml" ]; then
-            echo "Updating blvm-node/Cargo.toml..."
-            sed -i 's|blvm-protocol = { path = "\.\./blvm-protocol"|blvm-protocol = "='"${PROTOCOL_VER}"'"|g' "${PARENT_DIR}/blvm-node/Cargo.toml"
-          fi
-          
-          # Update blvm to use published blvm-node
-          if [ -f "${PARENT_DIR}/blvm/Cargo.toml" ]; then
-            echo "Updating blvm/Cargo.toml..."
-            sed -i 's|blvm-node = { path = "\.\./blvm-node"|blvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/blvm/Cargo.toml"
-          fi
-          
-          # Update blvm-sdk to use published blvm-node (for composition framework)
-          if [ -f "${PARENT_DIR}/blvm-sdk/Cargo.toml" ]; then
-            echo "Updating blvm-sdk/Cargo.toml..."
-            sed -i 's|blvm-node = { path = "\.\./blvm-node"|blvm-node = "='"${NODE_VER}"'"|g' "${PARENT_DIR}/blvm-sdk/Cargo.toml"
-          fi
-          
-          # Update blvm-commons to use published blvm-sdk and blvm-protocol
-          if [ -f "${PARENT_DIR}/blvm-commons/Cargo.toml" ]; then
-            echo "Updating blvm-commons/Cargo.toml..."
-            # Update blvm-sdk dependency
-            sed -i 's|blvm-sdk = { path = "\.\./\.\./blvm-sdk"|blvm-sdk = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-commons/Cargo.toml"
-            # Update blvm-protocol dependency
-            sed -i 's|blvm-protocol = { path = "\.\./\.\./blvm-protocol"|blvm-protocol = "='"${VERSION_NUMBER}"'"|g' "${PARENT_DIR}/blvm-commons/Cargo.toml"
+
+          # setup-build-env.sh resets blvm/Cargo.toml after the earlier strip, which
+          # puts the path patch back. A prefix sed of that line leaves a trailing
+          # brace and, with a colored cargo-search version, writes the search line
+          # into the manifest. Drop the patch section and let the version ranges
+          # resolve on crates.io.
+          strip_patch() {
+            local f="$1"
+            [ -f "$f" ] || return 0
+            grep -q '^\[patch\.crates-io\]' "$f" || return 0
+            awk '
+              /^\[patch\.crates-io\]/ { skip = 1; next }
+              skip && /^\[/ { skip = 0 }
+              !skip { print }
+            ' "$f" > "${f}.tmp" && mv "${f}.tmp" "$f"
+            echo "Stripped [patch.crates-io] from $f"
+          }
+          for repo in blvm blvm-protocol blvm-node blvm-sdk blvm-commons; do
+            strip_patch "${PARENT_DIR}/${repo}/Cargo.toml"
+          done
+
+          if [ "${{ inputs.use_latest_crates }}" = "true" ]; then
+            echo "Locking crates.io blvm-node ${NODE_VER} (protocol ${PROTOCOL_VER}, consensus ${VERSION_NUMBER})"
+            for repo in blvm blvm-sdk; do
+              manifest="${PARENT_DIR}/${repo}/Cargo.toml"
+              lock="${PARENT_DIR}/${repo}/Cargo.lock"
+              [ -f "$manifest" ] && [ -f "$lock" ] || continue
+              args=()
+              for pkg in blvm-node blvm-protocol blvm-consensus; do
+                if grep -q "name = \"${pkg}\"" "$lock"; then
+                  args+=(-p "$pkg")
+                fi
+              done
+              if [ "${#args[@]}" -eq 0 ]; then
+                echo "No blvm crates in ${repo}/Cargo.lock"
+                continue
+              fi
+              (cd "${PARENT_DIR}/${repo}" && cargo update "${args[@]}")
+            done
           fi
           
           echo "✅ Cargo.toml files updated to use published crates"
