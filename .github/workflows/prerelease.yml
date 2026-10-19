@@ -805,7 +805,6 @@ jobs:
             blvm/artifacts/blvm-experimental-${{ inputs.version_tag }}-*.tar.gz
             blvm/artifacts/blvm-experimental-${{ inputs.version_tag }}-*.zip
             blvm/artifacts/SHA256SUMS-blvm-*
-            blvm/artifacts/SHA256SUMS-blvm-experimental-*
             blvm/artifacts/blvm_*.deb
             blvm/artifacts/blvm-experimental_*.deb
             blvm/artifacts/*.rpm

@@ -138,6 +138,13 @@ rename_archives() {
         done
 
         for ext in tar.gz zip; do
+            if [ -f "blvm-experimental-${platform}.${ext}" ]; then
+                mv "blvm-experimental-${platform}.${ext}" "blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
+                log_success "Renamed: blvm-experimental-${platform}.${ext} -> blvm-experimental-${VERSION_TAG}-${platform}.${ext}"
+            fi
+        done
+
+        for ext in tar.gz zip; do
             if [ -f "blvm-governance-${platform}.${ext}" ]; then
                 mv "blvm-governance-${platform}.${ext}" "blvm-governance-${VERSION_TAG}-${platform}.${ext}"
                 log_success "Renamed: blvm-governance-${platform}.${ext} -> blvm-governance-${VERSION_TAG}-${platform}.${ext}"
