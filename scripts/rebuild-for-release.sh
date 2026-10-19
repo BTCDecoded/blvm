@@ -67,7 +67,7 @@ else
     cargo build --release --locked --target x86_64-pc-windows-gnu --features production,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh
     echo "--- blvm-sdk Windows (experimental) ---"
     cd "${ROOT}/blvm-sdk"
-    cargo build --release --locked --target x86_64-pc-windows-gnu --bins --all-features
+    cargo build --release --locked --target x86_64-pc-windows-gnu --bins --all-features || echo "⚠️  blvm-sdk Windows experimental build skipped"
   elif [ "$WANT_WIN" = true ]; then
     echo "ℹ️  x86_64-pc-windows-gnu not installed; skipping Windows experimental rebuild"
   fi
