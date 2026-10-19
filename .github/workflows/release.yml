@@ -479,10 +479,15 @@ jobs:
 
           if [ "${{ inputs.use_latest_crates }}" = "true" ]; then
             echo "Locking crates.io blvm-node ${NODE_VER} (protocol ${PROTOCOL_VER}, consensus ${VERSION_NUMBER})"
-            for repo in blvm blvm-sdk; do
+            for repo in blvm blvm-sdk blvm-commons; do
               manifest="${PARENT_DIR}/${repo}/Cargo.toml"
               lock="${PARENT_DIR}/${repo}/Cargo.lock"
-              [ -f "$manifest" ] && [ -f "$lock" ] || continue
+              [ -f "$manifest" ] || continue
+              if [ ! -f "$lock" ]; then
+                echo "Writing ${repo}/Cargo.lock from crates.io"
+                (cd "${PARENT_DIR}/${repo}" && cargo generate-lockfile)
+                continue
+              fi
               args=()
               for pkg in blvm-node blvm-protocol blvm-consensus; do
                 if grep -q "name = \"${pkg}\"" "$lock"; then
