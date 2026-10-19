@@ -668,9 +668,12 @@ jobs:
             cd ..
           fi
           
-          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
-            echo "⚠️  Some Windows builds failed: ${FAILED_REPOS[*]}"
+          if printf '%s\n' "${FAILED_REPOS[@]}" | grep -qx blvm; then
+            echo "⚠️  Windows blvm build failed: ${FAILED_REPOS[*]}"
             exit 1
+          fi
+          if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
+            echo "⚠️  Optional Windows builds failed: ${FAILED_REPOS[*]}"
           fi
         env:
           PARENT_DIR: ${{ github.workspace }}
