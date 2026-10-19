@@ -806,6 +806,20 @@ jobs:
           cat checksums.sha256
           echo "=== staged artifacts ==="
           ls -lh release-artifacts/
+          linked_ver() {
+            awk -v crate="$1" '
+              $0 == "[[package]]" { in_pkg = 1; name = ""; ver = ""; next }
+              in_pkg && $1 == "name" { name = $3; gsub(/"/, "", name); next }
+              in_pkg && $1 == "version" && ver == "" { ver = $3; gsub(/"/, "", ver); next }
+              in_pkg && name == crate && ver != "" { print ver; exit }
+            ' Cargo.lock
+          }
+          {
+            echo "consensus=$(linked_ver blvm-consensus)"
+            echo "protocol=$(linked_ver blvm-protocol)"
+            echo "node=$(linked_ver blvm-node)"
+            echo "sdk=$(linked_ver blvm-sdk)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create and push version tag
         run: |
@@ -899,6 +913,10 @@ jobs:
             ```
 
             **Windows:** Download `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe`, verify checksum, and run from a terminal.
+
+            ## Linked crates
+
+            The binary linked these crates.io versions: consensus `${{ steps.checksums.outputs.consensus }}`, protocol `${{ steps.checksums.outputs.protocol }}`, node `${{ steps.checksums.outputs.node }}`, sdk `${{ steps.checksums.outputs.sdk }}`.
 
             ## Changes
 

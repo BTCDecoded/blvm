@@ -896,24 +896,36 @@ jobs:
           PARENT_DIR: ${{ github.workspace }}
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
       
+      - name: Stage one copy of each existing release file
+        run: |
+          set -euo pipefail
+          tag="${{ needs.determine-version.outputs.version_tag }}"
+          dest=blvm/artifacts/upload
+          mkdir -p "$dest"
+          shopt -s nullglob
+          for f in \
+            "blvm/artifacts/blvm-${tag}-"*.tar.gz \
+            "blvm/artifacts/blvm-${tag}-"*.zip \
+            "blvm/artifacts/blvm-experimental-${tag}-"*.tar.gz \
+            "blvm/artifacts/blvm-experimental-${tag}-"*.zip \
+            blvm/artifacts/SHA256SUMS-blvm-* \
+            blvm/artifacts/blvm_*.deb \
+            blvm/artifacts/blvm-experimental_*.deb \
+            blvm/artifacts/*.rpm \
+            blvm/artifacts/blvm-*-x86_64.pkg.tar.gz \
+            blvm/artifacts/SHA256SUMS-linux-packages.txt
+          do
+            cp -n "$f" "$dest/$(basename "$f")"
+          done
+          find "$dest" -type f -print
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.determine-version.outputs.version_tag }}
           name: Bitcoin Commons ${{ needs.determine-version.outputs.version_tag }}
           body_path: blvm/artifacts/RELEASE_NOTES.md
-          files: |
-            blvm/artifacts/blvm-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
-            blvm/artifacts/blvm-${{ needs.determine-version.outputs.version_tag }}-*.zip
-            blvm/artifacts/blvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.tar.gz
-            blvm/artifacts/blvm-experimental-${{ needs.determine-version.outputs.version_tag }}-*.zip
-            blvm/artifacts/SHA256SUMS-blvm-*
-            blvm/artifacts/SHA256SUMS-blvm-experimental-*
-            blvm/artifacts/blvm_*.deb
-            blvm/artifacts/blvm-experimental_*.deb
-            blvm/artifacts/*.rpm
-            blvm/artifacts/blvm-*-x86_64.pkg.tar.gz
-            blvm/artifacts/SHA256SUMS-linux-packages.txt
+          files: blvm/artifacts/upload/*
           draft: false
           prerelease: false
         env:

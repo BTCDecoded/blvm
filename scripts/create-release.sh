@@ -24,8 +24,44 @@ log_success() {
     echo "[SUCCESS] $1"
 }
 
+# Version recorded in Cargo.lock for the crate the release binary linked.
+linked_crate_version() {
+    local crate="$1"
+    local lock="${COMMONS_DIR}/Cargo.lock"
+    if [ ! -f "$lock" ]; then
+        echo "Cargo.lock is missing; release notes cannot name linked crate versions" >&2
+        exit 1
+    fi
+    awk -v crate="$crate" '
+        $0 == "[[package]]" { in_pkg = 1; name = ""; ver = ""; next }
+        in_pkg && $1 == "name" {
+            name = $3
+            gsub(/"/, "", name)
+            next
+        }
+        in_pkg && $1 == "version" && ver == "" {
+            ver = $3
+            gsub(/"/, "", ver)
+            next
+        }
+        in_pkg && name == crate && ver != "" { print ver; exit }
+    ' "$lock"
+}
+
 create_release_notes() {
     local notes_file="${ARTIFACTS_DIR}/RELEASE_NOTES.md"
+
+    local consensus_v protocol_v node_v sdk_v
+    consensus_v="$(linked_crate_version blvm-consensus)"
+    protocol_v="$(linked_crate_version blvm-protocol)"
+    node_v="$(linked_crate_version blvm-node)"
+    sdk_v="$(linked_crate_version blvm-sdk)"
+    for pair in "blvm-consensus:$consensus_v" "blvm-protocol:$protocol_v" "blvm-node:$node_v" "blvm-sdk:$sdk_v"; do
+        if [ -z "${pair#*:}" ]; then
+            echo "Cargo.lock has no version for ${pair%%:*}" >&2
+            exit 1
+        fi
+    done
 
     cat > "$notes_file" <<EOF
 # Bitcoin Commons Release ${VERSION_TAG}
@@ -46,18 +82,20 @@ This release includes the following components:
 
 All library dependencies are published to [crates.io](https://crates.io):
 
-- \`blvm-consensus = "${VERSION_TAG#v}"\`
-- \`blvm-protocol = "${VERSION_TAG#v}"\`
-- \`blvm-node = "${VERSION_TAG#v}"\`
-- \`blvm-sdk = "${VERSION_TAG#v}"\`
+- \`blvm-consensus = "${consensus_v}"\`
+- \`blvm-protocol = "${protocol_v}"\`
+- \`blvm-node = "${node_v}"\`
+- \`blvm-sdk = "${sdk_v}"\`
+
+These are the crates.io versions linked by this binary, read from \`Cargo.lock\`. They are not the \`blvm\` tag.
 
 You can depend on these crates directly in your \`Cargo.toml\`:
 
 \`\`\`toml
 [dependencies]
-blvm-consensus = "=${VERSION_TAG#v}"
-blvm-protocol = "=${VERSION_TAG#v}"
-blvm-node = "=${VERSION_TAG#v}"
+blvm-consensus = "=${consensus_v}"
+blvm-protocol = "=${protocol_v}"
+blvm-node = "=${node_v}"
 \`\`\`
 
 ## Release bundle (\`blvm-{version}-{platform}.tar.gz\` / \`.zip\`)
