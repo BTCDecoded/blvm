@@ -427,6 +427,8 @@ jobs:
       
       - name: Run tests (skip doctests for Phase 1 prerelease)
         run: |
+          # Without pipefail the `| tee` hides cargo failures and this gate never fails.
+          set -o pipefail
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           

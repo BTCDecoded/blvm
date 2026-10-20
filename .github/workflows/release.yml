@@ -739,6 +739,8 @@ jobs:
       
       - name: Run tests
         run: |
+          # Without pipefail the `| tee` hides cargo failures and this gate never fails.
+          set -o pipefail
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
