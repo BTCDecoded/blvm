@@ -441,7 +441,11 @@ jobs:
               
               # First, try to build tests to catch compilation errors early
               echo "Building tests for $repo..."
-              if ! cargo build --release --all-features --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
+              # Every feature except secp-gpu, whose build script needs nvcc (CUDA).
+              FEATURES=$(cargo metadata --no-deps --format-version 1 \
+                | python3 -c 'import json,sys; print(",".join(sorted(f for f in json.load(sys.stdin)["packages"][0]["features"] if f not in ("default","secp-gpu"))))')
+              echo "Features: ${FEATURES}"
+              if ! cargo build --release --features "${FEATURES}" --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
                 echo "❌ Test compilation failed in $repo"
                 echo "Build log (last 100 lines):"
                 tail -100 /tmp/${repo}-test-build.log || true
@@ -460,7 +464,7 @@ jobs:
               # Run tests with single thread to avoid resource contention
               # Skip tests that hang in CI - use filter to exclude them
               # The test was removed but --skip is harmless if test doesn't exist
-              if timeout 1800 cargo test --release --all-features --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/${repo}-test_output.log; then
+              if timeout 1800 cargo test --release --features "${FEATURES}" --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/${repo}-test_output.log; then
                 echo "✅ Tests passed for $repo"
               else
                 EXIT_CODE=$?
