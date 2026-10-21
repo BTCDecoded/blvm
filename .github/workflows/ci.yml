@@ -611,18 +611,7 @@ jobs:
           echo "✅ Releasing: ${VERSION_TAG}"
 
       - name: Bump Cargo.toml version
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          awk -v ver="$VERSION" '
-            BEGIN { in_package = 0 }
-            /^\[package\]/ { in_package = 1; print; next }
-            in_package && /^\[/ { in_package = 0 }
-            in_package && /^version = / { print "version = \"" ver "\""; next }
-            { print }
-          ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
-          ACTUAL=$(grep -A 5 '^\[package\]' Cargo.toml | grep '^version = ' | head -1 | sed -E 's/^version = "([^"]+)".*/\1/')
-          [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
-          echo "✅ Cargo.toml bumped to ${VERSION}"
+        run: bash scripts/set-cargo-version.sh "${{ steps.version.outputs.version }}"
 
       - name: Install packaging tools and cross-compilers
         run: |
@@ -656,6 +645,16 @@ jobs:
           cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-${VERSION}-linux-x86_64
           echo "✅ Linux binary: $(file blvm-${VERSION}-linux-x86_64)"
           echo "filename=blvm-${VERSION}-linux-x86_64" >> $GITHUB_OUTPUT
+
+      # The GHCR image is built in a later job; hand it the exact Cargo.lock this
+      # release resolved so the image compiles the same dependency set (--locked).
+      - name: Save release Cargo.lock for the container image
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-cargo-lock
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Build Windows x86_64 release binary
         id: build_windows
@@ -1412,8 +1411,16 @@ jobs:
       - name: Strip [patch.crates-io] for crates.io-only build (matches CI)
         uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
 
-      - name: Regenerate Cargo.lock without path patches
-        run: cargo generate-lockfile
+      # Same version and lockfile as the release binaries; without this the tag's
+      # Cargo.toml still says 0.1.0 (the release job bumps it without committing).
+      - name: Set release version
+        run: bash scripts/set-cargo-version.sh "${{ needs.release.outputs.version }}"
+
+      - name: Use the release job's Cargo.lock
+        uses: actions/download-artifact@v4
+        with:
+          name: release-cargo-lock
+          path: .
 
       - name: Set GHCR image name (must be lowercase)
         id: ghcr
@@ -1447,6 +1454,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BLVM_VERSION=${{ needs.release.outputs.version }}
 
       - name: Set GHCR package visibility to public
         continue-on-error: true
