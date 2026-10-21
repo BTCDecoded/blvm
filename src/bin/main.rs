@@ -865,11 +865,14 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
                 config_loaded_from_file = true;
             }
             Err(e) => {
-                warn!("Failed to load config file: {}. Using defaults.", e);
+                return Err(anyhow::anyhow!(
+                    "Failed to load config file {}: {e}",
+                    config_path.display()
+                ));
             }
         }
     } else if cli.config.is_some() {
-        warn!("Config file specified but not found. Using defaults.");
+        return Err(anyhow::anyhow!("Config file specified but not found"));
     }
 
     // 3. Load ENV overrides
