@@ -550,9 +550,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-protocol"
-version = "0.1.35"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2367c30ccb1c23df48e360ba5714d7dfd74dcce09c2cd4c65b4e6e6bd8aff8b"
+checksum = "3a5eb1521cb930327a0993ffc0849b01f55292daad429f3f4ed6bcf9277fd6cf"
 dependencies = [
  "anyhow",
  "bech32",
