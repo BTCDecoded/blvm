@@ -64,7 +64,7 @@ create_release_notes() {
     done
 
     cat > "$notes_file" <<EOF
-# Bitcoin Commons Release ${VERSION_TAG}
+# blvm ${VERSION_TAG}
 
 Release date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 

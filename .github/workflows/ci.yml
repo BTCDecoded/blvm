@@ -927,6 +927,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lock the release title to blvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.version_tag }}
+        run: |
+          set -euo pipefail
+          expected="blvm ${TAG}"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$expected"
+          actual="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)"
+          if [ "$actual" != "$expected" ]; then
+            echo "release title is '${actual}', expected '${expected}'" >&2
+            exit 1
+          fi
+
       - name: Cleanup release build dir
         if: always()
         run: rm -rf /tmp/gh-blvm-release-build/${{ github.run_id }} || true

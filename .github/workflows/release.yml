@@ -923,10 +923,24 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.determine-version.outputs.version_tag }}
-          name: Bitcoin Commons ${{ needs.determine-version.outputs.version_tag }}
+          name: blvm ${{ needs.determine-version.outputs.version_tag }}
           body_path: blvm/artifacts/RELEASE_NOTES.md
           files: blvm/artifacts/upload/*
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+      - name: Lock the release title to blvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+          TAG: ${{ needs.determine-version.outputs.version_tag }}
+        run: |
+          set -euo pipefail
+          expected="blvm ${TAG}"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$expected"
+          actual="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)"
+          if [ "$actual" != "$expected" ]; then
+            echo "release title is '${actual}', expected '${expected}'" >&2
+            exit 1
+          fi
