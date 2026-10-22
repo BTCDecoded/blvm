@@ -653,10 +653,18 @@ jobs:
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           unset CC CXX CPP AR || true
+          # The release runner has nvcc. Without this, build.rs links libcudart and
+          # `version` fails on a host whose install docs do not name that library.
+          export BLVM_SECP256K1_NO_GPU=1
           cargo build --release
           VERSION="${{ steps.version.outputs.version }}"
-          cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm ./blvm-${VERSION}-linux-x86_64
-          echo "✅ Linux binary: $(file blvm-${VERSION}-linux-x86_64)"
+          BIN="./blvm-${VERSION}-linux-x86_64"
+          cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm "$BIN"
+          if readelf -d "$BIN" | grep -q 'libcudart'; then
+            echo "❌ ${BIN} needs libcudart; release builds set BLVM_SECP256K1_NO_GPU=1"
+            exit 1
+          fi
+          echo "✅ Linux binary: $(file "$BIN")"
           echo "filename=blvm-${VERSION}-linux-x86_64" >> $GITHUB_OUTPUT
 
       - name: Build Windows x86_64 release binary
@@ -928,6 +936,20 @@ jobs:
           prerelease: ${{ contains(steps.version.outputs.version_tag, '-unverified') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lock the release title to blvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.version_tag }}
+        run: |
+          set -euo pipefail
+          expected="blvm ${TAG}"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$expected"
+          actual="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)"
+          if [ "$actual" != "$expected" ]; then
+            echo "release title is '${actual}', expected '${expected}'" >&2
+            exit 1
+          fi
 
       - name: Cleanup release build dir
         if: always()

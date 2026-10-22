@@ -865,11 +865,14 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
                 config_loaded_from_file = true;
             }
             Err(e) => {
-                warn!("Failed to load config file: {}. Using defaults.", e);
+                return Err(anyhow::anyhow!(
+                    "Failed to load config file {}: {e}",
+                    config_path.display()
+                ));
             }
         }
     } else if cli.config.is_some() {
-        warn!("Config file specified but not found. Using defaults.");
+        return Err(anyhow::anyhow!("Config file specified but not found"));
     }
 
     // 3. Load ENV overrides
@@ -965,7 +968,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         } else {
             None
         })
-        .unwrap_or_else(|| SocketAddr::from(([0, 0, 0, 0], default_listen_port)));
+        .unwrap_or_else(|| SocketAddr::from(([127, 0, 0, 1], default_listen_port)));
 
     let rpc_addr = cli
         .rpc_addr
@@ -984,22 +987,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 
     apply_cli_core_migrate_config(&mut config, cli);
 
-    // Per-network default assume-valid when block_validation is None and not regtest
-    if config.block_validation.is_none() {
-        let default_height = blvm_node::config::default_assume_valid_height_for_network(
-            network_from_cli_enum(&network),
-        );
-        if default_height > 0 {
-            config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
-                assume_valid_height: default_height,
-                assume_valid_hash: None,
-            });
-            info!(
-                "Assume-valid config seed for {:?}: height {} (superseded by BLVM_ASSUME_VALID_HEIGHT / node merge when set)",
-                network, default_height
-            );
-        }
-    }
+    // A height with no block hash does not skip scripts. Do not seed one.
 
     // Validate config before returning (semantic checks: pruning, etc.)
     config.validate().context("Invalid configuration")?;

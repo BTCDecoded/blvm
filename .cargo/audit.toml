@@ -21,4 +21,9 @@ ignore = [
     "RUSTSEC-2026-0340",
     "RUSTSEC-2026-0341",
     "RUSTSEC-2026-0342",
+    # wasmtime 36.0.18. blvm-sdk 0.1.19 requires wasmtime =36.0.18.
+    # Both advisories are fixed in wasmtime >=36.0.19. That pin moves when blvm-sdk is published again.
+    # The default release binary does not enable the wasm-modules feature.
+    "RUSTSEC-2026-0379",
+    "RUSTSEC-2026-0380",
 ]
