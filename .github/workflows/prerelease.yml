@@ -242,6 +242,7 @@ jobs:
             fi
           done
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -255,6 +256,7 @@ jobs:
           fi
           blvm/build.sh --mode release --variant experimental
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -422,6 +424,7 @@ jobs:
             echo "✅ All deterministic builds verified (base variant)"
           fi
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
       
@@ -503,6 +506,7 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh base "${{ github.workspace }}"
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
@@ -520,6 +524,7 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh experimental "${{ github.workspace }}"
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (experimental variant)

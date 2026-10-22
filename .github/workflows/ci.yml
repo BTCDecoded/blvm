@@ -194,6 +194,7 @@ jobs:
 
       - name: Run tests
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: |
           unset CC CXX CPP AR || true
@@ -291,6 +292,7 @@ jobs:
       # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
       - name: Clippy (default features)
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
 
@@ -371,6 +373,8 @@ jobs:
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
       - name: Build docs
+        env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
         run: cargo doc --no-deps --document-private-items
 
   security:
@@ -471,6 +475,7 @@ jobs:
 
       - name: Build release
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_BUILD_JOBS: 8
         run: |
           # Runner sometimes exports CC= globally; cc-rs treats that as set-but-empty and
@@ -1244,6 +1249,7 @@ jobs:
 
       - name: Build Linux release binary
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
           CARGO_BUILD_JOBS: 8
         run: |
