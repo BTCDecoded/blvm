@@ -18,13 +18,15 @@
 [versions]
 
 # Libraries (no binaries)
-blvm-consensus = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "" }
-blvm-protocol = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-consensus=0.1.0"] }
+blvm-consensus = { version = "0.1.67", git_tag = "v0.1.67", git_commit = "04486b7618d0829f5896a0189133abd9edfeaf3d" }
+blvm-protocol = { version = "0.1.35", git_tag = "v0.1.35", git_commit = "5b8a154ce26dbea2e5894e21020f5cec731e3c63", requires = ["blvm-consensus=0.1.67"] }
 
 # Binaries
-blvm-node = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-protocol=0.1.0", "blvm-consensus=0.1.0"] }
-blvm = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-node=0.1.0"], binaries = ["blvm"] }
-blvm-sdk = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", binaries = ["blvm-keygen", "blvm-sign", "blvm-verify"] }
+blvm-node = { version = "0.1.75", git_tag = "v0.1.75", git_commit = "d9c9b37e980b68e256726d1b035a63102723ba19", requires = ["blvm-protocol=0.1.35", "blvm-consensus=0.1.67"] }
+blvm = { version = "0.1.65", git_tag = "v0.1.65", git_commit = "19da7201787402cc0f8c2a7ff3d677db5c29108b", requires = ["blvm-node=0.1.75"], binaries = ["blvm"] }
+blvm-sdk = { version = "0.1.19", git_tag = "v0.1.19", git_commit = "d3000d8da9c8366172f09706b93bf18e5f99f82e", binaries = ["blvm-keygen", "blvm-sign", "blvm-verify", "blvm-compose", "blvm-sign-binary", "blvm-verify-binary", "blvm-aggregate-signatures", "blvm-registry"] }
+# Next entry: the repo is now BTCDecoded/blvm-commons (Cargo version 0.1.0). It has no tags or
+# GitHub releases yet, so the v0.1.0 tag listed does not exist. Left as-is until a first release.
 governance-app = { version = "0.1.0", git_tag = "v0.1.0", git_commit = "", requires = ["blvm-sdk=0.1.0"], binaries = ["governance-app", "key-manager", "test-content-hash", "test-content-hash-standalone"] }
 
 # Metadata
@@ -44,9 +46,9 @@ blvm-node = ""
 blvm-sdk = ""
 
 [metadata]
-last_updated = "2025-01-XX"
-updated_by = "System Review"
-release_notes = "Initial version coordination for Bitcoin Commons v0.1.0 release set"
+last_updated = "2026-10-21"
+updated_by = "Manual sync from git tags and Cargo.lock"
+release_notes = "Synced to the blvm v0.1.65 release (main 19da720): blvm-node 0.1.75, blvm-protocol 0.1.35, blvm-consensus 0.1.67, blvm-sdk 0.1.19"
 
 # ---------------------------------------------------------------------------
 # First-party modules — independently versioned, NOT bumped with the monorepo.
@@ -61,7 +63,7 @@ release_notes = "Initial version coordination for Bitcoin Commons v0.1.0 release
 [modules]
 
 blvm-marketplace = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-marketplace"], registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
-blvm-miniscript  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-miniscript"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
-blvm-zmq         = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-zmq"],         registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
-blvm-governance  = { min_version = ">=0.1", git_tag = "", binaries = ["blvm-governance"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
-
+blvm-miniscript  = { min_version = ">=0.1", git_tag = "v0.1.11", binaries = ["blvm-miniscript"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-zmq         = { min_version = ">=0.1", git_tag = "v0.1.6",  binaries = ["blvm-zmq"],         registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-governance  = { min_version = ">=0.1", git_tag = "v0.1.4",  binaries = ["blvm-governance"],  registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
+blvm-fibre       = { min_version = ">=0.1", git_tag = "v0.1.3",  binaries = ["blvm-fibre"],       registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json" }
