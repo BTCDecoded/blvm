@@ -6,6 +6,43 @@ use std::net::SocketAddr;
 
 pub mod versions;
 
+/// Parsed `-assumevalid` value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssumeValidArg {
+    /// `0`: verify every script.
+    Disabled,
+    /// A block height.
+    Height(u64),
+    /// A block hash in internal (little-endian) byte order, the order consensus
+    /// compares against the computed header hash.
+    Hash([u8; 32]),
+}
+
+/// Parse `-assumevalid=<height|hash>`.
+///
+/// A hash is given the way Bitcoin Core and every block explorer print it: 64 hex
+/// digits, most significant byte first (display order). Consensus stores and
+/// compares hashes in internal order, so the bytes are reversed here.
+pub fn parse_assume_valid_arg(val: &str) -> Result<AssumeValidArg, String> {
+    let val = val.trim();
+    if val == "0" {
+        return Ok(AssumeValidArg::Disabled);
+    }
+    if val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit()) {
+        let mut bytes: [u8; 32] = hex::decode(val)
+            .map_err(|e| format!("invalid -assumevalid hash hex: {e}"))?
+            .try_into()
+            .map_err(|_| "invalid -assumevalid hash length; use 64 hex chars".to_string())?;
+        bytes.reverse();
+        return Ok(AssumeValidArg::Hash(bytes));
+    }
+    val.parse::<u64>().map(AssumeValidArg::Height).map_err(|_| {
+        format!(
+            "invalid -assumevalid value '{val}'; use a height (e.g. 700000) or a 64-char block hash"
+        )
+    })
+}
+
 /// Canonical network name for config (`protocol_version` / logging).
 pub fn canonical_network_name(network: &str) -> Option<&'static str> {
     match network.to_lowercase().as_str() {

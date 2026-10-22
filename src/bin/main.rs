@@ -1288,33 +1288,26 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
             assume_valid_hash: None,
         });
     } else if let Some(ref val) = advanced.assumevalid {
-        let is_hex_hash = val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit());
-        if is_hex_hash {
-            // Parse 64-char hex to [u8; 32] for hash-based ancestry verification.
-            if let Ok(hash_bytes) = hex::decode(val) {
-                if hash_bytes.len() == 32 {
-                    let mut arr = [0u8; 32];
-                    arr.copy_from_slice(&hash_bytes);
-                    config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
-                        assume_valid_height: 0, // Hash takes precedence
-                        assume_valid_hash: Some(arr),
-                    });
-                } else {
-                    tracing::warn!("Invalid -assumevalid hash length. Use 64 hex chars.");
-                }
-            } else {
-                tracing::warn!("Invalid -assumevalid hash hex. Use 64 hex chars.");
+        match blvm::parse_assume_valid_arg(val) {
+            Ok(blvm::AssumeValidArg::Disabled) => {
+                config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                    assume_valid_height: 0,
+                    assume_valid_hash: None,
+                });
             }
-        } else if let Ok(height) = val.parse::<u64>() {
-            config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
-                assume_valid_height: height,
-                assume_valid_hash: None,
-            });
-        } else {
-            tracing::warn!(
-                "Invalid -assumevalid value '{}'. Use height (e.g. 700000) or 64-char block hash.",
-                val
-            );
+            Ok(blvm::AssumeValidArg::Hash(arr)) => {
+                config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                    assume_valid_height: 0, // Hash takes precedence
+                    assume_valid_hash: Some(arr),
+                });
+            }
+            Ok(blvm::AssumeValidArg::Height(height)) => {
+                config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+                    assume_valid_height: height,
+                    assume_valid_hash: None,
+                });
+            }
+            Err(e) => tracing::warn!("{e}"),
         }
     }
 
