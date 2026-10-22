@@ -242,6 +242,7 @@ jobs:
             fi
           done
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -255,6 +256,7 @@ jobs:
           fi
           blvm/build.sh --mode release --variant experimental
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -422,11 +424,14 @@ jobs:
             echo "✅ All deterministic builds verified (base variant)"
           fi
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Run tests (skip doctests for Phase 1 prerelease)
         run: |
+          # Without pipefail the `| tee` hides cargo failures and this gate never fails.
+          set -o pipefail
           cd ${{ github.workspace }}
           FAILED_REPOS=()
           
@@ -439,7 +444,11 @@ jobs:
               
               # First, try to build tests to catch compilation errors early
               echo "Building tests for $repo..."
-              if ! cargo build --release --all-features --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
+              # Every feature except secp-gpu, whose build script needs nvcc (CUDA).
+              FEATURES=$(cargo metadata --no-deps --format-version 1 \
+                | python3 -c 'import json,sys; print(",".join(sorted(f for f in json.load(sys.stdin)["packages"][0]["features"] if f not in ("default","secp-gpu"))))')
+              echo "Features: ${FEATURES}"
+              if ! cargo build --release --features "${FEATURES}" --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
                 echo "❌ Test compilation failed in $repo"
                 echo "Build log (last 100 lines):"
                 tail -100 /tmp/${repo}-test-build.log || true
@@ -458,7 +467,7 @@ jobs:
               # Run tests with single thread to avoid resource contention
               # Skip tests that hang in CI - use filter to exclude them
               # The test was removed but --skip is harmless if test doesn't exist
-              if timeout 1800 cargo test --release --all-features --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/${repo}-test_output.log; then
+              if timeout 1800 cargo test --release --features "${FEATURES}" --lib --bins --tests -- --test-threads=1 --skip test_handle_incoming_wire_tcp_enqueues_pkgtxn 2>&1 | tee /tmp/${repo}-test_output.log; then
                 echo "✅ Tests passed for $repo"
               else
                 EXIT_CODE=$?
@@ -497,6 +506,7 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh base "${{ github.workspace }}"
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
@@ -514,6 +524,7 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh experimental "${{ github.workspace }}"
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (experimental variant)
@@ -686,6 +697,7 @@ jobs:
           blvm/scripts/package-linux-releases.sh "$V" "${{ github.workspace }}"
         env:
           RUSTFLAGS: "-C debuginfo=0"
+          BLVM_SECP256K1_NO_GPU: "1"
       
       - name: Verify versions
         run: |

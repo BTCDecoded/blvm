@@ -194,6 +194,7 @@ jobs:
 
       - name: Run tests
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: |
           unset CC CXX CPP AR || true
@@ -213,8 +214,10 @@ jobs:
             find "$TARGET/debug" -maxdepth 1 -type f -executable ! -name "*.so" ! -name "*.rlib" ! -name "*.d" \
               -delete 2>/dev/null || true
           fi
+          # Other runs share this runner; only purge siblings idle for over 60 min (same guard as setup).
           find /tmp/gh-blvm-build -mindepth 1 -maxdepth 1 -type d \
             -not -name "${{ github.run_id }}" \
+            -mmin +60 \
             -exec rm -rf {} + 2>/dev/null || true
 
       - name: Save Cargo cache
@@ -289,6 +292,7 @@ jobs:
       # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
       - name: Clippy (default features)
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.BLVM_BUILD_TARGET }}
         run: cargo clippy --lib --bins -- -D clippy::uninlined_format_args -D warnings
 
@@ -369,6 +373,8 @@ jobs:
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
       - name: Build docs
+        env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
         run: cargo doc --no-deps --document-private-items
 
   security:
@@ -469,6 +475,7 @@ jobs:
 
       - name: Build release
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_BUILD_JOBS: 8
         run: |
           # Runner sometimes exports CC= globally; cc-rs treats that as set-but-empty and
@@ -714,6 +721,7 @@ jobs:
           VERSION_TAG: ${{ steps.version.outputs.version_tag }}
           CARGO_TARGET_DIR: /tmp/gh-blvm-release-build/${{ github.run_id }}/target
           CARGO_BUILD_JOBS: 4
+          BLVM_SECP256K1_NO_GPU: "1"
         run: |
           chmod +x scripts/ci-release-extra-artifacts.sh
           bash scripts/ci-release-extra-artifacts.sh
@@ -1242,6 +1250,7 @@ jobs:
 
       - name: Build Linux release binary
         env:
+          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
           CARGO_BUILD_JOBS: 8
         run: |
@@ -1277,6 +1286,7 @@ jobs:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           GITHUB_SHA: ${{ github.sha }}
           CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
+          BLVM_SECP256K1_NO_GPU: "1"
         run: |
           chmod +x scripts/ci-nightly-artifacts.sh
           bash scripts/ci-nightly-artifacts.sh
@@ -1484,7 +1494,6 @@ jobs:
             echo "Removing $RUN_DIR ($(du -sh "$RUN_DIR" 2>/dev/null | cut -f1))"
             rm -rf "$RUN_DIR"
           fi
-          find /tmp/gh-blvm-build -mindepth 1 -maxdepth 1 -type d \
-            -exec rm -rf {} + 2>/dev/null || true
+          # Only this run's dir: concurrent runs on this runner still need theirs.
           echo "=== disk after teardown ==="
           df -h /
