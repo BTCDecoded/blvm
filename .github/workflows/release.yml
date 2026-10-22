@@ -554,6 +554,9 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
+          # The runner has nvcc. Without this, blvm-secp256k1 <= 0.1.13 links
+          # libcudart into every binary and the release does not start without CUDA.
+          BLVM_SECP256K1_NO_GPU: "1"
       
       - name: Build experimental variant (Linux) - Optimized (using published crates)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
@@ -588,6 +591,9 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
+          # The runner has nvcc. Without this, blvm-secp256k1 <= 0.1.13 links
+          # libcudart into every binary and the release does not start without CUDA.
+          BLVM_SECP256K1_NO_GPU: "1"
       
       - name: Build base variant (Windows cross-compile) - Optimized (using published crates)
         if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
@@ -857,6 +863,25 @@ jobs:
           blvm/scripts/package-linux-releases.sh "$V" "${{ github.workspace }}"
         env:
           RUSTFLAGS: "-C debuginfo=0"
+          BLVM_SECP256K1_NO_GPU: "1"
+
+      - name: Check Linux artifacts do not need CUDA
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tag="${{ needs.determine-version.outputs.version_tag }}"
+          files=(
+            blvm/artifacts/blvm-"${tag}"-linux-*.tar.gz
+            blvm/artifacts/blvm-experimental-"${tag}"-linux-*.tar.gz
+            blvm/artifacts/blvm_*.deb
+            blvm/artifacts/blvm-experimental_*.deb
+          )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No Linux artifacts to check" >&2
+            exit 1
+          fi
+          blvm/scripts/check-no-cuda.sh "${files[@]}"
       
       - name: Verify versions
         run: |
