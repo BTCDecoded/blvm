@@ -21,6 +21,8 @@ unset CC CXX CPP AR || true
 # Cross builds already skip nvcc (host != target). Keep the flag so a host
 # toolchain cannot relink libcudart into the published ELF.
 export BLVM_SECP256K1_NO_GPU=1
+SYSROOT="$(rustc --print sysroot)"
+export RUSTFLAGS="--remap-path-prefix=${HOME}=/build --remap-path-prefix=${SYSROOT}=/rustlib --remap-path-prefix=${GITHUB_WORKSPACE:-/src}=/src"
 export CARGO_TARGET_DIR
 export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
 export CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc
@@ -33,7 +35,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/ci-portable-cross-features.sh"
 
 echo "=== aarch64 cross-compile (Raspberry Pi 64-bit; Linux release feature set) ==="
-cargo build --release \
+cargo build --release --locked \
   --target aarch64-unknown-linux-gnu \
   --no-default-features \
   --features "${BLVM_LINUX_RELEASE_FEATURES}"
@@ -49,6 +51,10 @@ cp -f "$BIN" "$OUT"
 chmod +x "$OUT"
 if readelf -d "$OUT" | grep -q 'libcudart'; then
   echo "ERROR: ${OUT} needs libcudart" >&2
+  exit 1
+fi
+if strings "$OUT" | grep -q '/var/lib/github-runner'; then
+  echo "ERROR: ${OUT} still names the runner home" >&2
   exit 1
 fi
 echo "✅ aarch64 binary: $(file "$OUT")"

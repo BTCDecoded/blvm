@@ -21,4 +21,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/target/release/blvm /usr/local/bin/blvm
 USER blvm
 ENTRYPOINT ["/usr/local/bin/blvm"]
-CMD ["version"]
+CMD ["start"]
