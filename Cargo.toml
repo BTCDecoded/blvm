@@ -76,7 +76,6 @@ default = [
     "blvm-node/sigop",
     "blvm-node/dandelion",
     "blvm-node/rest-api",
-    "blvm-node/bip70-http",
     "blvm-node/compression",
     "governance",
 ]

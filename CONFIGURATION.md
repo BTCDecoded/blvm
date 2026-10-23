@@ -157,6 +157,8 @@ enable_self_advertisement = true
 # socket_dir = "data/modules/sockets"
 # registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
 # blvm-miniscript = "0.1.*"   # version pins; see blvm.toml.example
+# blvm-wallet-index = "0.1.*"
+# blvm-payment = "0.1.*"
 ```
 
 ## Stratum V2 (module-first)
