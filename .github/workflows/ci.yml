@@ -79,12 +79,12 @@ jobs:
           fi
 
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@main
+        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Commit message bundle (push payloads often omit head_commit)
         id: commit-msg-bundle
@@ -118,7 +118,7 @@ jobs:
           mkdir -p "$CARGO_CACHE_DIR"/{registry,git} "$TARGET_CACHE_DIR"
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
 
   test:
@@ -134,10 +134,10 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_tests]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Clean leftover path overrides
         run: |
@@ -179,18 +179,18 @@ jobs:
           echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
 
       - name: Cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: bind-env
           cache-key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Restore Cargo cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: restore
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Run tests
         env:
@@ -222,13 +222,13 @@ jobs:
 
       - name: Save Cargo cache
         if: always()
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: save
 
       - name: Prune old runner caches
         if: always()
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: prune
 
@@ -247,10 +247,10 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Clean leftover path overrides
         run: |
@@ -274,19 +274,19 @@ jobs:
           echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
 
       - name: Cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: bind-env
           cache-key: ${{ needs.setup.outputs.cache-key }}
           include-target: false
 
       - name: Restore Cargo cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: restore
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       # Integration tests: compiled in the `test` job. Clippy matches blvm-node CI: lib + bins only
       # (strict `uninlined_format_args` + warnings); `tests/*.rs` are not linted as separate crates here.
@@ -316,13 +316,13 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -340,10 +340,10 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Clean leftover path overrides
         run: |
@@ -358,19 +358,19 @@ jobs:
           echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
 
       - name: Cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: bind-env
           cache-key: ${{ needs.setup.outputs.cache-key }}
           include-target: false
 
       - name: Restore Cargo cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: restore
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Build docs
         env:
@@ -392,13 +392,13 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_security]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Install cargo-audit
         run: |
@@ -433,10 +433,10 @@ jobs:
         (needs.docs.result == 'success' || needs.docs.result == 'skipped') &&
         (needs.security.result == 'success' || needs.security.result == 'skipped')))
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Clean leftover path overrides
         run: |
@@ -460,18 +460,18 @@ jobs:
           echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
 
       - name: Cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: bind-env
           cache-key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Restore Cargo cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: restore
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Build release
         env:
@@ -480,11 +480,10 @@ jobs:
         run: |
           # Runner sometimes exports CC= globally; cc-rs treats that as set-but-empty and
           # -sys crates fail to compile bundled C (zstd-sys, lz4-sys, rocksdb, etc.).
-          # --locked is omitted: strip-patch-crates-io removes [patch.crates-io] so the
-          # committed Cargo.lock has no registry source for patched crates; cargo must
-          # re-resolve from crates.io before building.
+          # The committed lock names registry sources for every patched crate.
+          # After strip-patch-crates-io, --locked builds that lock.
           unset CC CXX CPP AR || true
-          cargo build --release
+          cargo build --release --locked
 
       - name: Dump disk usage on failure
         if: failure()
@@ -492,13 +491,13 @@ jobs:
 
       - name: Save Cargo cache
         if: always()
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: save
 
       - name: Prune old runner caches
         if: always()
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: prune
 
@@ -526,11 +525,11 @@ jobs:
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
       ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
        (
-         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
-         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+         needs.test.result == 'success' &&
+         needs.clippy.result == 'success' &&
+         needs.fmt.result == 'success' &&
+         needs.docs.result == 'success' &&
+         needs.security.result == 'success'
        ))
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -538,12 +537,12 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Install OpenSSL development headers
         run: |
@@ -555,7 +554,7 @@ jobs:
           fi
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Determine version
         id: version
@@ -661,12 +660,18 @@ jobs:
           # The release runner has nvcc. Without this, build.rs links libcudart and
           # `version` fails on a host whose install docs do not name that library.
           export BLVM_SECP256K1_NO_GPU=1
-          cargo build --release
+          SYSROOT="$(rustc --print sysroot)"
+          export RUSTFLAGS="--remap-path-prefix=${HOME}=/build --remap-path-prefix=${SYSROOT}=/rustlib --remap-path-prefix=${GITHUB_WORKSPACE}=/src"
+          cargo build --release --locked
           VERSION="${{ steps.version.outputs.version }}"
           BIN="./blvm-${VERSION}-linux-x86_64"
           cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm "$BIN"
           if readelf -d "$BIN" | grep -q 'libcudart'; then
             echo "❌ ${BIN} needs libcudart; release builds set BLVM_SECP256K1_NO_GPU=1"
+            exit 1
+          fi
+          if strings "$BIN" | grep -q '/var/lib/github-runner'; then
+            echo "❌ ${BIN} still names the runner home"
             exit 1
           fi
           echo "✅ Linux binary: $(file "$BIN")"
@@ -686,7 +691,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           source scripts/ci-portable-cross-features.sh
           echo "=== Windows cross-compile (Linux defaults minus nix/libc) ==="
-          cargo build --release \
+          cargo build --release --locked \
             --target x86_64-pc-windows-gnu \
             --no-default-features \
             --features "${BLVM_PORTABLE_CROSS_FEATURES}" \
@@ -837,6 +842,14 @@ jobs:
             echo "sdk=$(linked_ver blvm-sdk)"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Attest release binaries
+        uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
+        with:
+          subject-path: |
+            blvm-${{ steps.version.outputs.version }}-linux-x86_64
+            blvm-${{ steps.version.outputs.version }}-linux-aarch64
+            blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe
+
       - name: Create and push version tag
         run: |
           VERSION_TAG="${{ steps.version.outputs.version_tag }}"
@@ -851,7 +864,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77
         with:
           tag_name: ${{ steps.version.outputs.version_tag }}
           name: blvm ${{ steps.version.outputs.version_tag }}
@@ -1018,19 +1031,19 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_publish_dev != 'true') &&
       ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
        (
-         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
-         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+         needs.test.result == 'success' &&
+         needs.clippy.result == 'success' &&
+         needs.fmt.result == 'success' &&
+         needs.docs.result == 'success' &&
+         needs.security.result == 'success'
        ))
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Ensure develop crate set on registry
         id: ensure
@@ -1144,21 +1157,21 @@ jobs:
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]')) &&
       ((github.event_name == 'workflow_dispatch' && github.event.inputs.skip_tests == 'true') ||
        (
-         (needs.test.result == 'success' || (needs.test.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && contains(github.event.head_commit.message, '[skip_tests]'))))) &&
-         (needs.clippy.result == 'success' || (needs.clippy.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.fmt.result == 'success' || (needs.fmt.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.docs.result == 'success' || (needs.docs.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_docs]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_docs]') || contains(github.event.head_commit.message, '[skip_tests]')))))) &&
-         (needs.security.result == 'success' || (needs.security.result == 'skipped' && (contains(needs.setup.outputs.commit_msg_bundle, '[skip_security]') || contains(needs.setup.outputs.commit_msg_bundle, '[skip_tests]') || (github.event.head_commit != null && (contains(github.event.head_commit.message, '[skip_security]') || contains(github.event.head_commit.message, '[skip_tests]'))))))
+         needs.test.result == 'success' &&
+         needs.clippy.result == 'success' &&
+         needs.fmt.result == 'success' &&
+         needs.docs.result == 'success' &&
+         needs.security.result == 'success'
        ))
     env:
       CARGO_NIGHTLY_TARGET: /tmp/gh-blvm-nightly-build/${{ github.run_id }}/target
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
 
       - name: Strip [patch.crates-io] for crates.io-only CI
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Clean leftover path overrides
         run: |
@@ -1191,18 +1204,18 @@ jobs:
           echo "CARGO_HOME=${RUNNER_TEMP}/cargo" >> "$GITHUB_ENV"
 
       - name: Cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: bind-env
           cache-key: ${{ needs.setup.outputs.cache-key }}
 
       - name: Restore Cargo cache
-        uses: BTCDecoded/rust-ci/runner-cargo-cache@main
+        uses: BTCDecoded/rust-ci/runner-cargo-cache@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
         with:
           operation: restore
 
       - name: Install Rust
-        uses: BTCDecoded/rust-ci/install-rust-toolchain@main
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Resolve develop version for nightly
         id: nightly_v
@@ -1361,13 +1374,13 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Strip [patch.crates-io] for crates.io-only build
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Regenerate Cargo.lock without path patches
         run: cargo generate-lockfile
@@ -1422,13 +1435,13 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.release.outputs.version_tag }}
           fetch-depth: 0
 
       - name: Strip [patch.crates-io] for crates.io-only build (matches CI)
-        uses: BTCDecoded/rust-ci/strip-patch-crates-io@main
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
 
       - name: Regenerate Cargo.lock without path patches
         run: cargo generate-lockfile
