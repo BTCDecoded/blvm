@@ -79,7 +79,7 @@ jobs:
           fi
 
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -135,7 +135,7 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -251,7 +251,7 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -323,7 +323,7 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -350,7 +350,7 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -405,7 +405,7 @@ jobs:
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -449,7 +449,7 @@ jobs:
         (needs.security.result == 'success' || needs.security.result == 'skipped')))
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -556,7 +556,7 @@ jobs:
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -1062,7 +1062,7 @@ jobs:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -1191,7 +1191,7 @@ jobs:
       CARGO_NIGHTLY_TARGET: /tmp/gh-blvm-nightly-build/${{ github.run_id }}/target
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -1402,7 +1402,7 @@ jobs:
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
@@ -1466,7 +1466,7 @@ jobs:
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
