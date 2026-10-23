@@ -79,7 +79,7 @@ jobs:
           fi
 
       - name: Disk check
-        uses: BTCDecoded/rust-ci/runner-disk-guard@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
@@ -134,6 +134,9 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_tests]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -247,6 +250,9 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -316,6 +322,9 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -340,6 +349,9 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_docs]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -392,6 +404,9 @@ jobs:
        !contains(github.event.head_commit.message, '[skip_security]')) &&
       (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_tests != 'true')
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -433,6 +448,9 @@ jobs:
         (needs.docs.result == 'success' || needs.docs.result == 'skipped') &&
         (needs.security.result == 'success' || needs.security.result == 'skipped')))
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -537,6 +555,9 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
@@ -1040,6 +1061,9 @@ jobs:
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
 
       - name: Strip [patch.crates-io] for crates.io-only CI
@@ -1166,6 +1190,9 @@ jobs:
     env:
       CARGO_NIGHTLY_TARGET: /tmp/gh-blvm-nightly-build/${{ github.run_id }}/target
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
@@ -1374,6 +1401,9 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ github.sha }}
@@ -1435,6 +1465,9 @@ jobs:
       !contains(needs.setup.outputs.commit_msg_bundle, '[skip_docker]') &&
       (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_docker]'))
     steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.release.outputs.version_tag }}
