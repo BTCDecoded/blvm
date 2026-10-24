@@ -649,7 +649,16 @@ jobs:
           ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
           ACTUAL=$(grep -A 5 '^\[package\]' Cargo.toml | grep '^version = ' | head -1 | sed -E 's/^version = "([^"]+)".*/\1/')
           [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
-          echo "✅ Cargo.toml bumped to ${VERSION}"
+          # The release builds use --locked, so the root package entry in
+          # Cargo.lock must carry the bumped version too.
+          awk -v ver="$VERSION" '
+            /^name = "blvm"$/ { print; is_root = 1; next }
+            is_root && /^version = / { print "version = \"" ver "\""; is_root = 0; next }
+            { is_root = 0; print }
+          ' Cargo.lock > Cargo.lock.tmp && mv Cargo.lock.tmp Cargo.lock
+          grep -A 1 '^name = "blvm"$' Cargo.lock | grep -qx "version = \"${VERSION}\"" \
+            || { echo "❌ Cargo.lock root version bump failed"; exit 1; }
+          echo "✅ Cargo.toml and Cargo.lock bumped to ${VERSION}"
 
       - name: Install packaging tools and cross-compilers
         run: |
