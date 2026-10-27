@@ -61,14 +61,14 @@ data_dir = "data/modules"
 socket_dir = "data/modules/sockets"
 # Discovery index for bootstrap-download of modules listed below but missing on disk.
 registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# Enabled modules with version constraints (`*` = unpinned / track main).
-# Omit these pins to auto-discover on-disk modules only.
+# The three pins below are the baseline even when this table only sets a path.
+# An inline name adds or replaces one pin. enabled_modules = [] replaces the
+# baseline and loads only binaries already on disk.
 blvm-miniscript = "0.1.*"
 blvm-wallet-index = "0.1.*"
-blvm-payment = "0.1.*"
 # Per-module spawn overrides; `version` pins bootstrap when inline `name = "…"` would conflict:
 [modules.blvm-zmq]
-version = "0.3.*"
+version = "0.1.*"
 hashblock = "tcp://127.0.0.1:28332"
 hashtx = "tcp://127.0.0.1:28333"
 rawblock = "tcp://127.0.0.1:28334"
