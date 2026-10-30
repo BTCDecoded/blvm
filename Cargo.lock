@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.71"
+version = "0.1.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c83e3f48713184ad81f0570e2373d5a5b1b71e6cbf516ecd443db036788ec92"
+checksum = "af4976b2e4e904f6bfc4a6af9c72f5c6e6b4426e5e15672d6a108c6f3f1b85a7"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -460,9 +460,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.81"
+version = "0.1.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8488143081faece6424b691a74b0e33e707e532b0e3b48df3d7f017e44f25b6e"
+checksum = "1d9671a277650099469b30e0f48d4b4de6dd0f62b340a60bd9dcdccb7c735ecb"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -622,9 +622,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-secp256k1"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aea1c9bc7270c91b605fe4f14a1230b9bd38f3a92c55554e8a26a2950ddd4114"
+checksum = "c35d129913033ec2807ce712b4aafeabbe5599f78b067929223ad491de62a26b"
 dependencies = [
  "cc",
  "crossbeam-channel",
@@ -2907,9 +2907,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.29"
+version = "1.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85bc9657773828b90eeb625adff10eeac83cc21bbfd8e23a03eaa8a33c9e28d9"
+checksum = "ff20308ecabd635a2dc1dd5834a86c462cca20efba1d5d3ddab1f8aea3455cb2"
 dependencies = [
  "cc",
  "pkg-config",
@@ -4473,9 +4473,9 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "rusty-leveldb"
-version = "4.0.1"
+version = "4.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43ddda8f34100fca4bf1b0bbf743d12d27b5d84c35c74a52f392aac26f54e82d"
+checksum = "e5cedca2c163b3a98ee5bec9025dfaa7d5b64edc1ff0b8f034bf1977fa58f4c9"
 dependencies = [
  "bytes",
  "crc32c",
