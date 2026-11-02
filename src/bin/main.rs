@@ -229,7 +229,7 @@ enum ConfigCommand {
     /// Show configuration file path
     Path,
     /// Set config value(s). Use dotted keys for primary and module config.
-    /// Examples: storage.data_dir=./data, modules.stratum-v2.listen_addr=0.0.0.1:3333
+    /// Examples: storage.data_dir=./data, modules.blvm-stratum-v2.listen_addr=0.0.0.1:3333
     Set {
         /// One or more key=value assignments
         #[arg(required = true, value_name = "KEY=VALUE")]
@@ -355,28 +355,10 @@ impl From<Network> for ProtocolVersion {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    // Initialize tracing: RUST_LOG > BLVM_LOG_LEVEL > default (verbose ? debug : info)
-    let default_filter = if cli.verbose {
-        "blvm=debug,blvm_node=debug"
-    } else {
-        "blvm=info,blvm_node=info"
-    };
-    let filter = match tracing_subscriber::EnvFilter::try_from_default_env() {
-        Ok(f) => f,
-        Err(_) => {
-            if let Ok(level) = env::var("BLVM_LOG_LEVEL") {
-                if let Ok(f) = tracing_subscriber::EnvFilter::try_new(&level) {
-                    f
-                } else {
-                    tracing_subscriber::EnvFilter::new(default_filter)
-                }
-            } else {
-                tracing_subscriber::EnvFilter::new(default_filter)
-            }
-        }
-    };
-
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    // Subscriber before build_final_config, which logs while it loads.
+    // First pass is the file's [logging] table only. Full merge follows.
+    let logging = preview_logging(&cli);
+    blvm_node::utils::init_node_logging(logging.as_ref(), cli.verbose);
 
     // Handle subcommands
     match cli.command {
@@ -559,9 +541,10 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
 
+            let rpc_bind = config.rpc_addr.unwrap_or(rpc_addr);
             info!("Starting Bitcoin Commons BLVM Node");
             info!("Network: {:?}", network);
-            info!("RPC address: {}", rpc_addr);
+            info!("RPC address: {}", rpc_bind);
             info!("P2P listen address: {}", listen_addr);
             info!("Data directory: {}", data_dir);
 
@@ -573,7 +556,7 @@ async fn main() -> Result<()> {
             let mut node = match ReferenceNode::with_storage_config(
                 &data_dir,
                 listen_addr,
-                rpc_addr,
+                rpc_bind,
                 Some(protocol_version),
                 config.storage.as_ref(),
             ) {
@@ -735,9 +718,10 @@ impl EnvOverrides {
                 .ok()
                 .and_then(|s| s.parse().ok()),
             // Network timing config
-            target_peer_count: env::var("BLVM_NETWORK_TARGET_PEER_COUNT")
-                .ok()
-                .and_then(|s| s.parse().ok()),
+            target_peer_count: blvm_node::config::target_peer_count_from_env(
+                env::var("BLVM_NETWORK_TARGET_PEER_COUNT").ok().as_deref(),
+                env::var("BLVM_TARGET_OUTBOUND_PEERS").ok().as_deref(),
+            ),
             peer_connection_delay: env::var("BLVM_NETWORK_PEER_CONNECTION_DELAY")
                 .ok()
                 .and_then(|s| s.parse().ok()),
@@ -788,6 +772,22 @@ impl EnvOverrides {
 }
 
 /// Find config file in standard locations
+fn preview_logging(cli: &Cli) -> Option<blvm_node::config::LoggingConfig> {
+    let path = find_config_file(&cli.config)?;
+    NodeConfig::from_file(&path).ok()?.logging
+}
+
+fn resolve_rpc_addr(
+    cli: Option<SocketAddr>,
+    env_addr: Option<SocketAddr>,
+    file_addr: Option<SocketAddr>,
+    network: &Network,
+) -> SocketAddr {
+    cli.or(env_addr).or(file_addr).unwrap_or_else(|| {
+        blvm::default_rpc_addr_for_network(network_from_cli_enum(network))
+    })
+}
+
 fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
     // 1. CLI-specified config file (highest priority)
     if let Some(path) = cli_config {
@@ -954,6 +954,9 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         .or_else(|| env_overrides.data_dir.clone())
         .or_else(|| config.storage.as_ref().map(|s| s.data_dir.clone()))
         .unwrap_or_else(|| "./data".to_string());
+    if let Some(storage) = config.storage.as_mut() {
+        storage.data_dir = data_dir.clone();
+    }
 
     // listen_addr: CLI → ENV → config file (if loaded) → network-aware default
     let default_listen_port = blvm::default_p2p_port_for_network(network_from_cli_enum(&network));
@@ -967,14 +970,23 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         })
         .unwrap_or_else(|| SocketAddr::from(([0, 0, 0, 0], default_listen_port)));
 
-    let rpc_addr = cli
-        .rpc_addr
-        .or(env_overrides.rpc_addr)
-        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(network_from_cli_enum(&network)));
+    let rpc_addr = resolve_rpc_addr(
+        cli.rpc_addr,
+        env_overrides.rpc_addr,
+        config.rpc_addr,
+        &network,
+    );
 
     // Apply resolved values to config so downstream code reads them from one place
     config.listen_addr = Some(listen_addr);
+    config.rpc_addr = Some(rpc_addr);
     config.protocol_version = Some(network_from_cli_enum(&network).to_string());
+
+    // Seed the network height before a hash-only --assumevalid. --noassumevalid
+    // and --assumevalid 0 suppress the seed and clear both fields below.
+    if !assume_valid_cli_disables(&cli.advanced) {
+        seed_assume_valid_height(&mut config, &network);
+    }
 
     // Apply CLI feature flags (CLI overrides ENV and config file)
     apply_feature_flags(&mut config, &cli.features);
@@ -983,23 +995,6 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     apply_cli_advanced_config(&mut config, &cli.advanced);
 
     apply_cli_core_migrate_config(&mut config, cli);
-
-    // Per-network default assume-valid when block_validation is None and not regtest
-    if config.block_validation.is_none() {
-        let default_height = blvm_node::config::default_assume_valid_height_for_network(
-            network_from_cli_enum(&network),
-        );
-        if default_height > 0 {
-            config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
-                assume_valid_height: default_height,
-                assume_valid_hash: None,
-            });
-            info!(
-                "Assume-valid config seed for {:?}: height {} (superseded by BLVM_ASSUME_VALID_HEIGHT / node merge when set)",
-                network, default_height
-            );
-        }
-    }
 
     // Validate config before returning (semantic checks: pruning, etc.)
     config.validate().context("Invalid configuration")?;
@@ -1010,40 +1005,32 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 /// Apply feature flags from environment variables
 #[allow(unused_variables)]
 fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
-    // Stratum V2
-    if let Some(enabled) = env.stratum_v2 {
-        #[cfg(feature = "stratum-v2")]
-        {
-            if config.stratum_v2.is_none() {
-                config.stratum_v2 = Some(Default::default());
-            }
-            if let Some(ref mut sv2) = config.stratum_v2 {
-                sv2.enabled = enabled;
-            }
-            info!(
-                "Stratum V2 {} via ENV",
-                if enabled { "enabled" } else { "disabled" }
-            );
-        }
+    // The env no longer writes a node field. A build without the feature still warns.
+    if env.stratum_v2 == Some(true) {
         #[cfg(not(feature = "stratum-v2"))]
-        {
-            if enabled {
-                warn!(
-                    "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
-                );
-            }
-        }
+        warn!(
+            "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
+        );
     }
 
-    // Dandelion
+    // Dandelion. Same write as --enable-dandelion / --disable-dandelion.
     if let Some(enabled) = env.dandelion {
         #[cfg(feature = "dandelion")]
         {
-            info!(
-                "Dandelion++ {} via ENV",
-                if enabled { "enabled" } else { "disabled" }
-            );
-            // Dandelion may be controlled via relay policies in NodeConfig
+            if enabled {
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = true;
+                info!("Dandelion++ enabled via ENV");
+            } else {
+                config.dandelion = None;
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = false;
+                info!("Dandelion++ disabled via ENV");
+            }
         }
         #[cfg(not(feature = "dandelion"))]
         {
@@ -1057,16 +1044,21 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
 
     // BIP158 (compact block filters; always compiled in, like Bitcoin Core)
     if let Some(enabled) = env.bip158 {
+        config.serve_compact_filters = enabled;
         info!(
             "BIP158 block filtering {} via ENV",
             if enabled { "enabled" } else { "disabled" }
         );
     }
 
-    // Sigop
+    // Sigop. Enabling inserts MempoolPolicyConfig::default() when [mempool] is absent.
     if let Some(enabled) = env.sigop {
         #[cfg(feature = "sigop")]
         {
+            let policy = config
+                .mempool
+                .get_or_insert_with(blvm_node::config::MempoolPolicyConfig::default);
+            policy.count_sigops = enabled;
             info!(
                 "Signature operations counting {} via ENV",
                 if enabled { "enabled" } else { "disabled" }
@@ -1084,32 +1076,10 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
 /// Apply feature flags from CLI to config
 #[allow(unused_variables)]
 fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
-    // Stratum V2
+    // The flags no longer write a node field. A build without the feature still warns.
     if features.enable_stratum_v2 || features.disable_stratum_v2 {
-        #[cfg(feature = "stratum-v2")]
-        {
-            if features.enable_stratum_v2 {
-                if config.stratum_v2.is_none() {
-                    config.stratum_v2 = Some(Default::default());
-                }
-                if let Some(ref mut sv2) = config.stratum_v2 {
-                    sv2.enabled = true;
-                }
-                info!("Stratum V2 enabled via CLI");
-            }
-            if features.disable_stratum_v2 {
-                if let Some(ref mut sv2) = config.stratum_v2 {
-                    sv2.enabled = false;
-                }
-                info!("Stratum V2 disabled via CLI");
-            }
-        }
         #[cfg(not(feature = "stratum-v2"))]
-        {
-            warn!(
-                "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
-            );
-        }
+        warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
     }
 
     if features.enable_bip158 {
@@ -1291,10 +1261,41 @@ fn apply_cli_core_migrate_config(config: &mut NodeConfig, cli: &Cli) {
     }
 }
 
+fn assume_valid_cli_disables(advanced: &AdvancedConfig) -> bool {
+    advanced.noassumevalid || advanced.assumevalid.as_deref() == Some("0")
+}
+
+fn seed_assume_valid_height(config: &mut NodeConfig, network: &Network) {
+    if config.block_validation.is_some() {
+        return;
+    }
+    let network_name = network_from_cli_enum(network);
+    let default_height = blvm_node::config::default_assume_valid_height_for_network(network_name);
+    if default_height > 0 {
+        let hash = blvm_node::config::default_assume_valid_hash_for_network(network_name);
+        config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
+            assume_valid_height: default_height,
+            assume_valid_hash: hash,
+        });
+        if hash.is_some() {
+            info!(
+                "Assume-valid config seed for {:?}: height {} hash set",
+                network, default_height
+            );
+        } else {
+            info!(
+                "Assume-valid config seed for {:?}: height {} (script checks still run until a hash is set)",
+                network, default_height
+            );
+        }
+    }
+}
+
 /// Apply CLI advanced config options
 fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig) {
-    // Assume-valid: CLI overrides config file (Option A: height or hash)
-    if advanced.noassumevalid || advanced.assumevalid.as_deref() == Some("0") {
+    // Assume-valid: CLI overrides config file (height or hash). A hash keeps the
+    // seeded or file height. A height keeps a hash already stored.
+    if assume_valid_cli_disables(advanced) {
         config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
             assume_valid_height: 0,
             assume_valid_hash: None,
@@ -1302,25 +1303,30 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
     } else if let Some(ref val) = advanced.assumevalid {
         let is_hex_hash = val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit());
         if is_hex_hash {
-            // Parse 64-char hex to [u8; 32] for hash-based ancestry verification.
-            if let Ok(hash_bytes) = hex::decode(val) {
-                if hash_bytes.len() == 32 {
-                    let mut arr = [0u8; 32];
-                    arr.copy_from_slice(&hash_bytes);
+            match blvm_node::config::assume_valid_hash_from_display_hex(val) {
+                Ok(hash) => {
+                    let height = config
+                        .block_validation
+                        .as_ref()
+                        .map(|bv| bv.assume_valid_height)
+                        .unwrap_or(0);
                     config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
-                        assume_valid_height: 0, // Hash takes precedence
-                        assume_valid_hash: Some(arr),
+                        assume_valid_height: height,
+                        assume_valid_hash: Some(hash),
                     });
-                } else {
-                    tracing::warn!("Invalid -assumevalid hash length. Use 64 hex chars.");
                 }
-            } else {
-                tracing::warn!("Invalid -assumevalid hash hex. Use 64 hex chars.");
+                Err(err) => {
+                    tracing::warn!("Invalid -assumevalid hash: {err}");
+                }
             }
         } else if let Ok(height) = val.parse::<u64>() {
+            let hash = config
+                .block_validation
+                .as_ref()
+                .and_then(|bv| bv.assume_valid_hash);
             config.block_validation = Some(blvm_node::config::BlockValidationNodeConfig {
                 assume_valid_height: height,
-                assume_valid_hash: None,
+                assume_valid_hash: hash,
             });
         } else {
             tracing::warn!(
@@ -1793,7 +1799,7 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
 }
 
 /// Set config value(s) in the config file. Supports dotted keys for primary and module config.
-/// Examples: storage.data_dir=./data, modules.stratum-v2.listen_addr=0.0.0.1:3333
+/// Examples: storage.data_dir=./data, modules.blvm-stratum-v2.listen_addr=0.0.0.1:3333
 fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Result<()> {
     let config_path = find_config_file(cli_config)
         .or_else(|| Some(PathBuf::from("./blvm.toml")))
@@ -1968,4 +1974,118 @@ async fn handle_module_cli(
         std::process::exit(exit_code as i32);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn env_bip158_false_clears_compact_filters() {
+        let mut config = NodeConfig::default();
+        assert!(config.serve_compact_filters);
+        let env = EnvOverrides {
+            bip158: Some(false),
+            ..EnvOverrides::default()
+        };
+        apply_env_feature_flags(&mut config, &env);
+        assert!(!config.serve_compact_filters);
+    }
+
+    #[cfg(feature = "dandelion")]
+    #[test]
+    fn env_dandelion_false_clears_section_and_relay() {
+        let mut config = NodeConfig::default();
+        config.dandelion = Some(blvm_node::config::DandelionConfig::default());
+        let env = EnvOverrides {
+            dandelion: Some(false),
+            ..EnvOverrides::default()
+        };
+        apply_env_feature_flags(&mut config, &env);
+        assert!(config.dandelion.is_none());
+        assert!(!config.relay.unwrap().enable_dandelion);
+    }
+
+    #[cfg(feature = "sigop")]
+    #[test]
+    fn env_sigop_true_inserts_mempool_policy() {
+        let mut config = NodeConfig::default();
+        assert!(config.mempool.is_none());
+        let env = EnvOverrides {
+            sigop: Some(true),
+            ..EnvOverrides::default()
+        };
+        apply_env_feature_flags(&mut config, &env);
+        assert!(config.mempool.unwrap().count_sigops);
+    }
+
+    #[test]
+    fn seed_mainnet_stores_checked_hash_and_testnet_stays_unset() {
+        let mut mainnet = NodeConfig::default();
+        seed_assume_valid_height(&mut mainnet, &Network::Mainnet);
+        let bv = mainnet.block_validation.expect("mainnet seed");
+        assert_eq!(bv.assume_valid_height, 912_683);
+        assert_eq!(
+            bv.assume_valid_hash,
+            blvm_node::config::default_assume_valid_hash_for_network("mainnet")
+        );
+        assert!(bv.assume_valid_hash.is_some());
+
+        let mut testnet = NodeConfig::default();
+        seed_assume_valid_height(&mut testnet, &Network::Testnet);
+        let tv = testnet.block_validation.expect("testnet seed");
+        assert_eq!(tv.assume_valid_height, 4_550_000);
+        assert!(tv.assume_valid_hash.is_none());
+
+        let mut signet = NodeConfig::default();
+        seed_assume_valid_height(&mut signet, &Network::Signet);
+        let sv = signet.block_validation.expect("signet seed");
+        assert_eq!(sv.assume_valid_height, 267_665);
+        assert!(sv.assume_valid_hash.is_none());
+    }
+
+    #[test]
+    fn assumevalid_display_hash_keeps_mainnet_seed_height() {
+        const DISPLAY: &str = "0000000002368b1e4ee27e2e85676ae6f9f9e69579b29093e9a82c170bf7cf8a";
+        let mut config = NodeConfig::default();
+        seed_assume_valid_height(&mut config, &Network::Mainnet);
+        apply_cli_advanced_config(
+            &mut config,
+            &AdvancedConfig {
+                assumevalid: Some(DISPLAY.to_string()),
+                ..AdvancedConfig::default()
+            },
+        );
+        let bv = config.block_validation.expect("seeded");
+        assert_eq!(bv.assume_valid_height, 912_683);
+        assert_eq!(
+            bv.assume_valid_hash,
+            Some(blvm_node::config::assume_valid_hash_from_display_hex(DISPLAY).unwrap())
+        );
+        assert_ne!(bv.assume_valid_height, 0);
+    }
+
+    #[test]
+    fn noassumevalid_clears_seed() {
+        let mut config = NodeConfig::default();
+        let advanced = AdvancedConfig {
+            noassumevalid: true,
+            ..AdvancedConfig::default()
+        };
+        if !assume_valid_cli_disables(&advanced) {
+            seed_assume_valid_height(&mut config, &Network::Mainnet);
+        }
+        apply_cli_advanced_config(&mut config, &advanced);
+        let bv = config.block_validation.expect("cleared section");
+        assert_eq!(bv.assume_valid_height, 0);
+        assert!(bv.assume_valid_hash.is_none());
+    }
+
+    #[test]
+    fn file_rpc_addr_used_when_cli_and_env_unset() {
+        let file: SocketAddr = "127.0.0.1:8332".parse().unwrap();
+        let resolved = resolve_rpc_addr(None, None, Some(file), &Network::Mainnet);
+        assert_eq!(resolved, file);
+    }
+
 }

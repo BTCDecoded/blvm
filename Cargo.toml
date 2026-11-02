@@ -73,8 +73,8 @@ default = [
     "blvm-node/protocol-verification",
     "blvm-node/utxo-commitments",
     "blvm-node/iroh",
-    "blvm-node/sigop",
-    "blvm-node/dandelion",
+    "sigop",
+    "dandelion",
     "blvm-node/rest-api",
     "blvm-node/compression",
     "governance",
@@ -101,6 +101,8 @@ governance = ["blvm-node/governance"]
 dandelion = ["blvm-node/dandelion"]
 stratum-v2 = ["blvm-node/stratum-v2"]
 sigop = ["blvm-node/sigop"]
+# JSON logs. Off the default build. Forwards to blvm-node's json-logging feature.
+json-logging = ["blvm-node/json-logging"]
 # CTV (CheckTemplateVerify) - passed through from blvm-consensus via blvm-protocol and blvm-node
 ctv = ["blvm-node/ctv"]
 # Iroh transport support

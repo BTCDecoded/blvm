@@ -159,20 +159,14 @@ if [ "${BLVM_JEMALLOC_PROF:-0}" = "1" ]; then
 else
     export MALLOC_CONF="${MALLOC_CONF:-background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:30000,retain:false}"
 fi
-# Cap validation workers to 8. Default for 32+ GiB hosts scales to cpus-1 (up to 24), which
-# creates 24 mimalloc thread-local heaps, each accumulating ~100-200 MB of free-page caches
-# that show up as UNEXPLAINED_ANON (~3-4 GB from validation workers alone). With BLVM_IBD_MAX_PARALLEL=8,
-# the thread cache footprint drops to ~800 MB-1.2 GB. At h=400k+ the bottleneck is disk I/O
-# (engine disk evictions), not CPU, so reducing workers does not significantly impact BPS.
-export BLVM_IBD_MAX_PARALLEL="${BLVM_IBD_MAX_PARALLEL:-8}"
-# Phase A (IBD_BPS_OPTIMIZATION_PLAN): widen LOCAL_GAP inject/persist lookahead for crawl supply.
-export BLVM_IBD_GAP_INJECT_LOOKAHEAD="${BLVM_IBD_GAP_INJECT_LOOKAHEAD:-64}"
-export BLVM_IBD_GAP_PERSIST_LOOKAHEAD="${BLVM_IBD_GAP_PERSIST_LOOKAHEAD:-64}"
-# Cap Rayon global thread pool for script verification. Default uses num_cpus() (35 on
-# this machine). Capping to 12 threads is sufficient for 8 concurrent validation workers
-# while reducing per-thread memory overhead (each Rayon thread has its own jemalloc tcache).
-# Use BLVM_SCRIPT_THREADS to override; set to 0 to use Rayon default (RAYON_NUM_THREADS).
-export BLVM_SCRIPT_THREADS="${BLVM_SCRIPT_THREADS:-12}"
+# Workers follow the RAM table in scoreboard.rs. 32+ GiB caps at 8 there.
+# Gap inject/persist lookahead stays at the compiled default (128).
+# Rayon uses one script thread per core unless this host is wide. 12 is enough
+# for the 8-worker cap and avoids a ~35-thread tcache. Set BLVM_SCRIPT_THREADS=0
+# to force Rayon's own default.
+if [ "$(nproc)" -gt 16 ]; then
+    export BLVM_SCRIPT_THREADS="${BLVM_SCRIPT_THREADS:-12}"
+fi
 # F-C4: extend effective_end during soak so G0 gets ≥15 min WAN after long replay (RC-B).
 export BLVM_IBD_FOLLOW_TIP="${BLVM_IBD_FOLLOW_TIP:-1}"
 
