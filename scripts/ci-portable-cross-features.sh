@@ -5,7 +5,7 @@
 # Linux: full default stack. Windows: same minus Unix-only nix/libc.
 set -euo pipefail
 
-BLVM_COMMON_FEATURES="heed3,redb,sled,production,utxo-commitments,blvm-node/protocol-verification,blvm-node/sysinfo,iroh,dandelion,sigop,governance,rest-api,bip70-http,compression"
+BLVM_COMMON_FEATURES="heed3,redb,sled,production,utxo-commitments,blvm-node/protocol-verification,blvm-node/sysinfo,iroh,dandelion,sigop,governance,rest-api,compression"
 export BLVM_COMMON_FEATURES
 
 # Linux x86_64 native (`cargo build --release`) + Linux aarch64 cross.

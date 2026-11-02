@@ -23,5 +23,20 @@
     "name": "blvm-zmq",
     "description": "ZeroMQ PUB notifications for blvm-node: hashblock, hashtx, rawblock, rawtx, sequence (Bitcoin-compatible).",
     "repo": "BTCDecoded/blvm-zmq"
+  },
+  {
+    "name": "blvm-wallet-index",
+    "description": "Script history, Electrum, and Esplora address stats. Separate process and database.",
+    "repo": "BTCDecoded/blvm-wallet-index"
+  },
+  {
+    "name": "blvm-payment",
+    "description": "Payment requests, vaults, and pools. Separate process. Not linked into the default blvm binary.",
+    "repo": "BTCDecoded/blvm-payment"
+  },
+  {
+    "name": "blvm-selective-sync",
+    "description": "Selective sync: registry policy, P2P serve denylists, and IBD witness/OP_RETURN archival strip.",
+    "repo": "BTCDecoded/blvm-selective-sync"
   }
 ]

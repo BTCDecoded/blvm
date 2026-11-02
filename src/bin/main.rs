@@ -1085,34 +1085,32 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
         warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
     }
 
-    // Note: Dandelion and sigop may still be compile-time gated; BIP158 is always on.
-    // through the node's runtime configuration rather than NodeConfig.
-    // These features are typically controlled at compile-time via Cargo features,
-    // but some may have runtime toggles. Check the node implementation for details.
-
-    if features.enable_bip158 || features.disable_bip158 {
-        info!(
-            "BIP158 block filtering {} via CLI",
-            if features.enable_bip158 {
-                "enabled"
-            } else {
-                "disabled"
-            }
-        );
+    if features.enable_bip158 {
+        config.serve_compact_filters = true;
+        info!("BIP158 block filtering enabled via CLI");
+    } else if features.disable_bip158 {
+        config.serve_compact_filters = false;
+        info!("BIP158 block filtering disabled via CLI");
     }
 
     if features.enable_dandelion || features.disable_dandelion {
         #[cfg(feature = "dandelion")]
         {
-            info!(
-                "Dandelion++ privacy relay {} via CLI",
-                if features.enable_dandelion {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
-            );
-            // Dandelion may be controlled via relay policies in NodeConfig
+            if features.disable_dandelion && !features.enable_dandelion {
+                config.dandelion = None;
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = false;
+                info!("Dandelion++ privacy relay disabled via CLI");
+            }
+            if features.enable_dandelion {
+                let relay = config
+                    .relay
+                    .get_or_insert_with(blvm_node::config::RelayConfig::default);
+                relay.enable_dandelion = true;
+                info!("Dandelion++ privacy relay enabled via CLI");
+            }
         }
         #[cfg(not(feature = "dandelion"))]
         {
@@ -1125,14 +1123,16 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
     if features.enable_sigop || features.disable_sigop {
         #[cfg(feature = "sigop")]
         {
-            info!(
-                "Signature operations counting {} via CLI",
-                if features.enable_sigop {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
-            );
+            let policy = config
+                .mempool
+                .get_or_insert_with(blvm_node::config::MempoolPolicyConfig::default);
+            if features.enable_sigop {
+                policy.count_sigops = true;
+                info!("Signature operations counting enabled via CLI");
+            } else if features.disable_sigop {
+                policy.count_sigops = false;
+                info!("Signature operations counting disabled via CLI");
+            }
         }
         #[cfg(not(feature = "sigop"))]
         {
