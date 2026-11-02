@@ -1,256 +1,84 @@
-# BLVM Configuration Guide
+# BLVM configuration
 
-## Overview
+The `blvm` binary merges one file with a thin overlay.
 
-BLVM supports multiple configuration methods with a clear hierarchy:
+**Precedence, highest first:** CLI, then the environment variables this binary reads, then the config file, then the built-in default.
 
-**Priority (highest to lowest):**
-1. **CLI Arguments** - Always wins
-2. **Environment Variables** - Override config file
-3. **Config File** - Main configuration source
-4. **Defaults** - Built-in defaults
+Search order for the file: `--config`, `./blvm.toml`, `~/.config/blvm/blvm.toml`, `/etc/blvm/blvm.toml`. TOML and JSON are both accepted. Unknown keys are ignored. An omitted table keeps the built-in default. A present table fills every key from that table's defaults.
 
-## Configuration Methods
+`BitcoinV1` is an alias for `mainnet`. `Testnet3` is an alias for `testnet`. The binary writes `protocol_version` back as `mainnet`, `testnet`, `testnet4`, `signet`, or `regtest`.
 
-### 1. CLI Arguments
+## CLI
 
-Common operations can be controlled via command-line flags:
+- `--network` selects the chain.
+- `--data-dir` selects the data directory.
+- `--listen-addr` selects the P2P bind.
+- `--rpc-addr` selects the RPC bind.
+- `--config` selects the file.
+- `--verbose` sets the log filter to `blvm=debug,blvm_node=debug` when `RUST_LOG`, `BLVM_LOG_LEVEL`, and `[logging].filter` are unset.
+- `--enable-bip158` / `--disable-bip158` set `serve_compact_filters`.
+- `--enable-dandelion` sets `[relay].enable_dandelion`. `--disable-dandelion` clears `[dandelion]` and sets that relay flag false. The default binary includes the `dandelion` feature.
+- `--enable-sigop` / `--disable-sigop` set `[mempool].count_sigops`. Enabling inserts the default mempool table when `[mempool]` is absent. The default binary includes the `sigop` feature.
+- `--enable-stratum-v2` / `--disable-stratum-v2` do not write a node field. A binary built without the `stratum-v2` feature warns. That feature is not on by default. Miner TCP is the `blvm-stratum-v2` module.
 
-```bash
-# Basic usage
-blvm --network mainnet --data-dir /var/lib/blvm
+## Environment variables this binary reads
 
-# With feature flags
-blvm --enable-stratum-v2 --enable-dandelion
+| Variable | Writes |
+|---|---|
+| `BLVM_DATA_DIR` | Data directory. CLI wins. Then this variable, then `[storage].data_dir`, then `./data`. The path is written back only when `[storage]` already exists. |
+| `BLVM_NETWORK` | Chain name. CLI wins, then this variable, then `protocol_version`, then regtest. |
+| `BLVM_LISTEN_ADDR` | P2P bind. |
+| `BLVM_RPC_ADDR` | RPC bind. CLI, then this variable, then `rpc_addr` in the file, then the network default. |
+| `BLVM_NODE_MAX_PEERS` | `max_peers`. |
+| `BLVM_NODE_TRANSPORT` | `transport_preference`. |
+| `BLVM_NODE_FEATURES_BIP158` | `serve_compact_filters`. Compact filters are compiled in. |
+| `BLVM_NODE_FEATURES_DANDELION` | `true` sets `[relay].enable_dandelion`. `false` clears `[dandelion]` and sets that flag false. |
+| `BLVM_NODE_FEATURES_SIGOP` | `[mempool].count_sigops`. `true` inserts the default mempool table when `[mempool]` is absent. |
+| `BLVM_NODE_FEATURES_STRATUM_V2` | No node field. `true` warns when the binary was built without `stratum-v2`. |
+| `BLVM_NETWORK_TARGET_PEER_COUNT` | `[network_timing].target_outbound_peers`. |
+| `BLVM_NETWORK_PEER_CONNECTION_DELAY` | `[network_timing].peer_connection_delay_seconds`. |
+| `BLVM_NETWORK_MAX_ADDRESSES_FROM_DNS` | `[network_timing].max_addresses_from_dns`. |
+| `BLVM_REQUEST_ASYNC_TIMEOUT` | `[request_timeouts].async_request_timeout_seconds`. |
+| `BLVM_REQUEST_UTXO_COMMITMENT_TIMEOUT` | `[request_timeouts].utxo_commitment_request_timeout_seconds`. |
+| `BLVM_REQUEST_CLEANUP_INTERVAL` | `[request_timeouts].request_cleanup_interval_seconds`. |
+| `BLVM_REQUEST_PENDING_MAX_AGE` | `[request_timeouts].pending_request_max_age_seconds`. |
+| `BLVM_MODULE_MAX_CPU_PERCENT` | `[module_resource_limits].default_max_cpu_percent`. |
+| `BLVM_MODULE_MAX_MEMORY_BYTES` | `[module_resource_limits].default_max_memory_bytes`. |
+| `BLVM_MODULE_MAX_FILE_DESCRIPTORS` | `[module_resource_limits].default_max_file_descriptors`. |
+| `BLVM_MODULE_MAX_CHILD_PROCESSES` | `[module_resource_limits].default_max_child_processes`. |
+| `BLVM_MODULE_STARTUP_WAIT_MILLIS` | `[module_resource_limits].module_startup_wait_millis`. |
+| `BLVM_MODULE_SOCKET_TIMEOUT` | `[module_resource_limits].module_socket_timeout_seconds`. |
+| `BLVM_MODULE_SOCKET_CHECK_INTERVAL` | `[module_resource_limits].module_socket_check_interval_millis`. |
+| `BLVM_MODULE_SOCKET_MAX_ATTEMPTS` | `[module_resource_limits].module_socket_max_attempts`. |
+| `BLVM_SIGNET_CHALLENGE` | `signet_challenge`, hex script bytes. |
 
-# With config file
-blvm --config /etc/blvm/blvm.toml
+`HOME` is read only to find `~/.config/blvm/blvm.toml`.
 
-# Override config file with CLI
-blvm --config /etc/blvm/blvm.toml --network testnet
-```
-
-**Available CLI flags:**
-- `--network` - Network (regtest/testnet/mainnet)
-- `--data-dir` - Data directory
-- `--listen-addr` - P2P listen address
-- `--rpc-addr` - RPC server address
-- `--config` - Config file path
-- `--verbose` - Enable verbose logging
-- `--enable-stratum-v2` / `--disable-stratum-v2`
-- `--enable-dandelion` / `--disable-dandelion`
-- `--enable-bip158` / `--disable-bip158`
-- `--enable-sigop` / `--disable-sigop`
-
-### 2. Environment Variables
-
-Environment variables are ideal for deployment scenarios, especially in containers:
-
-```bash
-# Deployment-critical settings
-export BLVM_DATA_DIR="/var/lib/blvm"
-export BLVM_NETWORK="mainnet"
-export BLVM_LISTEN_ADDR="0.0.0.0:8333"
-export BLVM_RPC_ADDR="127.0.0.1:8332"
-export BLVM_LOG_LEVEL="info"
-
-# Node settings
-export BLVM_NODE_MAX_PEERS="200"
-export BLVM_NODE_TRANSPORT="tcp_only"
-
-# Feature flags (see README “Feature Flags”: Stratum V2 / Dandelion / sigop need compile-time features in the node binary)
-# BIP158 compact block filters are always compiled into current blvm-node builds — no `bip158` Cargo feature.
-export BLVM_NODE_FEATURES_STRATUM_V2="true"
-export BLVM_NODE_FEATURES_DANDELION="true"
-export BLVM_NODE_FEATURES_BIP158="true"
-export BLVM_NODE_FEATURES_SIGOP="true"
-
-# Run node
-blvm
-```
-
-**Available Environment Variables:**
-
-**Deployment-Critical:**
-- `BLVM_DATA_DIR` - Data directory
-- `BLVM_NETWORK` - Network (regtest/testnet/mainnet)
-- `BLVM_LISTEN_ADDR` - P2P listen address
-- `BLVM_RPC_ADDR` - RPC server address
-- `BLVM_LOG_LEVEL` - Logging level (trace/debug/info/warn/error)
-
-**Node Settings:**
-- `BLVM_NODE_MAX_PEERS` - Maximum peer connections
-- `BLVM_NODE_TRANSPORT` - Transport preference (tcp_only/iroh_only/hybrid)
-
-**Feature Flags:**
-- `BLVM_NODE_FEATURES_STRATUM_V2` / `BLVM_NODE_FEATURES_DANDELION` / `BLVM_NODE_FEATURES_SIGOP` — Enable/disable (see compile-time features in README)
-- `BLVM_NODE_FEATURES_BIP158` — Logged preference only; **BIP158 is always built in** (no `bip158` Cargo feature)
-
-### 3. Config File
-
-Config files support complex nested configurations. Config files are searched in this order:
-
-1. `--config` flag path (if specified)
-2. `./blvm.toml` (current directory)
-3. `~/.config/blvm/blvm.toml` (user config)
-4. `/etc/blvm/blvm.toml` (system config)
-
-**Example config file (`blvm.toml`):**
+## File sketch
 
 ```toml
-# Network listening address
 listen_addr = "0.0.0.0:8333"
-
-# Transport (TOML: use tcponly / irohonly / … — see blvm-node TransportPreferenceConfig)
-transport_preference = "tcponly"
-
-# Maximum number of peers
+rpc_addr = "127.0.0.1:8332"
+protocol_version = "regtest"
 max_peers = 100
-
-# Protocol version
-protocol_version = "Regtest"
-
-# Enable self-advertisement
+transport_preference = "tcponly"
 enable_self_advertisement = true
+serve_compact_filters = false
 
-# Persistent peers
-# persistent_peers = ["1.2.3.4:8333", "5.6.7.8:8333"]
+[logging]
+filter = "blvm=info,blvm_node=info"
+json_format = false
 
-# Stratum V2 (merge-mining / pool-related; dedicated miner TCP is blvm-stratum-v2 module)
-# [stratum_v2]
-# enabled = false
-# pool_url = "tcp://pool.example.com:3333"
-# listen_addr = "0.0.0.0:3333"   # informational; does not start an in-node miner listener
-# p2p_stratum_demux = true        # false = do not treat P2P bytes as Stratum V2 TLV (module TCP unchanged)
-# transport_preference = "tcponly"
-# merge_mining_enabled = false
-# secondary_chains = []
+[stratum_v2]
+p2p_stratum_demux = true
 
-# RPC authentication
-# [rpc_auth]
-# required = false
-# tokens = []
-# certificates = []
-# rate_limit_burst = 100
-# rate_limit_rate = 10
-
-# Ban list sharing
-# [ban_list_sharing]
-# enabled = false
-# share_interval_seconds = 3600
-# max_entries = 1000
-
-# Storage and pruning
-# [storage]
-# database_backend = "auto"  # typical `blvm` build: resolves to heed3 (LMDB); use "rocksdb" for existing RocksDB datadir
-# 
-# [storage.pruning]
-# mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }
-# auto_prune = true
-# min_blocks_to_keep = 144
-
-# Module system
-# [modules]
-# enabled = true
-# modules_dir = "modules"
-# data_dir = "data/modules"
-# socket_dir = "data/modules/sockets"
-# registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/modules.json"
-# blvm-miniscript = "0.1.*"   # version pins; see blvm.toml.example
+[ban_list_sharing]
+enabled = true
+share_mode = "periodic"
+periodic_interval_seconds = 300
+min_ban_duration_to_share = 3600
 ```
 
-## Stratum V2 (module-first)
+`[payment]` in this file is ignored. `blvm-payment` reads `config.toml` in its own module directory. `[stratum_v2]` only switches P2P TLV demux. Miner TCP is `[modules.blvm-stratum-v2]`, not `[modules.stratum-v2]`.
 
-**Dedicated miner TCP** is served only by **`blvm-stratum-v2`** (`listen_addr` in module config or `[modules.blvm-stratum-v2]`). The node’s **`[stratum_v2]`** section does **not** open a miner listener; it remains for merge-mining / pool-related settings. P2P may still deliver Stratum-shaped TLV to the module via **`StratumV2MessageReceived`** when **`[stratum_v2].p2p_stratum_demux`** is **`true`** (default).
-
-For end-user configuration, see **[`blvm/CONFIGURATION.md`](https://github.com/BTCDecoded/blvm/blob/main/CONFIGURATION.md)** and the **Stratum V2 + Merge Mining** chapter in **blvm-docs** (`node/mining-stratum-v2.md`).
-
-## Configuration Hierarchy Examples
-
-### Example 1: CLI Overrides Everything
-
-```bash
-# Config file may set protocol_version / peers; chain selection still follows CLI/ENV.
-# ENV has: BLVM_NETWORK="mainnet"
-# CLI: --network regtest
-
-# Result: regtest (CLI wins over ENV / file merge for chain)
-blvm --config blvm.toml --network regtest
-```
-
-### Example 2: ENV Overrides Config File
-
-```bash
-# Config file has: max_peers = 50
-# ENV has: BLVM_NODE_MAX_PEERS="200"
-# CLI: (not specified)
-
-# Result: max_peers = 200 (ENV overrides config file)
-export BLVM_NODE_MAX_PEERS="200"
-blvm --config blvm.toml
-```
-
-### Example 3: Config File Overrides Defaults
-
-```bash
-# Default: max_peers = 100
-# Config file has: max_peers = 200
-# ENV: (not set)
-# CLI: (not specified)
-
-# Result: max_peers = 200 (config file overrides default)
-blvm --config blvm.toml
-```
-
-### Example 4: Feature Flags via ENV
-
-```bash
-# Enable features via environment variables
-export BLVM_NODE_FEATURES_STRATUM_V2="true"
-export BLVM_NODE_FEATURES_DANDELION="true"
-
-# Run node (features enabled via ENV)
-blvm
-```
-
-## Deployment Examples
-
-### Docker/Container Deployment
-
-```bash
-# Use environment variables for configuration
-docker run -e BLVM_NETWORK=mainnet \
-           -e BLVM_DATA_DIR=/data \
-           -e BLVM_LISTEN_ADDR=0.0.0.0:8333 \
-           -e BLVM_RPC_ADDR=0.0.0.0:8332 \
-           -e BLVM_NODE_MAX_PEERS=200 \
-           blvm:latest
-```
-
-### Systemd Service
-
-```ini
-[Service]
-Environment="BLVM_NETWORK=mainnet"
-Environment="BLVM_DATA_DIR=/var/lib/blvm"
-Environment="BLVM_LISTEN_ADDR=0.0.0.0:8333"
-Environment="BLVM_RPC_ADDR=127.0.0.1:8332"
-Environment="BLVM_LOG_LEVEL=info"
-ExecStart=/usr/bin/blvm
-```
-
-### Development
-
-```bash
-# Use config file for development
-blvm --config ./blvm.toml --network regtest --verbose
-```
-
-## Notes
-
-- **CLI always wins**: Even if a value is set in ENV or config file, CLI arguments override everything
-- **Feature flags**: Some features require compile-time flags (e.g., `--features stratum-v2`). Runtime flags will warn if feature isn't compiled in
-- **Config file format**: Supports both TOML and JSON (auto-detected by file extension)
-- **Secrets**: Never put secrets (API keys, passwords) in config files. Use environment variables instead
-
-
+A module file is `{modules.data_dir}/{manifest name}/config.toml`. `[modules.<manifest name>]` overrides only fields marked for the environment overlay.
