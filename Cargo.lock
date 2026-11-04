@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.73"
+version = "0.1.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ee150e82967e09f7d7ca22d574e167d0f69d34dfac28df50e485b96c9a3a303"
+checksum = "4b8500f40136b7ae9f661ee2221fe04c8dd5ee869d50df470c206f3f99dbc2b7"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -460,9 +460,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.83"
+version = "0.1.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d9671a277650099469b30e0f48d4b4de6dd0f62b340a60bd9dcdccb7c735ecb"
+checksum = "03709c8fb806dfc56913a678490967da4584dbf28d746ba257a3d52525f68c09"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -534,9 +534,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.30"
+version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9d62e79776a21851e790e9c54a0f1a0942f12bd29e0c665eba91176c0017c37"
+checksum = "2acc3bb80061a6d604d6091d80d09a9de9e9aecd48bdae9a2363d0bb7b1c2822"
 dependencies = [
  "bitcoin_hashes",
  "ripemd",
@@ -5405,6 +5405,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704b1aeb7be0d0a84fc9828cae51dab5970fee5088f83d1dd7ee6f6246fc6ff1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5414,12 +5424,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]

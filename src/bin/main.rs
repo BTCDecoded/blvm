@@ -783,9 +783,9 @@ fn resolve_rpc_addr(
     file_addr: Option<SocketAddr>,
     network: &Network,
 ) -> SocketAddr {
-    cli.or(env_addr).or(file_addr).unwrap_or_else(|| {
-        blvm::default_rpc_addr_for_network(network_from_cli_enum(network))
-    })
+    cli.or(env_addr)
+        .or(file_addr)
+        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(network_from_cli_enum(network)))
 }
 
 fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
@@ -1011,9 +1011,7 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
     // The env no longer writes a node field. A build without the feature still warns.
     if env.stratum_v2 == Some(true) {
         #[cfg(not(feature = "stratum-v2"))]
-        warn!(
-            "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
-        );
+        warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
     }
 
     // Dandelion. Same write as --enable-dandelion / --disable-dandelion.
@@ -2090,5 +2088,4 @@ mod tests {
         let resolved = resolve_rpc_addr(None, None, Some(file), &Network::Mainnet);
         assert_eq!(resolved, file);
     }
-
 }
