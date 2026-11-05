@@ -1,12 +1,12 @@
 # Contributing to Bitcoin Commons (blvm)
 
-Thank you for your interest in contributing to the Bitcoin Commons build and release system! This document contains **repo-specific guidelines only**. For comprehensive contributing guidelines, see the [BLVM Documentation](https://docs.thebitcoincommons.org/development/contributing.html).
+Thank you for your interest in contributing to the Bitcoin Commons build and release system! This document contains **repo-specific guidelines only**. For comprehensive contributing guidelines, see the [BLVM Documentation](https://docs.btcdecoded.org/blvm/development/contributing.html).
 
 ## Quick Links
 
-- **[Complete Contributing Guide](https://docs.thebitcoincommons.org/development/contributing.html)** - Full developer workflow
-- **[PR Process](https://docs.thebitcoincommons.org/development/pr-process.html)** - Governance tiers and review process
-- **[Release Process](https://docs.thebitcoincommons.org/development/release-process.html)** - Release workflow
+- **[Complete Contributing Guide](https://docs.btcdecoded.org/blvm/development/contributing.html)** - Full developer workflow
+- **[PR Process](https://docs.btcdecoded.org/blvm/development/pr-process.html)** - Governance tiers and review process
+- **[Release Process](https://docs.btcdecoded.org/blvm/development/release-process.html)** - Release workflow
 
 ## Code of Conduct
 
@@ -94,7 +94,7 @@ Reviewers will check:
 
 ## Getting Help
 
-- **Documentation**: [docs.thebitcoincommons.org](https://docs.thebitcoincommons.org)
+- **Documentation**: [docs.btcdecoded.org/blvm](https://docs.btcdecoded.org/blvm)
 - **Issues**: Use GitHub issues for bugs and feature requests
 - **Discussions**: Use GitHub discussions for questions
 - **Security**: See [SECURITY.md](SECURITY.md)

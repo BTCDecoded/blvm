@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-> **Mainnet sync:** [mdBook](https://docs.thebitcoincommons.org/getting-started/mainnet-sync.html) · [blvm README](https://github.com/BTCDecoded/blvm#first-mainnet-sync-release-binary)
+> **Mainnet sync:** [mdBook](https://docs.btcdecoded.org/blvm/getting-started/mainnet-sync.html) · [blvm README](https://github.com/BTCDecoded/blvm#first-mainnet-sync-release-binary)
 
 
 1. **Rust 1.70+** installed
