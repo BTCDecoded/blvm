@@ -15,11 +15,6 @@
     "repo": "BTCDecoded/blvm-governance"
   },
   {
-    "name": "blvm-fibre",
-    "description": "FIBRE (Fast Internet Bitcoin Relay Engine) UDP/FEC block relay for blvm-node (loadable module).",
-    "repo": "BTCDecoded/blvm-fibre"
-  },
-  {
     "name": "blvm-zmq",
     "description": "ZeroMQ PUB notifications for blvm-node: hashblock, hashtx, rawblock, rawtx, sequence (Bitcoin-compatible).",
     "repo": "BTCDecoded/blvm-zmq"
