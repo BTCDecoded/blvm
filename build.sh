@@ -154,7 +154,7 @@ build_repo() {
     case "$VARIANT" in
         base)
             # Base variant: core infrastructure + production optimizations + differentiators
-            # Includes: infrastructure (sysinfo, redb, nix, libc), production, governance, zmq
+            # Includes: infrastructure (sysinfo, heed3, libc), production, governance, zmq
             case "$repo" in
                 blvm-consensus|blvm-protocol)
                     # Consensus and protocol layers: production only
@@ -162,7 +162,7 @@ build_repo() {
                     ;;
                 blvm-node|blvm)
                     # Node layer: infrastructure + production + governance + zmq (differentiator)
-                    features="sysinfo,redb,nix,libc,production,governance,zmq"
+                    features="sysinfo,heed3,libc,production,governance,zmq"
                     ;;
                 *)
                     # Other repos (blvm-sdk, blvm-commons) use default features
@@ -182,11 +182,11 @@ build_repo() {
                     ;;
                 blvm-node)
                     # All base features + all experimental features
-                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
+                    features="sysinfo,heed3,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
                     ;;
                 blvm)
                     # blvm binary inherits from blvm-node, include all features
-                    features="sysinfo,redb,nix,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
+                    features="sysinfo,heed3,libc,production,governance,zmq,utxo-commitments,ctv,dandelion,stratum-v2,sigop,iroh,quinn"
                     ;;
                 *)
                     # Other repos (blvm-sdk, blvm-commons) use default features

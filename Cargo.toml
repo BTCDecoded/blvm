@@ -74,9 +74,6 @@ blvm-sdk = { path = "../blvm-sdk" }
 default = [
     "blvm-node/sysinfo",
     "heed3",
-    "blvm-node/redb",
-    "blvm-node/sled",
-    "blvm-node/nix",
     "blvm-node/libc",
     "blvm-node/production",
     "blvm-node/protocol-verification",
@@ -100,6 +97,8 @@ sled = ["blvm-node/sled"]
 redb = ["blvm-node/redb"]
 # heed3 / LMDB (MVCC mmap store; requires liblmdb)
 heed3 = ["blvm-node/heed3"]
+# Unix process helpers. Nothing in the node calls `nix`; sandbox limits use `libc`.
+nix = ["blvm-node/nix"]
 # Profiling: IBD_PROFILE, IBD_BLOCKED_LOG, PERF, BATCH
 profile = ["blvm-node/profile"]
 # Lab / rematch only: ALLOW_ZERO_PEERS. `cargo build --release --features ibd-dev`
