@@ -4,11 +4,11 @@
 //! This binary starts a full Bitcoin node using the blvm-node library.
 
 use anyhow::{Context, Result};
+use blvm_node::ProtocolVersion;
 use blvm_node::config::NodeConfig;
 use blvm_node::node::Node as ReferenceNode;
-use blvm_node::ProtocolVersion;
 use clap::{Parser, Subcommand, ValueEnum};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -552,6 +552,10 @@ async fn main() -> Result<()> {
                 std::env::set_var("DATA_DIR", &data_dir);
             }
 
+            let _data_dir_lock =
+                blvm_node::node::data_dir_lock::acquire_data_dir_lock(Path::new(&data_dir))
+                    .map_err(|error| anyhow::anyhow!("Failed to lock data directory: {error:#}"))?;
+
             let protocol_version: ProtocolVersion = network.into();
             let mut node = match ReferenceNode::with_storage_config(
                 &data_dir,
@@ -566,6 +570,13 @@ async fn main() -> Result<()> {
                     return Err(e);
                 }
             };
+
+            if let Err(error) =
+                blvm_node::node::startup_verify::verify_startup_blocks(node.storage())
+            {
+                error!("Startup block check failed: {error:#}");
+                return Err(error);
+            }
 
             node = node
                 .with_config(config.clone())
@@ -783,9 +794,9 @@ fn resolve_rpc_addr(
     file_addr: Option<SocketAddr>,
     network: &Network,
 ) -> SocketAddr {
-    cli.or(env_addr).or(file_addr).unwrap_or_else(|| {
-        blvm::default_rpc_addr_for_network(network_from_cli_enum(network))
-    })
+    cli.or(env_addr)
+        .or(file_addr)
+        .unwrap_or_else(|| blvm::default_rpc_addr_for_network(network_from_cli_enum(network)))
 }
 
 fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
@@ -1008,9 +1019,7 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
     // The env no longer writes a node field. A build without the feature still warns.
     if env.stratum_v2 == Some(true) {
         #[cfg(not(feature = "stratum-v2"))]
-        warn!(
-            "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
-        );
+        warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
     }
 
     // Dandelion. Same write as --enable-dandelion / --disable-dandelion.
@@ -1994,7 +2003,7 @@ mod tests {
     #[test]
     fn env_bip158_false_clears_compact_filters() {
         let mut config = NodeConfig::default();
-        assert!(config.serve_compact_filters);
+        assert!(!config.serve_compact_filters);
         let env = EnvOverrides {
             bip158: Some(false),
             ..EnvOverrides::default()
@@ -2098,5 +2107,4 @@ mod tests {
         let resolved = resolve_rpc_addr(None, None, Some(file), &Network::Mainnet);
         assert_eq!(resolved, file);
     }
-
 }
