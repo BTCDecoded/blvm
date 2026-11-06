@@ -989,7 +989,7 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     }
 
     // Apply CLI feature flags (CLI overrides ENV and config file)
-    apply_feature_flags(&mut config, &cli.features);
+    apply_feature_flags(&mut config, &cli.features)?;
 
     // Apply CLI advanced config (CLI overrides everything)
     apply_cli_advanced_config(&mut config, &cli.advanced);
@@ -1075,11 +1075,21 @@ fn apply_env_feature_flags(config: &mut NodeConfig, env: &EnvOverrides) {
 
 /// Apply feature flags from CLI to config
 #[allow(unused_variables)]
-fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
-    // The flags no longer write a node field. A build without the feature still warns.
+fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) -> Result<()> {
     if features.enable_stratum_v2 || features.disable_stratum_v2 {
         #[cfg(not(feature = "stratum-v2"))]
-        warn!("Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable.");
+        {
+            anyhow::bail!(
+                "Stratum V2 feature not compiled in. Rebuild with --features stratum-v2 to enable."
+            );
+        }
+        #[cfg(feature = "stratum-v2")]
+        {
+            let section = config
+                .stratum_v2
+                .get_or_insert_with(blvm_node::config::StratumV2Config::default);
+            section.p2p_stratum_demux = features.enable_stratum_v2 && !features.disable_stratum_v2;
+        }
     }
 
     if features.enable_bip158 {
@@ -1136,6 +1146,7 @@ fn apply_feature_flags(config: &mut NodeConfig, features: &FeatureFlags) {
             warn!("Sigop feature not compiled in. Rebuild with --features sigop to enable.");
         }
     }
+    Ok(())
 }
 
 /// Apply environment config overrides (non-feature flags)
