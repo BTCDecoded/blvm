@@ -10,6 +10,7 @@ use blvm_node::node::Node as ReferenceNode;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 use std::env;
+use std::io::Write;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -784,7 +785,7 @@ impl EnvOverrides {
 
 /// Find config file in standard locations
 fn preview_logging(cli: &Cli) -> Option<blvm_node::config::LoggingConfig> {
-    let path = find_config_file(&cli.config)?;
+    let path = find_config_file(&cli.config).ok().flatten()?;
     NodeConfig::from_file(&path).ok()?.logging
 }
 
@@ -799,35 +800,34 @@ fn resolve_rpc_addr(
         .unwrap_or_else(|| blvm::default_rpc_addr_for_network(network_from_cli_enum(network)))
 }
 
-fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
-    // 1. CLI-specified config file (highest priority)
+fn find_config_file(cli_config: &Option<PathBuf>) -> Result<Option<PathBuf>> {
+    // A named --config path is the only file. A missing path is an error.
     if let Some(path) = cli_config {
         if path.exists() {
-            return Some(path.clone());
+            return Ok(Some(path.clone()));
         }
+        anyhow::bail!("Config file not found: {}", path.display());
     }
 
-    // 2. Current directory
+    // Omitted --config still searches the three default locations.
     let current_dir = Path::new("./blvm.toml");
     if current_dir.exists() {
-        return Some(current_dir.to_path_buf());
+        return Ok(Some(current_dir.to_path_buf()));
     }
 
-    // 3. User config directory
     if let Ok(home) = env::var("HOME") {
         let user_config = Path::new(&home).join(".config/blvm/blvm.toml");
         if user_config.exists() {
-            return Some(user_config);
+            return Ok(Some(user_config));
         }
     }
 
-    // 4. System config directory
     let system_config = Path::new("/etc/blvm/blvm.toml");
     if system_config.exists() {
-        return Some(system_config.to_path_buf());
+        return Ok(Some(system_config.to_path_buf()));
     }
 
-    None
+    Ok(None)
 }
 
 /// Build final configuration with hierarchy: CLI > ENV > Config > Defaults
@@ -866,21 +866,14 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     let mut config = NodeConfig::default();
     let mut config_loaded_from_file = false;
 
-    // 2. Load config file (if found)
-    if let Some(config_path) = find_config_file(&cli.config) {
+    // 2. Load config file (if found). A named missing path and a parse error stop here.
+    if let Some(config_path) = find_config_file(&cli.config)? {
         info!("Loading configuration from: {}", config_path.display());
-        match NodeConfig::from_file(&config_path) {
-            Ok(file_config) => {
-                info!("Configuration loaded successfully from file");
-                config = file_config; // Config file overrides defaults
-                config_loaded_from_file = true;
-            }
-            Err(e) => {
-                warn!("Failed to load config file: {}. Using defaults.", e);
-            }
-        }
-    } else if cli.config.is_some() {
-        warn!("Config file specified but not found. Using defaults.");
+        config = NodeConfig::from_file(&config_path).with_context(|| {
+            format!("Failed to load config file {}", config_path.display())
+        })?;
+        info!("Configuration loaded successfully from file");
+        config_loaded_from_file = true;
     }
 
     // 3. Load ENV overrides
@@ -1780,9 +1773,11 @@ fn handle_config_show(config: &NodeConfig) -> Result<()> {
 }
 
 fn handle_config_validate(path: Option<PathBuf>, cli_config: &Option<PathBuf>) -> Result<()> {
-    let config_path = path
-        .or_else(|| cli_config.clone())
-        .or_else(|| find_config_file(cli_config));
+    let config_path = if let Some(path) = path.or_else(|| cli_config.clone()) {
+        Some(path)
+    } else {
+        find_config_file(&None)?
+    };
 
     match config_path {
         Some(path) => match NodeConfig::from_file(&path) {
@@ -1809,7 +1804,7 @@ fn handle_config_validate(path: Option<PathBuf>, cli_config: &Option<PathBuf>) -
 }
 
 fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
-    if let Some(path) = find_config_file(cli_config) {
+    if let Some(path) = find_config_file(cli_config)? {
         println!("{}", path.display());
         Ok(())
     } else {
@@ -1820,10 +1815,32 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
 
 /// Set config value(s) in the config file. Supports dotted keys for primary and module config.
 /// Examples: storage.data_dir=./data, modules.blvm-stratum-v2.listen_addr=0.0.0.1:3333
+fn write_config_replacing(path: &Path, content: &str) -> Result<()> {
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut tmp_name = path
+        .file_name()
+        .map(|name| name.to_os_string())
+        .unwrap_or_else(|| std::ffi::OsString::from("blvm.toml"));
+    tmp_name.push(".tmp");
+    let tmp_path = parent.join(tmp_name);
+    let write_result = (|| -> std::io::Result<()> {
+        let mut file = std::fs::File::create(&tmp_path)?;
+        file.write_all(content.as_bytes())?;
+        file.sync_all()?;
+        std::fs::rename(&tmp_path, path)?;
+        Ok(())
+    })();
+    if write_result.is_err() {
+        let _ = std::fs::remove_file(&tmp_path);
+    }
+    write_result.with_context(|| format!("Failed to write config file {}", path.display()))
+}
+
 fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Result<()> {
-    let config_path = find_config_file(cli_config)
-        .or_else(|| Some(PathBuf::from("./blvm.toml")))
-        .ok_or_else(|| anyhow::anyhow!("No config file path"))?;
+    let config_path = find_config_file(cli_config)?.unwrap_or_else(|| PathBuf::from("./blvm.toml"));
 
     let mut content = if config_path.exists() {
         std::fs::read_to_string(&config_path).context("Failed to read config file")?
@@ -1851,7 +1868,7 @@ fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Re
     }
 
     content = toml::to_string_pretty(&root).context("Failed to serialize config")?;
-    std::fs::write(&config_path, content).context("Failed to write config file")?;
+    write_config_replacing(&config_path, &content)?;
     println!("Updated {}", config_path.display());
     Ok(())
 }
@@ -2106,5 +2123,82 @@ mod tests {
         let file: SocketAddr = "127.0.0.1:8332".parse().unwrap();
         let resolved = resolve_rpc_addr(None, None, Some(file), &Network::Mainnet);
         assert_eq!(resolved, file);
+    }
+
+    #[test]
+    fn named_config_file_is_the_file_that_is_loaded_or_written() {
+        let missing = PathBuf::from("/tmp/blvm-f66-missing-config.toml");
+        let _ = std::fs::remove_file(&missing);
+        let cli = Cli::try_parse_from([
+            "blvm",
+            "--config",
+            missing.to_str().unwrap(),
+            "config",
+            "show",
+        ])
+        .expect("parse missing --config");
+        let loaded = build_final_config(&cli);
+        assert!(
+            loaded.is_err(),
+            "missing --config must not fall through, got {loaded:?}"
+        );
+
+        let dir = std::env::temp_dir().join(format!("blvm-f66-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let broken = dir.join("broken.toml");
+        std::fs::write(&broken, "protocol_version = ").unwrap();
+        let cli = Cli::try_parse_from([
+            "blvm",
+            "--config",
+            broken.to_str().unwrap(),
+            "config",
+            "show",
+        ])
+        .expect("parse broken --config");
+        let loaded = build_final_config(&cli);
+        assert!(
+            loaded.is_err(),
+            "broken config must not load defaults, got {loaded:?}"
+        );
+
+        let cfg = dir.join("blvm.toml");
+        let original = "protocol_version = \"mainnet\"\n";
+        std::fs::write(&cfg, original).unwrap();
+        handle_config_set(
+            &Some(cfg.clone()),
+            &["rpc_addr=127.0.0.1:8332".to_string()],
+        )
+        .expect("config set in a writable directory");
+        let updated = std::fs::read_to_string(&cfg).unwrap();
+        assert!(
+            updated.contains("protocol_version = \"mainnet\"") || updated.contains("mainnet"),
+            "config set must keep protocol_version, body={updated}"
+        );
+        assert!(
+            updated.contains("8332"),
+            "config set must write the new key, body={updated}"
+        );
+
+        let mut perms = std::fs::metadata(&dir).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(&dir, perms).unwrap();
+        let set = handle_config_set(
+            &Some(cfg.clone()),
+            &["listen_addr=127.0.0.1:8333".to_string()],
+        );
+        let body = std::fs::read_to_string(&cfg).unwrap_or_default();
+        let mut perms = std::fs::metadata(&dir).unwrap().permissions();
+        perms.set_readonly(false);
+        std::fs::set_permissions(&dir, perms).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(
+            set.is_err(),
+            "config set must fail without replacing the file, body={body}"
+        );
+        assert_eq!(
+            body, updated,
+            "a failed config set must leave protocol_version readable"
+        );
     }
 }
