@@ -10,6 +10,7 @@ use blvm_node::node::Node as ReferenceNode;
 use clap::{Parser, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 use std::env;
+use std::io::Write;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -1799,6 +1800,31 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
     }
 }
 
+
+fn write_config_replacing(path: &Path, content: &str) -> Result<()> {
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut tmp_name = path
+        .file_name()
+        .map(|name| name.to_os_string())
+        .unwrap_or_else(|| std::ffi::OsString::from("blvm.toml"));
+    tmp_name.push(".tmp");
+    let tmp_path = parent.join(tmp_name);
+    let write_result = (|| -> std::io::Result<()> {
+        let mut file = std::fs::File::create(&tmp_path)?;
+        file.write_all(content.as_bytes())?;
+        file.sync_all()?;
+        std::fs::rename(&tmp_path, path)?;
+        Ok(())
+    })();
+    if write_result.is_err() {
+        let _ = std::fs::remove_file(&tmp_path);
+    }
+    write_result.with_context(|| format!("Failed to write config file {}", path.display()))
+}
+
 /// Set config value(s) in the config file. Supports dotted keys for primary and module config.
 /// Examples: storage.data_dir=./data, modules.blvm-stratum-v2.listen_addr=0.0.0.1:3333
 fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Result<()> {
@@ -1832,7 +1858,7 @@ fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Re
     }
 
     content = toml::to_string_pretty(&root).context("Failed to serialize config")?;
-    std::fs::write(&config_path, content).context("Failed to write config file")?;
+    write_config_replacing(&config_path, &content)?;
     println!("Updated {}", config_path.display());
     Ok(())
 }
@@ -2087,5 +2113,82 @@ mod tests {
         let file: SocketAddr = "127.0.0.1:8332".parse().unwrap();
         let resolved = resolve_rpc_addr(None, None, Some(file), &Network::Mainnet);
         assert_eq!(resolved, file);
+    }
+
+    #[test]
+    fn named_config_file_is_the_file_that_is_loaded_or_written() {
+        let missing = PathBuf::from("/tmp/blvm-f66-missing-config.toml");
+        let _ = std::fs::remove_file(&missing);
+        let cli = Cli::try_parse_from([
+            "blvm",
+            "--config",
+            missing.to_str().unwrap(),
+            "config",
+            "show",
+        ])
+        .expect("parse missing --config");
+        let loaded = build_final_config(&cli);
+        assert!(
+            loaded.is_err(),
+            "missing --config must not fall through, got {loaded:?}"
+        );
+
+        let dir = std::env::temp_dir().join(format!("blvm-f66-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let broken = dir.join("broken.toml");
+        std::fs::write(&broken, "protocol_version = ").unwrap();
+        let cli = Cli::try_parse_from([
+            "blvm",
+            "--config",
+            broken.to_str().unwrap(),
+            "config",
+            "show",
+        ])
+        .expect("parse broken --config");
+        let loaded = build_final_config(&cli);
+        assert!(
+            loaded.is_err(),
+            "broken config must not load defaults, got {loaded:?}"
+        );
+
+        let cfg = dir.join("blvm.toml");
+        let original = "protocol_version = \"mainnet\"\n";
+        std::fs::write(&cfg, original).unwrap();
+        handle_config_set(
+            &Some(cfg.clone()),
+            &["rpc_addr=127.0.0.1:8332".to_string()],
+        )
+        .expect("config set in a writable directory");
+        let updated = std::fs::read_to_string(&cfg).unwrap();
+        assert!(
+            updated.contains("protocol_version = \"mainnet\"") || updated.contains("mainnet"),
+            "config set must keep protocol_version, body={updated}"
+        );
+        assert!(
+            updated.contains("8332"),
+            "config set must write the new key, body={updated}"
+        );
+
+        let mut perms = std::fs::metadata(&dir).unwrap().permissions();
+        perms.set_readonly(true);
+        std::fs::set_permissions(&dir, perms).unwrap();
+        let set = handle_config_set(
+            &Some(cfg.clone()),
+            &["listen_addr=127.0.0.1:8333".to_string()],
+        );
+        let body = std::fs::read_to_string(&cfg).unwrap_or_default();
+        let mut perms = std::fs::metadata(&dir).unwrap().permissions();
+        perms.set_readonly(false);
+        std::fs::set_permissions(&dir, perms).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(
+            set.is_err(),
+            "config set must fail without replacing the file, body={body}"
+        );
+        assert_eq!(
+            body, updated,
+            "a failed config set must leave protocol_version readable"
+        );
     }
 }
