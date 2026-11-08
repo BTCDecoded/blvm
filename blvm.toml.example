@@ -62,7 +62,16 @@ registry_url = "https://raw.githubusercontent.com/BTCDecoded/blvm/main/registry/
 # An inline name adds or replaces one pin. enabled_modules = [] replaces the
 # baseline and loads only binaries already on disk.
 blvm-miniscript = "0.1.*"
-blvm-wallet-index = "0.1.*"
+blvm-index = "0.1.*"
+# blvm-fees and blvm-upstream are not pinned. External fee data stays off until
+# the operator sets [fees] estimator and [module_network.blvm-upstream] http_allow.
+# Electrum and Esplora bind here. An unset listen does not bind.
+# [services.esplora]
+# module = "blvm-index"
+# listen = "127.0.0.1:3000"
+# [services.electrum]
+# module = "blvm-index"
+# listen = "127.0.0.1:50001"
 # Per-module spawn overrides; `version` pins bootstrap when inline `name = "…"` would conflict:
 [modules.blvm-zmq]
 version = "0.1.*"
@@ -74,6 +83,29 @@ sequence = "tcp://127.0.0.1:28336"
 # Legacy array form still supported: enabled_modules = ["blvm-miniscript"]  # unpinned (*)
 # Opt-out: never auto-load or bootstrap-download these names (manifest `name`), even if on disk.
 # disabled_modules = ["some-module"]
+
+# Fee estimator. Omit the table to use the built-in defaults (estimator on).
+# health_required is false on regtest and true elsewhere when the key is omitted.
+# Bucket spacing, decays, and success thresholds are not configurable.
+# history_enabled and mempool_enabled cannot both be false.
+# [fees]
+# enabled = true
+# history_enabled = true
+# mempool_enabled = true
+# allow_mempool_only = true
+# mempool_horizon_blocks = 1
+# mempool_percentile_conservative = 50
+# mempool_percentile_economical = 75
+# projection_full_threshold = 0.95
+# health_window_blocks = 6
+# health_min_ratio = 0.75
+# recompute_interval_secs = 7
+# multiplier = 1.0
+# state_path = "data/fee_estimator.dat"
+# persist_interval_blocks = 6
+# max_state_age_blocks = 6048
+# eval_log_path = "data/fee-eval.jsonl"
+# lnd_targets = [1, 2, 3, 6, 12, 24, 48, 144, 504, 1008]
 
 # Per-module configuration overrides (passed to each module via env on spawn)
 [modules.blvm-marketplace]
