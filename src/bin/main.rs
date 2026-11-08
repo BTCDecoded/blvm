@@ -425,7 +425,7 @@ async fn main() -> Result<()> {
                 use blvm_node::storage::bitcoin_detection::CoreDataNetwork;
                 let network_parsed: CoreDataNetwork = network
                     .parse()
-                    .map_err(|e: String| anyhow::anyhow!("Invalid network: {}", e))?;
+                    .map_err(|e: String| anyhow::anyhow!("Invalid network: {e}"))?;
                 let source_path = source.as_ref().map(std::path::PathBuf::from);
                 blvm_node::cli::run_migrate_core_cli(
                     source_path,
@@ -520,8 +520,7 @@ async fn main() -> Result<()> {
                     std::path::Path::new(&data_dir),
                 ) {
                     anyhow::bail!(
-                        "--migrate-core-only requires a Bitcoin Core datadir at {}",
-                        data_dir
+                        "--migrate-core-only requires a Bitcoin Core datadir at {data_dir}"
                     );
                 }
                 if let Some(storage) = config.storage.as_mut() {
