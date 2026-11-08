@@ -42,10 +42,10 @@ impl VersionsManifest {
     /// Load versions.toml from file
     pub fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path.as_ref())
-            .map_err(|e| anyhow::anyhow!("Failed to read versions.toml: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to read versions.toml: {e}"))?;
 
         let manifest: VersionsManifest = toml::from_str(&content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse versions.toml: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse versions.toml: {e}"))?;
 
         Ok(manifest)
     }
@@ -155,7 +155,7 @@ impl VersionsManifest {
         result: &mut Vec<String>,
     ) -> anyhow::Result<()> {
         if visiting.contains(repo) {
-            anyhow::bail!("Circular dependency detected involving {}", repo);
+            anyhow::bail!("Circular dependency detected involving {repo}");
         }
         if visited.contains(repo) {
             return Ok(());

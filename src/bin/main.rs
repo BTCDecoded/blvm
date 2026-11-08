@@ -570,7 +570,7 @@ async fn main() -> Result<()> {
 
             node = node
                 .with_config(config.clone())
-                .map_err(|e| anyhow::anyhow!("Failed to apply config: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to apply config: {e}"))?;
 
             #[cfg(feature = "wasm-modules")]
             {
@@ -587,7 +587,7 @@ async fn main() -> Result<()> {
                     );
                     // If it fails, we can't recover the node since with_modules_from_config consumes it
                     // We need to return an error - the node has been consumed
-                    return Err(anyhow::anyhow!("Failed to configure modules: {}", e));
+                    return Err(anyhow::anyhow!("Failed to configure modules: {e}"));
                 }
             };
 
@@ -1468,14 +1468,14 @@ async fn rpc_call_with_bearer(
         })?;
     let status = response.status();
     if !status.is_success() {
-        anyhow::bail!("RPC request failed with status: {}", status);
+        anyhow::bail!("RPC request failed with status: {status}");
     }
     let json: Value = response
         .json()
         .await
         .context("Failed to parse RPC response")?;
     if let Some(error) = json.get("error") {
-        anyhow::bail!("RPC error: {}", error);
+        anyhow::bail!("RPC error: {error}");
     }
     json.get("result")
         .cloned()
@@ -1516,7 +1516,7 @@ async fn rpc_call_with_auth(
 
     let status = response.status();
     if !status.is_success() {
-        anyhow::bail!("RPC request failed with status: {}", status);
+        anyhow::bail!("RPC request failed with status: {status}");
     }
 
     let json: Value = response
@@ -1525,7 +1525,7 @@ async fn rpc_call_with_auth(
         .context("Failed to parse RPC response")?;
 
     if let Some(error) = json.get("error") {
-        anyhow::bail!("RPC error: {}", error);
+        anyhow::bail!("RPC error: {error}");
     }
 
     json.get("result")
@@ -1847,7 +1847,7 @@ fn handle_config_set(cli_config: &Option<PathBuf>, assignments: &[String]) -> Re
 
     for assignment in assignments {
         let (key, value_str) = assignment.split_once('=').ok_or_else(|| {
-            anyhow::anyhow!("Invalid assignment '{}': expected key=value", assignment)
+            anyhow::anyhow!("Invalid assignment '{assignment}': expected key=value")
         })?;
         let key = key.trim();
         let value_str = value_str.trim();
