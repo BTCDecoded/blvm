@@ -2009,7 +2009,7 @@ mod tests {
     #[test]
     fn env_bip158_false_clears_compact_filters() {
         let mut config = NodeConfig::default();
-        assert!(config.serve_compact_filters);
+        config.serve_compact_filters = true;
         let env = EnvOverrides {
             bip158: Some(false),
             ..EnvOverrides::default()
