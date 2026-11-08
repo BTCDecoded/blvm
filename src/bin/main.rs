@@ -1800,7 +1800,6 @@ fn handle_config_path(cli_config: &Option<PathBuf>) -> Result<()> {
     }
 }
 
-
 fn write_config_replacing(path: &Path, content: &str) -> Result<()> {
     let parent = path
         .parent()
@@ -2155,11 +2154,8 @@ mod tests {
         let cfg = dir.join("blvm.toml");
         let original = "protocol_version = \"mainnet\"\n";
         std::fs::write(&cfg, original).unwrap();
-        handle_config_set(
-            &Some(cfg.clone()),
-            &["rpc_addr=127.0.0.1:8332".to_string()],
-        )
-        .expect("config set in a writable directory");
+        handle_config_set(&Some(cfg.clone()), &["rpc_addr=127.0.0.1:8332".to_string()])
+            .expect("config set in a writable directory");
         let updated = std::fs::read_to_string(&cfg).unwrap();
         assert!(
             updated.contains("protocol_version = \"mainnet\"") || updated.contains("mainnet"),
