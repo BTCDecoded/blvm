@@ -2186,4 +2186,220 @@ mod tests {
             "a failed config set must leave protocol_version readable"
         );
     }
+
+    /// Configs a fresh install actually starts from. `enabled = false` here is how
+    /// getdescriptorinfo stayed a module-required error on the website download.
+    #[test]
+    fn shipped_configs_keep_default_modules() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        for name in [
+            "blvm-mainnet-ibd.toml.example",
+            "blvm-mainnet-core.toml.example",
+            "blvm.toml.example",
+        ] {
+            let path = root.join(name);
+            let config =
+                NodeConfig::from_file(&path).unwrap_or_else(|e| panic!("{name} must parse: {e}"));
+            let modules = config
+                .modules
+                .unwrap_or_else(|| panic!("{name} must keep the module system"));
+            assert!(
+                modules.enabled,
+                "{name} disables modules; getdescriptorinfo and analyzepsbt then have no verdict"
+            );
+            let defaults = blvm_node::config::ModuleConfig::default();
+            assert!(
+                !defaults.enabled_modules.is_empty(),
+                "a fresh node enables no modules"
+            );
+            for (module, constraint) in &defaults.enabled_modules {
+                assert!(
+                    !modules.disabled_modules.iter().any(|n| n == module),
+                    "{name} disables {module}"
+                );
+                let pinned = modules
+                    .enabled_modules
+                    .get(module)
+                    .unwrap_or_else(|| panic!("{name} drops default module {module}"));
+                assert!(
+                    !pinned.trim().is_empty(),
+                    "{name} pins {module} to an empty constraint"
+                );
+                assert_eq!(
+                    pinned, constraint,
+                    "{name} pins {module} to {pinned}; the built-in default is {constraint}"
+                );
+                assert!(
+                    blvm_node::module::github_release_install::builtin_default_module_repo(module)
+                        .is_some(),
+                    "{module} is a default module with no bootstrap repository"
+                );
+            }
+        }
+    }
+
+    /// Highest `0.1.*` GitHub release for each default module, checked the way
+    /// bootstrap installs it: tag manifest version, then `sha256sums.txt` for
+    /// every platform this release ships.
+    #[cfg(feature = "governance")]
+    #[test]
+    #[ignore = "contacts GitHub; CI runs this before a release tag"]
+    fn default_modules_have_installable_releases() {
+        use blvm_node::module::github_release_install::{
+            artifact_name, builtin_default_module_repo, default_module_toml_raw_url,
+            manifest_version_for_release, parse_github_release_versions, release_download_url,
+            release_tag, sha256_from_checksums,
+        };
+        use blvm_node::module::version_constraint::{
+            matches_version_constraint, select_highest_matching_version,
+        };
+
+        let platforms = ["x86_64-linux", "aarch64-linux", "x86_64-windows"];
+        let mut failures = Vec::new();
+        for (module, constraint) in blvm_node::config::ModuleConfig::default().enabled_modules {
+            let Some(repo) = builtin_default_module_repo(&module) else {
+                failures.push(format!("{module}: no bootstrap repository"));
+                continue;
+            };
+            let releases_url = format!("https://api.github.com/repos/{repo}/releases?per_page=100");
+            let releases_json = match http_get(&releases_url) {
+                Ok(body) => body,
+                Err(e) => {
+                    failures.push(format!("{module}: {e}"));
+                    continue;
+                }
+            };
+            let versions = match parse_github_release_versions(releases_json.as_bytes()) {
+                Ok(v) => v,
+                Err(e) => {
+                    failures.push(format!("{module}: {e}"));
+                    continue;
+                }
+            };
+            let version = match select_highest_matching_version(&versions, &constraint) {
+                Ok(v) => v,
+                Err(e) => {
+                    failures.push(format!("{module}: {e}"));
+                    continue;
+                }
+            };
+            let tag = release_tag(&version);
+            let manifest_url = default_module_toml_raw_url(repo, &tag);
+            let manifest = match http_get(&manifest_url) {
+                Ok(body) => body,
+                Err(e) => {
+                    failures.push(format!("{module}: {e}"));
+                    continue;
+                }
+            };
+            let Some(toml_version) = root_toml_string(&manifest, "version") else {
+                failures.push(format!("{module}: {tag} module.toml has no root version"));
+                continue;
+            };
+            let installed = manifest_version_for_release(&toml_version, Some(&version));
+            if installed != version || !matches_version_constraint(&installed, &constraint) {
+                failures.push(format!(
+                    "{module}: tag {tag} module.toml says {toml_version}; bootstrap would install {installed}, which does not satisfy {constraint}"
+                ));
+                continue;
+            }
+            let sums_url = release_download_url(repo, &tag, "sha256sums.txt");
+            let sums = match http_get(&sums_url) {
+                Ok(body) => body,
+                Err(e) => {
+                    failures.push(format!("{module}: {e}"));
+                    continue;
+                }
+            };
+            for platform in platforms {
+                let artifact = match artifact_name(&module, platform) {
+                    Ok(name) => name,
+                    Err(e) => {
+                        failures.push(format!("{module}: {e}"));
+                        continue;
+                    }
+                };
+                if let Err(e) = sha256_from_checksums(&sums, &artifact) {
+                    failures.push(format!("{module} {tag}: {e}"));
+                    continue;
+                }
+                let asset_url = release_download_url(repo, &tag, &artifact);
+                if let Err(e) = http_head(&asset_url) {
+                    failures.push(format!("{module} {tag}: {e}"));
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "default modules are not installable before release:\n{}",
+            failures.join("\n")
+        );
+    }
+
+    fn root_toml_string(toml: &str, key: &str) -> Option<String> {
+        for line in toml.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                break;
+            }
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            let (found, rest) = trimmed.split_once('=')?;
+            if found.trim() != key {
+                continue;
+            }
+            return Some(rest.trim().trim_matches('"').trim_matches('\'').to_string());
+        }
+        None
+    }
+
+    fn http_get(url: &str) -> Result<String, String> {
+        let output = std::process::Command::new("curl")
+            .args([
+                "-fsSL",
+                "--retry",
+                "2",
+                "--max-time",
+                "60",
+                "-A",
+                "blvm-default-modules-test",
+                url,
+            ])
+            .output()
+            .map_err(|e| format!("curl {url}: {e}"))?;
+        if !output.status.success() {
+            return Err(format!(
+                "GET {url} failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ));
+        }
+        String::from_utf8(output.stdout).map_err(|e| format!("GET {url} is not UTF-8: {e}"))
+    }
+
+    fn http_head(url: &str) -> Result<(), String> {
+        let output = std::process::Command::new("curl")
+            .args([
+                "-fsIL",
+                "--retry",
+                "2",
+                "--max-time",
+                "60",
+                "-o",
+                "/dev/null",
+                "-A",
+                "blvm-default-modules-test",
+                url,
+            ])
+            .output()
+            .map_err(|e| format!("curl {url}: {e}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(format!(
+                "HEAD {url} failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ))
+        }
+    }
 }

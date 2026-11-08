@@ -202,6 +202,7 @@ jobs:
         run: |
           unset CC CXX CPP AR || true
           cargo test --lib --bins --tests
+          cargo test --bin blvm --locked default_modules_have_installable_releases -- --ignored --test-threads=1
 
       - name: Dump disk usage on failure
         if: failure()
@@ -576,6 +577,15 @@ jobs:
 
       - name: Install Rust
         uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+
+      - name: Default modules install before release
+        env:
+          BLVM_SECP256K1_NO_GPU: "1"
+          CARGO_TARGET_DIR: /tmp/gh-blvm-release-build/${{ github.run_id }}/target
+        run: |
+          unset CC CXX CPP AR || true
+          cargo test --bin blvm --locked shipped_configs_keep_default_modules -- --test-threads=1
+          cargo test --bin blvm --locked default_modules_have_installable_releases -- --ignored --test-threads=1
 
       - name: Determine version
         id: version
