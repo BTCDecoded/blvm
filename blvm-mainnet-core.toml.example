@@ -50,5 +50,5 @@ max_request_size_bytes = 1048576
 [logging]
 level = "info"
 
-[modules]
-enabled = false
+# [modules] is omitted so the built-in default stays on: blvm-miniscript,
+# blvm-zmq, and blvm-index. getdescriptorinfo and analyzepsbt need blvm-miniscript.
