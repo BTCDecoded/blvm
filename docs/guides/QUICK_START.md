@@ -4,12 +4,12 @@
 
 ## Prerequisites
 
-> **Mainnet sync:** [mdBook](https://docs.btcdecoded.org/blvm/getting-started/mainnet-sync.html) · [blvm README](https://github.com/BTCDecoded/blvm#first-mainnet-sync-release-binary)
+> **Mainnet sync:** [First node setup](https://docs.btcdecoded.org/blvm/getting-started/first-node.html#mainnet-initial-sync)
 
 
-1. **Rust 1.70+** installed
+1. **Rust `1.88.0`**, the channel in `rust-toolchain.toml`
    ```bash
-   rustc --version  # Should show 1.70 or higher
+   rustc --version  # channel 1.88.0
    ```
 
 2. **All repositories cloned** in the same parent directory:

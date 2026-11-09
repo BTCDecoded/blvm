@@ -71,7 +71,7 @@ jobs:
 ### `build.sh`
 
 Main unified build script that:
-- Checks Rust toolchain (requires 1.70+)
+- Checks Rust toolchain (requires the `rust-toolchain.toml` channel `1.88.0`)
 - Verifies all repositories are present
 - Builds repos in dependency order
 - Collects binaries to `artifacts/binaries/`
@@ -185,7 +185,7 @@ Release archives include:
 
 ### Build Failures
 
-1. Check Rust version: `rustc --version` (requires 1.70+)
+1. Check Rust version: `rustc --version` (requires the `rust-toolchain.toml` channel `1.88.0`)
 2. Verify all repos are cloned
 3. Check dependency versions in `versions.toml`
 4. Review build logs in `/tmp/<repo>-build.log`

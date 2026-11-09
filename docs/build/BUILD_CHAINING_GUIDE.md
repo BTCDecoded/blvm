@@ -84,7 +84,7 @@ cd /path/to/BTCDecoded/commons
 ```
 
 **What it does:**
-1. Checks Rust toolchain (1.70+)
+1. Checks Rust toolchain (`rust-toolchain.toml` channel `1.88.0`)
 2. Verifies all repos exist
 3. Topologically sorts repos by dependencies
 4. Builds each repo in order
@@ -217,7 +217,7 @@ echo "Artifacts: $COMMONS_DIR/artifacts/"
 ```
 
 **Features:**
-- ✅ Checks Rust toolchain (1.70+)
+- ✅ Checks Rust toolchain (`rust-toolchain.toml` channel `1.88.0`)
 - ✅ Verifies all repos exist
 - ✅ Topological sort for dependency order
 - ✅ Collects binaries automatically

@@ -99,4 +99,4 @@ blvm (binary)
 
 ## License
 
-MIT
+[MIT](LICENSE)

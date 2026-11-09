@@ -101,7 +101,7 @@ on:
 **Implementation**:
 - Build once, save hashes
 - Clean and rebuild
-- Compare hashes (warning if mismatch)
+- Compare hashes (the production release job fails on mismatch)
 
 ### 7. Comprehensive Testing
 
@@ -304,7 +304,7 @@ Each archive contains:
 
 - Build failures (stop release)
 - Test failures (stop release)
-- Non-deterministic builds (warning)
+- Non-deterministic builds (stop the production release)
 - Tagging failures (warning, continue)
 - Missing artifacts (stop release)
 

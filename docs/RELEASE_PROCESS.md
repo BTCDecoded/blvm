@@ -122,7 +122,7 @@ The pipeline verifies builds are reproducible by:
 2. Cleaning and rebuilding
 3. Comparing hashes (must match exactly)
 
-**Note**: Non-deterministic builds are warnings (not failures) but should be fixed for production.
+**Note**: The production release workflow fails the job when the Linux base rebuild hashes differ or the rebuild itself fails. The Phase 1 prerelease workflow still warns and continues.
 
 ### Test Execution
 
@@ -265,7 +265,7 @@ For patch releases:
 
 - Tags are immutable once created
 - Releases require passing tests
-- Artifacts are signed with SHA256 checksums
+- Artifact checksums are SHA256 files. A checksum is not a signature.
 
 ## Cargo Registry Publishing
 

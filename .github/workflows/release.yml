@@ -699,9 +699,10 @@ jobs:
       
       - name: Verify deterministic builds (Linux base variant)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
-        continue-on-error: true
         timeout-minutes: 30
         run: |
+          # Without pipefail the `| tee` hides a failed rebuild and this gate never fails.
+          set -o pipefail
           echo "=== Verifying Deterministic Builds (Base Variant) ==="
           
           PARENT_DIR="${GITHUB_WORKSPACE}"
@@ -745,11 +746,10 @@ jobs:
           done
           
           if [ ${#FAILED_REPOS[@]} -gt 0 ]; then
-            echo "⚠️  WARNING: Some builds failed deterministic verification: ${FAILED_REPOS[*]}"
-            echo "This should be fixed for production releases"
-          else
-            echo "✅ All deterministic builds verified (base variant)"
+            echo "ERROR: deterministic verification failed: ${FAILED_REPOS[*]}"
+            exit 1
           fi
+          echo "✅ All deterministic builds verified (base variant)"
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"

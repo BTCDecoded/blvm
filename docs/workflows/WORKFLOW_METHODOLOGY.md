@@ -3,7 +3,7 @@
 This document defines a consistent, reproducible, and secure workflow model applied across all repositories. It separates orchestration (commons) from tier-specific logic and runs entirely on self-hosted Linux x64 runners.
 
 ## Core Principles
-- **Single Source of Truth for Versions**: `commons/versions.toml` pins tags per repo for a release set.
+- **Single Source of Truth for Versions**: `versions.toml` at the repository root pins tags per repo for a release set.
 - **Reusable Workflows**: Repos call commons workflows via `workflow_call` to ensure consistency.
 - **Self-Hosted Only**: All CI runs on `[self-hosted, linux, x64]` runners.
 - **Deterministic Builds**: `--locked` builds, rust-toolchain per repo, artifact hashing.
@@ -19,16 +19,16 @@ This document defines a consistent, reproducible, and secure workflow model appl
 - **governance-app**: service; Docker image or source build; deploy via self-hosted runner.
 
 ## Required Files
-- `commons/versions.toml`: authoritative tags
+- `versions.toml`: authoritative tags
 - Repos: `rust-toolchain.toml` (auto-detected by workflows), minimal wrapper workflows (or none, using commons directly)
 - **Note**: Repos are standalone (not workspace members). Test commands must not use `-p` package flags.
 
 ## Reusable Workflows (commons)
-- `commons/.github/workflows/verify_consensus.yml`
+- `.github/workflows/verify_consensus_cached.yml`
   - Inputs: `repo`, `ref`
   - Runs tests and spec-lock verification
   - Self-hosted
-- `commons/.github/workflows/build_lib.yml`
+- `.github/workflows/build_lib_cached.yml`
   - Inputs: `repo`, `ref`, `package`, `features`, `verify_deterministic` (optional)
   - Deterministic build, hashes artifacts
   - Optional deterministic verification (rebuild + compare hashes)
@@ -52,7 +52,7 @@ This document defines a consistent, reproducible, and secure workflow model appl
 - Workflows install Rust via `BTCDecoded/rust-ci/install-rust-toolchain` (org default pin with optional `toolchain`, `toolchain-file`, or `components`; underlying implementation uses `dtolnay/rust-toolchain`)
 - Use `cargo build --locked --release`
 - Hash outputs to `SHA256SUMS`
-- Optional deterministic verification: rebuild and compare hashes (via `verify_deterministic` input in `build_lib.yml`)
+- Optional deterministic verification: rebuild and compare hashes (via `verify_deterministic` input in `build_lib_cached.yml`). The production `release.yml` job fails on a mismatch.
 
 ## Local (No-CI) Tooling
 - `commons/tools/build_release_set.sh` — sequence local builds from local clones; optional governance-app source/docker; optional `MANIFEST.json` aggregation

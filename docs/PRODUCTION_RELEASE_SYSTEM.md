@@ -2,7 +2,7 @@
 
 ## Overview
 
-The production release system (`release_prod.yml`) creates unified releases by intelligently reusing existing component releases when available, and only building what's necessary. It includes hash verification and provenance tracking through build manifests.
+The production release workflow is `.github/workflows/release.yml`. `release_prod.yml` is not in this commit. The Linux base hash check fails the job on a mismatch.
 
 ## Key Features
 
@@ -196,7 +196,7 @@ Generates integration manifest for unified release.
 
 ### Via GitHub CLI
 ```bash
-gh workflow run release_prod.yml \
+gh workflow run release.yml \
   -f version_tag=v0.1.0 \
   -f platform=both
 ```

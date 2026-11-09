@@ -12,11 +12,11 @@
 3. blvm-node → build binaries
 
 ## Version Topology
-- Authoritative map: `commons/versions.toml` (tags per repo).
+- Authoritative map: `versions.toml` at the repository root. `commons/versions.toml` is not in this commit.
 - Orchestrator reads this file to pin repos.
 
 ## Workflows
-- Reusable: `.github/workflows/verify_consensus.yml`, `build_lib.yml`.
+- Reusable: `.github/workflows/verify_consensus_cached.yml`, `build_lib_cached.yml`. The release workflow is `release.yml`.
 - Orchestrator: `.github/workflows/release_orchestrator.yml`.
 
 ## Deterministic Builds
@@ -26,4 +26,4 @@
 
 ## Attestation
 - Verification bundles produced by L2 (tests + spec-lock + logs).
-- Attestations stored in governance repo (or commons/attestations/).
+- `commons/attestations/` is not in this commit.
