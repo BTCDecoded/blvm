@@ -224,6 +224,17 @@ jobs:
             echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
             unset CARGO_BUILD_JOBS
           fi
+          if [ -x /opt/cuda/bin/nvcc ] || [ -x /usr/local/cuda/bin/nvcc ] || command -v nvcc >/dev/null 2>&1; then
+            echo "nvcc already installed"
+          elif command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm --needed cuda
+          elif command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq nvidia-cuda-toolkit
+          else
+            echo "nvcc not found and no package manager can install the CUDA toolkit"
+            exit 1
+          fi
           blvm/build.sh --mode release --variant base
           
           # Save hashes from first build for deterministic verification
@@ -242,7 +253,6 @@ jobs:
             fi
           done
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -256,7 +266,6 @@ jobs:
           fi
           blvm/build.sh --mode release --variant experimental
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"  # Reduce debug info for faster builds
       
@@ -424,7 +433,6 @@ jobs:
             echo "✅ All deterministic builds verified (base variant)"
           fi
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
       
@@ -444,9 +452,9 @@ jobs:
               
               # First, try to build tests to catch compilation errors early
               echo "Building tests for $repo..."
-              # Every feature except secp-gpu, whose build script needs nvcc (CUDA).
+              # Every feature except default. GPU is compiled in when nvcc is present.
               FEATURES=$(cargo metadata --no-deps --format-version 1 \
-                | python3 -c 'import json,sys; print(",".join(sorted(f for f in json.load(sys.stdin)["packages"][0]["features"] if f not in ("default","secp-gpu"))))')
+                | python3 -c 'import json,sys; print(",".join(sorted(f for f in json.load(sys.stdin)["packages"][0]["features"] if f != "default")))')
               echo "Features: ${FEATURES}"
               if ! cargo build --release --features "${FEATURES}" --tests 2>&1 | tee /tmp/${repo}-test-build.log; then
                 echo "❌ Test compilation failed in $repo"
@@ -506,7 +514,6 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh base "${{ github.workspace }}"
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (base variant)
@@ -524,7 +531,6 @@ jobs:
           export RELEASE_PLATFORM="${{ inputs.platform }}"
           blvm/scripts/rebuild-for-release.sh experimental "${{ github.workspace }}"
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Collect artifacts (experimental variant)
@@ -697,8 +703,7 @@ jobs:
           blvm/scripts/package-linux-releases.sh "$V" "${{ github.workspace }}"
         env:
           RUSTFLAGS: "-C debuginfo=0"
-          BLVM_SECP256K1_NO_GPU: "1"
-      
+
       - name: Verify versions
         run: |
           blvm/scripts/verify-versions.sh

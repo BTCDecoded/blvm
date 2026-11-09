@@ -690,6 +690,22 @@ jobs:
           cargo install cargo-generate-rpm --locked --quiet || true
           rustup target add x86_64-pc-windows-gnu aarch64-unknown-linux-gnu
 
+      - name: Install CUDA toolkit (nvcc and headers)
+        run: |
+          if [ -x /opt/cuda/bin/nvcc ] || [ -x /usr/local/cuda/bin/nvcc ] || command -v nvcc >/dev/null 2>&1; then
+            echo "nvcc already installed"
+            exit 0
+          fi
+          if command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm --needed cuda
+          elif command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq nvidia-cuda-toolkit
+          else
+            echo "nvcc not found and no package manager can install the CUDA toolkit"
+            exit 1
+          fi
+
       - name: Build Linux x86_64 release binary
         id: build_linux
         env:
@@ -697,9 +713,7 @@ jobs:
         run: |
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           unset CC CXX CPP AR || true
-          # The release runner has nvcc. Without this, build.rs links libcudart and
-          # `version` fails on a host whose install docs do not name that library.
-          export BLVM_SECP256K1_NO_GPU=1
+          # Kernels compile when nvcc is present. libcudart must not be a NEEDED entry.
           SYSROOT="$(rustc --print sysroot)"
           export RUSTFLAGS="--remap-path-prefix=${HOME}=/build --remap-path-prefix=${SYSROOT}=/rustlib --remap-path-prefix=${GITHUB_WORKSPACE}=/src"
           cargo build --release --locked
@@ -707,7 +721,7 @@ jobs:
           BIN="./blvm-${VERSION}-linux-x86_64"
           cp /tmp/gh-blvm-release-build/${{ github.run_id }}/target/release/blvm "$BIN"
           if readelf -d "$BIN" | grep -q 'libcudart'; then
-            echo "❌ ${BIN} needs libcudart; release builds set BLVM_SECP256K1_NO_GPU=1"
+            echo "❌ ${BIN} needs libcudart; the release binary must dlopen it"
             exit 1
           fi
           if strings "$BIN" | grep -q '/var/lib/github-runner'; then
@@ -766,7 +780,6 @@ jobs:
           VERSION_TAG: ${{ steps.version.outputs.version_tag }}
           CARGO_TARGET_DIR: /tmp/gh-blvm-release-build/${{ github.run_id }}/target
           CARGO_BUILD_JOBS: 4
-          BLVM_SECP256K1_NO_GPU: "1"
         run: |
           chmod +x scripts/ci-release-extra-artifacts.sh
           bash scripts/ci-release-extra-artifacts.sh
@@ -1307,14 +1320,34 @@ jobs:
             cargo tree -p blvm-node -i blvm-consensus 2>/dev/null | head -20
           fi
 
+      - name: Install CUDA toolkit (nvcc and headers)
+        run: |
+          if [ -x /opt/cuda/bin/nvcc ] || [ -x /usr/local/cuda/bin/nvcc ] || command -v nvcc >/dev/null 2>&1; then
+            echo "nvcc already installed"
+            exit 0
+          fi
+          if command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm --needed cuda
+          elif command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq nvidia-cuda-toolkit
+          else
+            echo "nvcc not found and no package manager can install the CUDA toolkit"
+            exit 1
+          fi
+
       - name: Build Linux release binary
         env:
-          BLVM_SECP256K1_NO_GPU: "1"  # no libcudart in Linux builds (blvm-secp256k1 build.rs)
           CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
           CARGO_BUILD_JOBS: 8
         run: |
           unset CC CXX CPP AR || true
           cargo build --release
+          BIN="${{ env.CARGO_NIGHTLY_TARGET }}/release/blvm"
+          if readelf -d "$BIN" | grep -q 'libcudart'; then
+            echo "❌ ${BIN} needs libcudart; the release binary must dlopen it"
+            exit 1
+          fi
 
       - name: Build Windows x86_64 release binary
         env:
@@ -1345,7 +1378,6 @@ jobs:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           GITHUB_SHA: ${{ github.sha }}
           CARGO_TARGET_DIR: ${{ env.CARGO_NIGHTLY_TARGET }}
-          BLVM_SECP256K1_NO_GPU: "1"
         run: |
           chmod +x scripts/ci-nightly-artifacts.sh
           bash scripts/ci-nightly-artifacts.sh
