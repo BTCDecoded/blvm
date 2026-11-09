@@ -445,9 +445,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.80"
+version = "0.1.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1025abbc12f38a6cc3614249a06bca16a45f197d4917fca62216bb53f10d6f14"
+checksum = "22211b3699d4966a88365401289ea01f8d44ab48b73f6987aed2534f9c2f10d8"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -479,9 +479,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.90"
+version = "0.1.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c76a7d23391210faffd595dbd357105aabba0c85162d75db375f99b0c632aafd"
+checksum = "1c7839db07d1b7f5965054260b2a59b1a22dc710841a2dc45b168ad7d95c6521"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -566,9 +566,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-protocol"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a26d31b028288bcaa3cacd7a05d212a4a2dd5c6405a1e4ac92304f88de618c9d"
+checksum = "3f5831c7908f20c782a68ee42c7c649cbd9e87ade1806c45ba4e36f2d72c3fba"
 dependencies = [
  "anyhow",
  "bech32",
@@ -637,12 +637,13 @@ dependencies = [
 
 [[package]]
 name = "blvm-secp256k1"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "975967be347c47ac71555682a1bf8c5616be921e22a0aeebacd1ca05ee2685d2"
+checksum = "f5edb6722a960d037cddf4322c8bdaca2cde926e2935a99c86112eeb63847ab5"
 dependencies = [
  "cc",
  "crossbeam-channel",
+ "libloading",
  "num-bigint",
  "num-integer",
  "sha2 0.10.9",
