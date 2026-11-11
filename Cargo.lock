@@ -479,9 +479,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.91"
+version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c7839db07d1b7f5965054260b2a59b1a22dc710841a2dc45b168ad7d95c6521"
+checksum = "d617c9c006a4f4f36a7f4effff515fdac24628fef713a41d75629ac87af32b8f"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -550,9 +550,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.33"
+version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15005bf6ed6bbde881c8957cb983bb13e06db6a73c5433f4fbfbffd00faba9c0"
+checksum = "ad55662574cce7babee0051f2ec2f1f846b8bd5dd7e3b0193d4ab8479c207e7d"
 dependencies = [
  "bitcoin_hashes",
  "ripemd",
@@ -566,9 +566,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-protocol"
-version = "0.1.45"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f5831c7908f20c782a68ee42c7c649cbd9e87ade1806c45ba4e36f2d72c3fba"
+checksum = "51c4c0af5362821c272bb1684abb6a7ef72320dd7172b8639e1c7532b1c99fc0"
 dependencies = [
  "anyhow",
  "bech32",
@@ -592,9 +592,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk"
-version = "0.1.21"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "047e61a52001f8e8a6dad5edbed10dfa5256ebde354cb11ed562d4e1b873c456"
+checksum = "0e432c975e02f2ede2dbd6bc735a7cb9fbe391d79e50331c9e78a5f9a74adb2b"
 dependencies = [
  "anyhow",
  "base64",
@@ -626,9 +626,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk-macros"
-version = "0.1.21"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "882a01bcf2d13e5ec4ab431d039b7fe96e68d2d547ff651fa3bdb6a04c5379dc"
+checksum = "bdae767ce7634ee6d043b29e2b5d6fcb9d9d3e3067650adc16c3a2d3d7519e09"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -637,12 +637,13 @@ dependencies = [
 
 [[package]]
 name = "blvm-secp256k1"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5edb6722a960d037cddf4322c8bdaca2cde926e2935a99c86112eeb63847ab5"
+checksum = "1f12a8e2c50e8667483cc6b6f20fa4f196f6cb5b2646b41826f020910802cc07"
 dependencies = [
  "cc",
  "crossbeam-channel",
+ "getrandom 0.2.17",
  "libloading",
  "num-bigint",
  "num-integer",
