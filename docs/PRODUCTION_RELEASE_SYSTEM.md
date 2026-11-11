@@ -2,7 +2,7 @@
 
 ## Overview
 
-The production release workflow is `.github/workflows/release.yml`. `release_prod.yml` is not in this commit. The Linux base hash check fails the job on a mismatch.
+The production release workflow is `.github/workflows/release.yml`. `release_prod.yml` is not in this commit. The Linux base hash check fails the job on a mismatch. That hash check is Built for the blvm and blvm-sdk base variants, and the workflow is started by hand. Maintainer attestation of a release is Designed and is not in the workflow. Operators are meant to accept a release only when those signatures attest to a reproducible build.
 
 ## Key Features
 
@@ -129,6 +129,8 @@ Generates integration manifest for unified release.
 **Output:** JSON manifest with all component versions and package info
 
 ## Manifest Formats
+
+The JSON below is an example of a manifest shape. The field `"reproducible": false` in that example is not policy. Policy is the Built hash check for two variants and the Designed maintainer attestation described above.
 
 ### Component Manifest
 ```json

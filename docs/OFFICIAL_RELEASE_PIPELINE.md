@@ -1,5 +1,7 @@
 # Official Release Pipeline Design
 
+Release attestation is the last enforcement line. Operators accept a release only when the required maintainer signatures attest to a reproducible build. That attestation is Designed. It is not in this workflow. A reproducible hash comparison is Built for the blvm and blvm-sdk base variants in `.github/workflows/release.yml`, and that workflow is started by hand. GPG signing below is still a future improvement, not that attestation.
+
 ## Summary
 
 This document describes the official release pipeline for the Bitcoin Commons ecosystem, built on the successful prerelease workflow pattern.
@@ -281,7 +283,7 @@ Each archive contains:
 ### Build Security
 
 - Locked dependencies: `--locked` flag
-- Deterministic builds: Verified reproducibility
+- Deterministic builds: The hash comparison for the blvm and blvm-sdk base variants is Built. It is not maintainer attestation.
 - Checksums: SHA256 for all artifacts
 
 ### Release Security
