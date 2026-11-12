@@ -21,7 +21,10 @@ Always verify the checksum file shipped with the artifact you downloaded (`check
 | `.pkg.tar.gz` (Arch) | yes | — | — |
 | `.tar.gz` archive | yes | yes | — |
 | Standalone binary | yes | yes | — |
+| Static binary (musl, any Linux incl. NixOS/Alpine) | yes | yes | — |
 | Portable `.exe` / `.zip` | — | — | yes |
+
+**Verify a release** beyond checksums (Sigstore provenance, the attestation and spec-lock report, maintainer signatures): `scripts/verify-release.sh --tag <tag>`. See [`docs/RELEASE_ATTESTATION.md`](docs/RELEASE_ATTESTATION.md).
 
 **Docker (stable):** [`ghcr.io/btcdecoded/blvm`](https://github.com/BTCDecoded/blvm/pkgs/container/blvm) — tag matches the GitHub Release (see install page).
 
@@ -79,6 +82,8 @@ cargo build --release --locked
 ```
 
 Optional backends and experimental flags: explicit `--features` — [Installation — experimental variant](https://docs.btcdecoded.org/blvm/getting-started/installation.html#experimental-variant).
+
+**Nix:** `nix build github:BTCDecoded/blvm` builds the release feature set from source against `Cargo.lock`. On NixOS, import `nixosModules.blvm` and set `services.blvm.enable = true` (options in [`nix/module.nix`](nix/module.nix)). The Nix build reports the version in the tagged `Cargo.toml`, which is the version before the release bump.
 
 **RocksDB** (when using `blvm-mainnet-ibd.toml.example`):
 

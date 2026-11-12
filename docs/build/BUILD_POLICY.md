@@ -27,3 +27,4 @@
 ## Attestation
 - Verification bundles produced by L2 (tests + spec-lock + logs).
 - `commons/attestations/` is not in this commit.
+- Stable releases attach `blvm-<tag>-attestation.json` and `blvm-<tag>-verification-bundle.tar.gz` (spec-lock report for the linked consensus crate, build config, checksums). See [../RELEASE_ATTESTATION.md](../RELEASE_ATTESTATION.md).

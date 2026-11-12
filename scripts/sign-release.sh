@@ -1,238 +1,149 @@
-#!/bin/bash
-#
-# Sign Release Script
-#
-# Signs binaries, SHA256SUMS, and verification bundles for a release.
-# Collects signatures from multiple maintainers and aggregates them.
+#!/usr/bin/env bash
+# Maintainer release signing: check a published blvm release, rebuild its static
+# musl binaries from the tag, and sign the verification bundle only if every
+# check passes and the rebuilt hashes match the published ones.
 #
 # Usage:
-#   sign-release.sh --version v0.1.0 --commit abc123 [--key maintainer-key.json] [--threshold 6-of-7]
+#   scripts/sign-release.sh --tag v0.1.42 --key ~/keys/me.json --name <maintainer> [--upload] [--workdir DIR]
 #
-# Environment variables:
-#   BLVM_RELEASE_VERSION - Version string
-#   BLVM_RELEASE_COMMIT - Git commit hash
-#   BLVM_SIGN_KEY - Path to maintainer key file
-#   BLVM_SIGN_THRESHOLD - Signature threshold (e.g., "6-of-7")
-#   BLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
-
+# Requires: gh (logged in), git, jq, cargo/rustup, python3, blvm-sign-binary and
+# blvm-verify-binary (cargo install blvm-sdk --bins), plus what scripts/ci-build-musl.sh installs.
+# The secret key never leaves this machine; only the signature file is uploaded.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-ARTIFACTS_DIR="${REPO_ROOT}/artifacts"
-SIGNATURES_DIR="${ARTIFACTS_DIR}/signatures"
-
-# Defaults
-VERSION="${BLVM_RELEASE_VERSION:-}"
-COMMIT="${BLVM_RELEASE_COMMIT:-}"
-SIGN_KEY="${BLVM_SIGN_KEY:-}"
-THRESHOLD="${BLVM_SIGN_THRESHOLD:-6-of-7}"
-BINARY_TYPE="application"
-
-print_usage() {
-    cat <<EOF
-Usage: $0 [OPTIONS]
-
-Sign binaries, SHA256SUMS, and verification bundles for a release.
-
-Options:
-  --version VERSION     Release version (e.g., v0.1.0)
-  --commit COMMIT      Git commit hash
-  --key KEYFILE        Path to maintainer key file
-  --threshold THRESHOLD Signature threshold (e.g., "6-of-7")
-  --binary-type TYPE   Binary type (consensus, protocol, application)
-  --help               Show this help message
-
-Environment variables:
-  BLVM_RELEASE_VERSION - Release version
-  BLVM_RELEASE_COMMIT - Git commit hash
-  BLVM_SIGN_KEY - Path to maintainer key file
-  BLVM_SIGN_THRESHOLD - Signature threshold
-  BLVM_MAINTAINER_KEYS - Comma-separated list of maintainer public key files
-
-Examples:
-  # Sign with environment variables
-  export BLVM_RELEASE_VERSION=v0.1.0
-  export BLVM_RELEASE_COMMIT=abc123
-  export BLVM_SIGN_KEY=./maintainer-key.json
-  ./sign-release.sh
-
-  # Sign with command-line arguments
-  ./sign-release.sh --version v0.1.0 --commit abc123 --key ./maintainer-key.json
-EOF
-}
-
-# Parse arguments
+REPO="${BLVM_REPO:-BTCDecoded/blvm}"
+TAG="" KEY="" NAME="" UPLOAD=0 WORKDIR=""
+usage() { sed -n '2,13p' "$0" >&2; exit 2; }
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --version)
-            VERSION="$2"
-            shift 2
-            ;;
-        --commit)
-            COMMIT="$2"
-            shift 2
-            ;;
-        --key)
-            SIGN_KEY="$2"
-            shift 2
-            ;;
-        --threshold)
-            THRESHOLD="$2"
-            shift 2
-            ;;
-        --binary-type)
-            BINARY_TYPE="$2"
-            shift 2
-            ;;
-        --help)
-            print_usage
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            print_usage
-            exit 1
-            ;;
-    esac
+  case "$1" in
+    --tag) TAG="$2"; shift 2 ;;
+    --key) KEY="$2"; shift 2 ;;
+    --name) NAME="$2"; shift 2 ;;
+    --upload) UPLOAD=1; shift ;;
+    --workdir) WORKDIR="$2"; shift 2 ;;
+    -h|--help) usage ;;
+    *) echo "Unknown argument: $1" >&2; usage ;;
+  esac
+done
+[[ -n "$TAG" && -n "$KEY" && -n "$NAME" ]] || usage
+[[ "$NAME" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "❌ --name must be [A-Za-z0-9_-]" >&2; exit 2; }
+[[ -f "$KEY" ]] || { echo "❌ key file not found: $KEY" >&2; exit 2; }
+KEY="$(cd "$(dirname "$KEY")" && pwd)/$(basename "$KEY")"
+for tool in gh git jq cargo python3 blvm-sign-binary blvm-verify-binary; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "❌ ${tool} not found on PATH" >&2; exit 1; }
 done
 
-# Validate required arguments
-if [[ -z "$VERSION" ]]; then
-    echo "Error: --version or BLVM_RELEASE_VERSION required" >&2
-    exit 1
+fail() { echo "❌ $*" >&2; exit 1; }
+ok() { echo "✅ $*"; }
+
+if [[ "$TAG" == *-unverified ]]; then
+  fail "${TAG} skipped CI gates; it is not eligible for maintainer signatures"
+fi
+VERSION="${TAG#v}"
+WORKDIR="${WORKDIR:-$(mktemp -d "/tmp/blvm-sign-${TAG}-XXXX")}"
+mkdir -p "$WORKDIR/dl"
+WORKDIR="$(cd "$WORKDIR" && pwd)"
+DL="$WORKDIR/dl"
+PREFIX="blvm-${TAG}"
+BUNDLE="${PREFIX}-verification-bundle.tar.gz"
+echo "Working in ${WORKDIR}"
+
+# 1. Download the published files we check.
+gh release download "$TAG" --repo "$REPO" --dir "$DL" --clobber \
+  --pattern "$BUNDLE" --pattern "${PREFIX}-attestation.json" --pattern "${PREFIX}-build-config.json" \
+  --pattern checksums.sha256 --pattern "blvm-${VERSION}-linux-*-musl"
+ok "downloaded release files"
+
+# 2. Sigstore provenance: these files came from this repo's CI.
+for f in "$BUNDLE" "${PREFIX}-attestation.json" checksums.sha256 "blvm-${VERSION}-linux-x86_64-musl" "blvm-${VERSION}-linux-aarch64-musl"; do
+  [[ -f "$DL/$f" ]] || fail "missing release file: $f"
+  gh attestation verify "$DL/$f" --repo "$REPO" >/dev/null || fail "provenance check failed for $f"
+done
+ok "Sigstore provenance verified"
+
+# 3. Bundle contents agree with the published files.
+(cd "$WORKDIR" && rm -rf bundle && mkdir bundle && tar -xzf "$DL/$BUNDLE" -C bundle)
+B="$WORKDIR/bundle/${PREFIX}-verification-bundle"
+cmp -s "$B/attestation.json" "$DL/${PREFIX}-attestation.json" || fail "attestation.json in bundle differs from the published one"
+cmp -s "$B/build-config.json" "$DL/${PREFIX}-build-config.json" || fail "build-config.json in bundle differs from the published one"
+cmp -s "$B/checksums.sha256" "$DL/checksums.sha256" || fail "checksums.sha256 in bundle differs from the published one"
+(cd "$DL" && grep -E "  (\./)?blvm-${VERSION}-linux-(x86_64|aarch64)-musl$" checksums.sha256 | sha256sum -c --quiet) \
+  || fail "published musl binaries do not match checksums.sha256"
+A="$B/attestation.json"
+[[ "$(jq -r '.release.tag' "$A")" == "$TAG" ]] || fail "attestation is for a different tag"
+[[ "$(jq -r '.release.unverified' "$A")" == "false" ]] || fail "attestation marks this release unverified"
+[[ "$(jq -r '.build.build_config_hash' "$A")" == "$(sha256sum "$B/build-config.json" | cut -d' ' -f1)" ]] \
+  || fail "build_config_hash does not match build-config.json"
+[[ "$(jq -r '.checksums_sha256' "$A")" == "$(sha256sum "$B/checksums.sha256" | cut -d' ' -f1)" ]] \
+  || fail "checksums_sha256 does not match checksums.sha256"
+[[ "$(jq -r '.spec_lock.verify.exit_code' "$A")" == "0" ]] || fail "spec-lock verify did not pass for this release"
+[[ "$(jq -r '.spec_lock.verify.report_sha256' "$A")" == "$(sha256sum "$B/spec_lock_verify.json" | cut -d' ' -f1)" ]] \
+  || fail "spec_lock_verify.json does not match the hash in the attestation"
+[[ "$(jq -r '.spec_lock.spec.spec_hash' "$A")" == "$(sha256sum "$B/spec_files.sha256" | cut -d' ' -f1)" ]] \
+  || fail "spec_hash does not match spec_files.sha256"
+ok "bundle is consistent"
+
+# 4. Source: the tag's tree is what the attestation names.
+COMMIT="$(jq -r '.source.commit' "$A")"
+SRC="$WORKDIR/src"
+rm -rf "$SRC"
+git clone --quiet --depth 1 --branch "$TAG" "https://github.com/${REPO}.git" "$SRC"
+[[ "$(git -C "$SRC" rev-parse HEAD)" == "$COMMIT" ]] || fail "tag ${TAG} does not point at attested commit ${COMMIT}"
+SOURCE_HASH="$(git -C "$SRC" ls-tree -r --full-tree HEAD | sha256sum | cut -d' ' -f1)"
+[[ "$SOURCE_HASH" == "$(jq -r '.source.source_hash' "$A")" ]] || fail "source_hash mismatch"
+ok "source tree matches (${COMMIT})"
+
+# 5. Rebuild the static musl binaries exactly as CI did.
+(
+  cd "$SRC"
+  awk '/^\[patch\.crates-io\]/ { skip = 1; next } skip && /^\[/ { skip = 0 } !skip { print }' Cargo.toml > Cargo.toml.tmp
+  mv Cargo.toml.tmp Cargo.toml
+  bash scripts/release-bump-version.sh "$VERSION"
+  LOCK_SHA="$(sha256sum Cargo.lock | cut -d' ' -f1)"
+  [[ "$LOCK_SHA" == "$(jq -r '.cargo_lock_sha256_after_bump' "$B/build-config.json")" ]] \
+    || { echo "❌ Cargo.lock after bump differs from build-config.json" >&2; exit 1; }
+  for arch in x86_64 aarch64; do
+    bash scripts/ci-build-musl.sh "$WORKDIR/target" "$VERSION" "$arch"
+  done
+)
+MISMATCH=0
+for arch in x86_64 aarch64; do
+  f="blvm-${VERSION}-linux-${arch}-musl"
+  want="$(sha256sum "$DL/$f" | cut -d' ' -f1)"
+  got="$(sha256sum "$SRC/$f" | cut -d' ' -f1)"
+  if [[ "$want" == "$got" ]]; then
+    ok "rebuilt ${f} matches (${got})"
+  else
+    echo "❌ rebuilt ${f} ${got} != published ${want}" >&2
+    MISMATCH=1
+  fi
+done
+if [[ "$MISMATCH" -ne 0 ]]; then
+  echo "Not signing. Compare the two binaries (for example with diffoscope) to find the difference:" >&2
+  echo "  ${DL}/blvm-${VERSION}-linux-<arch>-musl  vs  ${SRC}/blvm-${VERSION}-linux-<arch>-musl" >&2
+  exit 1
 fi
 
-if [[ -z "$COMMIT" ]]; then
-    echo "Error: --commit or BLVM_RELEASE_COMMIT required" >&2
-    exit 1
+# 6. Sign the bundle and check the signature with our own public key.
+SPEC_HASH="$(jq -r '.spec_lock.spec.spec_hash' "$A")"
+BUILD_CONFIG_HASH="$(jq -r '.build.build_config_hash' "$A")"
+SIG="$WORKDIR/${PREFIX}-verification-bundle.${NAME}.sig.json"
+blvm-sign-binary --key "$KEY" --output "$SIG" bundle \
+  --file "$DL/$BUNDLE" --source-hash "$SOURCE_HASH" --build-config-hash "$BUILD_CONFIG_HASH" --spec-hash "$SPEC_HASH" >/dev/null
+PUB="$WORKDIR/${NAME}.pub.json"
+jq '{public_key}' "$KEY" > "$PUB"
+blvm-verify-binary --signatures "$SIG" --pubkeys "$PUB" bundle \
+  --file "$DL/$BUNDLE" --source-hash "$SOURCE_HASH" --build-config-hash "$BUILD_CONFIG_HASH" --spec-hash "$SPEC_HASH" >/dev/null \
+  || fail "own signature did not verify"
+ok "signed: ${SIG}"
+
+echo
+echo "Spec-lock result you are signing off on:"
+jq '{checked_crate: .spec_lock.checked_crate, spec_git_sha: .spec_lock.spec.git_sha, summary: .spec_lock.verify.summary}' "$A"
+
+if [[ "$UPLOAD" -eq 1 ]]; then
+  gh release upload "$TAG" "$SIG" --repo "$REPO"
+  ok "uploaded $(basename "$SIG") to ${TAG}"
+else
+  echo "Upload with: gh release upload ${TAG} ${SIG} --repo ${REPO}"
 fi
-
-if [[ -z "$SIGN_KEY" ]]; then
-    echo "Warning: --key or BLVM_SIGN_KEY not set, skipping signing" >&2
-    echo "Note: This script will create signature files but won't sign them" >&2
-fi
-
-# Create signatures directory
-mkdir -p "${SIGNATURES_DIR}"
-
-echo "=== Signing Release ==="
-echo "Version: ${VERSION}"
-echo "Commit: ${COMMIT}"
-echo "Threshold: ${THRESHOLD}"
-echo "Binary Type: ${BINARY_TYPE}"
-echo ""
-
-# Sign binaries
-if [[ -d "${ARTIFACTS_DIR}/binaries" ]]; then
-    echo "=== Signing Binaries ==="
-    for binary in "${ARTIFACTS_DIR}"/binaries/*; do
-        if [[ -f "$binary" && -x "$binary" ]]; then
-            binary_name=$(basename "$binary")
-            sig_file="${SIGNATURES_DIR}/${binary_name}.sig"
-            
-            if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
-                echo "Signing: ${binary_name}"
-                blvm-sign-binary binary \
-                    --file "$binary" \
-                    --binary-type "$BINARY_TYPE" \
-                    --version "$VERSION" \
-                    --commit "$COMMIT" \
-                    --key "$SIGN_KEY" \
-                    --output "$sig_file" || {
-                    echo "Warning: Failed to sign ${binary_name}" >&2
-                }
-            else
-                echo "Skipping: ${binary_name} (no key or blvm-sign-binary not found)"
-            fi
-        fi
-    done
-fi
-
-# Sign SHA256SUMS
-if [[ -f "${ARTIFACTS_DIR}/SHA256SUMS" ]]; then
-    echo ""
-    echo "=== Signing SHA256SUMS ==="
-    sig_file="${SIGNATURES_DIR}/SHA256SUMS.sig"
-    
-    if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
-        blvm-sign-binary checksums \
-            --file "${ARTIFACTS_DIR}/SHA256SUMS" \
-            --version "$VERSION" \
-            --key "$SIGN_KEY" \
-            --output "$sig_file" || {
-            echo "Warning: Failed to sign SHA256SUMS" >&2
-        }
-    else
-        echo "Skipping SHA256SUMS (no key or blvm-sign-binary not found)"
-    fi
-fi
-
-# Sign verification bundles
-if [[ -d "${ARTIFACTS_DIR}" ]]; then
-    echo ""
-    echo "=== Signing Verification Bundles ==="
-    for bundle in "${ARTIFACTS_DIR}"/verify-artifacts*.tar.gz; do
-        if [[ -f "$bundle" ]]; then
-            bundle_name=$(basename "$bundle")
-            sig_file="${SIGNATURES_DIR}/${bundle_name}.sig"
-            
-            # Get source hash from git if available
-            SOURCE_HASH=""
-            if command -v git >/dev/null 2>&1; then
-                SOURCE_HASH=$(git rev-parse HEAD 2>/dev/null || echo "")
-            fi
-            
-            if [[ -n "$SIGN_KEY" ]] && command -v blvm-sign-binary >/dev/null 2>&1; then
-                echo "Signing: ${bundle_name}"
-                blvm-sign-binary bundle \
-                    --file "$bundle" \
-                    --source-hash "${SOURCE_HASH}" \
-                    --key "$SIGN_KEY" \
-                    --output "$sig_file" || {
-                    echo "Warning: Failed to sign ${bundle_name}" >&2
-                }
-            else
-                echo "Skipping: ${bundle_name} (no key or blvm-sign-binary not found)"
-            fi
-        fi
-    done
-fi
-
-# Aggregate signatures if multiple maintainers signed
-if [[ -n "${BLVM_MAINTAINER_KEYS:-}" ]] && command -v blvm-aggregate-signatures >/dev/null 2>&1; then
-    echo ""
-    echo "=== Aggregating Signatures ==="
-    
-    # Find all signature files
-    sig_files=$(find "${SIGNATURES_DIR}" -name "*.sig" | tr '\n' ',')
-    if [[ -n "$sig_files" ]]; then
-        sig_files="${sig_files%,}" # Remove trailing comma
-        
-        # Aggregate each type of signature
-        for sig_type in "binary" "checksums" "bundle"; do
-            type_sigs=$(find "${SIGNATURES_DIR}" -name "*${sig_type}*.sig" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
-            if [[ -n "$type_sigs" ]]; then
-                aggregated="${SIGNATURES_DIR}/${sig_type}-signatures-aggregated.json"
-                blvm-aggregate-signatures \
-                    --signatures "$type_sigs" \
-                    --threshold "$THRESHOLD" \
-                    --pubkeys "${BLVM_MAINTAINER_KEYS}" \
-                    --output "$aggregated" || {
-                    echo "Warning: Failed to aggregate ${sig_type} signatures" >&2
-                }
-            fi
-        done
-    fi
-fi
-
-echo ""
-echo "=== Signing Complete ==="
-echo "Signatures saved to: ${SIGNATURES_DIR}"
-echo ""
-echo "Next steps:"
-echo "1. Collect signatures from other maintainers"
-echo "2. Aggregate signatures: blvm-aggregate-signatures --signatures sig1.json,sig2.json,... --threshold ${THRESHOLD}"
-echo "3. Verify signatures: blvm-verify-binary ... --signatures aggregated.json --threshold ${THRESHOLD}"
-
-

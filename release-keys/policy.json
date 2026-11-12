@@ -1,0 +1,6 @@
+{
+  "schema": "blvm-release-keys/v1",
+  "threshold": 0,
+  "maintainers": [],
+  "note": "threshold 0 means no maintainer keys are enrolled yet, so scripts/verify-release.sh reports maintainer signatures as not enforced. Enroll a key by adding {\"name\": \"<name>\", \"public_key_file\": \"<name>.pub.json\"} and committing <name>.pub.json, then raise threshold."
+}

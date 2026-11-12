@@ -520,9 +520,65 @@ jobs:
         with:
           operation: prune
 
+  # Spec-lock evidence for the blvm-consensus crate this release links (Cargo.lock pin).
+  # Runs beside the quality gates; release waits for it and ships the report in the
+  # verification bundle. See scripts/spec-lock-evidence.sh.
+  spec-evidence:
+    name: Spec-lock evidence (linked blvm-consensus)
+    needs: setup
+    runs-on: [self-hosted, Linux, X64, builds]
+    timeout-minutes: 90
+    if: |
+      always() &&
+      needs.setup.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      !contains(needs.setup.outputs.commit_msg_bundle, '[skip_release]') &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip_release]'))
+    steps:
+      - name: Disk check
+        uses: BTCDecoded/rust-ci/runner-disk-guard@d85c57b20ba1f5f6ad8264d108a6ffa8762c6c75
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+
+      - name: Strip [patch.crates-io] for crates.io-only CI
+        uses: BTCDecoded/rust-ci/strip-patch-crates-io@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+
+      - name: Install Rust
+        uses: BTCDecoded/rust-ci/install-rust-toolchain@a67baba81bbfbdbeb8784f9384584b69a7e0e8f5
+
+      - name: Check out blvm-spec (HEAD at release time)
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/blvm-spec"
+          git clone --depth 1 https://github.com/BTCDecoded/blvm-spec.git "${RUNNER_TEMP}/blvm-spec"
+          echo "blvm-spec HEAD: $(git -C "${RUNNER_TEMP}/blvm-spec" rev-parse HEAD)"
+
+      - name: Install Z3 headers for blvm-spec-lock
+        run: |
+          if [ -f /usr/include/z3.h ]; then exit 0; fi
+          if command -v pacman >/dev/null 2>&1; then
+            sudo pacman -Sy --noconfirm --needed z3
+          elif command -v apt-get >/dev/null 2>&1; then
+            bash scripts/apt-get-retry.sh update -qq
+            bash scripts/apt-get-retry.sh install -y -qq libz3-dev
+          fi
+
+      - name: Run spec-lock on the linked consensus crate
+        run: bash scripts/spec-lock-evidence.sh "${RUNNER_TEMP}/blvm-spec" spec-evidence
+
+      - name: Upload spec-lock evidence
+        if: always()
+        uses: actions/upload-artifact@v5  # pin to a commit SHA like the other actions here
+        with:
+          name: spec-lock-evidence
+          path: spec-evidence/
+          if-no-files-found: error
+          retention-days: 90
+
   release:
     name: Release
-    needs: [setup, build, test, clippy, fmt, docs, security]
+    needs: [setup, build, test, clippy, fmt, docs, security, spec-evidence]
     runs-on: [self-hosted, Linux, X64, builds]
     permissions:
       contents: write
@@ -548,7 +604,8 @@ jobs:
          needs.clippy.result == 'success' &&
          needs.fmt.result == 'success' &&
          needs.docs.result == 'success' &&
-         needs.security.result == 'success'
+         needs.security.result == 'success' &&
+         needs.spec-evidence.result == 'success'
        ))
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -648,27 +705,8 @@ jobs:
           echo "✅ Releasing: ${VERSION_TAG}"
 
       - name: Bump Cargo.toml version
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          awk -v ver="$VERSION" '
-            BEGIN { in_package = 0 }
-            /^\[package\]/ { in_package = 1; print; next }
-            in_package && /^\[/ { in_package = 0 }
-            in_package && /^version = / { print "version = \"" ver "\""; next }
-            { print }
-          ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
-          ACTUAL=$(grep -A 5 '^\[package\]' Cargo.toml | grep '^version = ' | head -1 | sed -E 's/^version = "([^"]+)".*/\1/')
-          [ "$ACTUAL" = "$VERSION" ] || { echo "❌ Version bump failed"; exit 1; }
-          # The release builds use --locked, so the root package entry in
-          # Cargo.lock must carry the bumped version too.
-          awk -v ver="$VERSION" '
-            /^name = "blvm"$/ { print; is_root = 1; next }
-            is_root && /^version = / { print "version = \"" ver "\""; is_root = 0; next }
-            { is_root = 0; print }
-          ' Cargo.lock > Cargo.lock.tmp && mv Cargo.lock.tmp Cargo.lock
-          grep -A 1 '^name = "blvm"$' Cargo.lock | grep -qx "version = \"${VERSION}\"" \
-            || { echo "❌ Cargo.lock root version bump failed"; exit 1; }
-          echo "✅ Cargo.toml and Cargo.lock bumped to ${VERSION}"
+        # Same script sign-release.sh applies, so a rebuild from the tag matches.
+        run: bash scripts/release-bump-version.sh "${{ steps.version.outputs.version }}"
 
       - name: Install packaging tools and cross-compilers
         run: |
@@ -771,6 +809,23 @@ jobs:
           export CARGO_TARGET_DIR=/tmp/gh-blvm-release-build/${{ github.run_id }}/target
           scripts/ci-build-aarch64.sh "$CARGO_TARGET_DIR" "${{ steps.version.outputs.version }}"
 
+      # Static musl binaries: run on any Linux (NixOS, Alpine), and are the
+      # builds maintainers reproduce before signing (scripts/sign-release.sh).
+      # Non-blocking until the first green run on the self-hosted runners.
+      - name: Build Linux x86_64 static musl binary
+        id: build_musl_x86_64
+        continue-on-error: true
+        env:
+          CARGO_BUILD_JOBS: 8
+        run: bash scripts/ci-build-musl.sh /tmp/gh-blvm-release-build/${{ github.run_id }}/target-musl "${{ steps.version.outputs.version }}" x86_64
+
+      - name: Build Linux aarch64 static musl binary
+        id: build_musl_aarch64
+        continue-on-error: true
+        env:
+          CARGO_BUILD_JOBS: 8
+        run: bash scripts/ci-build-musl.sh /tmp/gh-blvm-release-build/${{ github.run_id }}/target-musl "${{ steps.version.outputs.version }}" aarch64
+
       # Linux .tar.gz + Windows .zip (base), SHA256SUMS-blvm-*, RELEASE_NOTES.md,
       # Arch-style .pkg.tar.gz; SHA256SUMS-linux-packages.txt filled when staging.
       - name: Collect distribution bundles (tarballs, Arch pkg)
@@ -845,7 +900,9 @@ jobs:
           done
           for f in \
             blvm_${VERSION}_amd64.deb \
-            blvm-${VERSION}-1.x86_64.rpm; do
+            blvm-${VERSION}-1.x86_64.rpm \
+            "blvm-${VERSION}-linux-x86_64-musl" \
+            "blvm-${VERSION}-linux-aarch64-musl"; do
             [ -f "$f" ] && cp "$f" release-artifacts/
           done
           if [ -d artifacts ]; then
@@ -895,13 +952,41 @@ jobs:
             echo "sdk=$(linked_ver blvm-sdk)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Attest release binaries
+      # Skipped only on a workflow_dispatch skip_tests release (tag ends in -unverified).
+      - name: Download spec-lock evidence
+        if: needs.spec-evidence.result == 'success'
+        uses: actions/download-artifact@v5  # pin to a commit SHA like the other actions here
+        with:
+          name: spec-lock-evidence
+          path: spec-evidence
+
+      # Writes blvm-<tag>-attestation.json, -build-config.json and
+      # -verification-bundle.tar.gz into release-artifacts/. Maintainers sign the bundle.
+      - name: Release attestation and verification bundle
+        id: attestation
+        if: needs.spec-evidence.result == 'success'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          VERSION_TAG: ${{ steps.version.outputs.version_tag }}
+          ARTIFACTS_DIR: release-artifacts
+          EVIDENCE_DIR: spec-evidence
+          SOURCE_COMMIT: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GATES_JSON: >-
+            {"build":"${{ needs.build.result }}","test":"${{ needs.test.result }}",
+            "clippy":"${{ needs.clippy.result }}","fmt":"${{ needs.fmt.result }}",
+            "docs":"${{ needs.docs.result }}","security":"${{ needs.security.result }}",
+            "spec_evidence":"${{ needs.spec-evidence.result }}",
+            "musl_x86_64":"${{ steps.build_musl_x86_64.outcome }}",
+            "musl_aarch64":"${{ steps.build_musl_aarch64.outcome }}"}
+        run: bash scripts/release-attestation.sh
+
+      # Sigstore build provenance for every uploaded file, including the
+      # checksums, the attestation, and the verification bundle.
+      - name: Attest release artifacts
         uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45
         with:
-          subject-path: |
-            blvm-${{ steps.version.outputs.version }}-linux-x86_64
-            blvm-${{ steps.version.outputs.version }}-linux-aarch64
-            blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe
+          subject-path: release-artifacts/*
 
       - name: Create and push version tag
         run: |
@@ -940,13 +1025,20 @@ jobs:
             | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | `cargo generate-rpm` |
             | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Linux defaults minus Unix-only nix/libc |
             | **Windows x86_64** (zip) | `blvm-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | Same as .exe in archive form |
+            | **Linux x86_64** (static) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64-musl` | Static musl build; runs on any Linux incl. NixOS and Alpine. Maintainers reproduce this build before signing |
+            | **Linux aarch64** (static) | `blvm-${{ steps.version.outputs.version }}-linux-aarch64-musl` | Static musl build for 64-bit ARM (Raspberry Pi 4/5) |
             | **Checksums** | `checksums.sha256`, `SHA256SUMS-blvm-*`, `SHA256SUMS-linux-packages.txt` | Verify downloads |
+            | **Attestation** | `blvm-${{ steps.version.outputs.version_tag }}-attestation.json`, `-build-config.json`, `-verification-bundle.tar.gz` | Source, build inputs, artifact hashes, CI gates, and the spec-lock report for the linked consensus crate |
+            | **Maintainer signatures** | `blvm-${{ steps.version.outputs.version_tag }}-verification-bundle.<name>.sig.json` | Added after release by maintainers who rebuilt the musl binaries and got matching hashes |
 
             ## Verify
 
             ```bash
             sha256sum -c checksums.sha256
+            gh attestation verify <file> --repo ${{ github.repository }}   # Sigstore provenance from this CI run
             ```
+
+            Full check (checksums, provenance, bundle, spec-lock result, maintainer signatures): `scripts/verify-release.sh --tag ${{ steps.version.outputs.version_tag }}` from a checkout of this repo.
 
             ## Install
 
