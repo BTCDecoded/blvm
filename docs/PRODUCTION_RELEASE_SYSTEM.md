@@ -2,7 +2,7 @@
 
 ## Overview
 
-The production release workflow is `.github/workflows/release.yml`. `release_prod.yml` is not in this commit. The Linux base hash check fails the job on a mismatch. That hash check is Built for the blvm and blvm-sdk base variants, and the workflow is started by hand. Maintainer attestation of a release is Designed and is not in the workflow. Operators are meant to accept a release only when those signatures attest to a reproducible build.
+The production release workflow is `.github/workflows/release.yml`. `release_prod.yml` is not in this commit. The Linux base hash check fails the job on a mismatch. That hash check is Built for the blvm and blvm-sdk base variants, and the workflow is started by hand. The attestation record and maintainer signing tools are Built (see [RELEASE_ATTESTATION.md](RELEASE_ATTESTATION.md)). The signature threshold is Designed until maintainer keys are enrolled in `release-keys/policy.json`. Operators are meant to accept a release only when those signatures attest to a reproducible build.
 
 ## Key Features
 

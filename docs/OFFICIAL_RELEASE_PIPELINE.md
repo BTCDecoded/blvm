@@ -1,6 +1,6 @@
 # Official Release Pipeline Design
 
-Release attestation is the last enforcement line. Operators accept a release only when the required maintainer signatures attest to a reproducible build. That attestation is Designed. It is not in this workflow. A reproducible hash comparison is Built for the blvm and blvm-sdk base variants in `.github/workflows/release.yml`, and that workflow is started by hand. GPG signing below is still a future improvement, not that attestation.
+Release attestation is the last enforcement line. Operators accept a release only when the required maintainer signatures attest to a reproducible build. The attestation record, Sigstore provenance on every release file, spec-lock evidence for the linked consensus crate, and the maintainer rebuild-and-sign script are Built in `ci.yml` and `scripts/` (see [RELEASE_ATTESTATION.md](RELEASE_ATTESTATION.md)). Enforcing a signature threshold is still Designed, because `release-keys/policy.json` enrolls no keys yet. A reproducible hash comparison is Built for the blvm and blvm-sdk base variants in `.github/workflows/release.yml`, and that workflow is started by hand.
 
 ## Summary
 
@@ -321,7 +321,7 @@ Each archive contains:
 ### Long Term
 
 - OpenTimestamps anchoring
-- Release attestations
+- Maintainer key enrollment and a nonzero signature threshold in `release-keys/policy.json`
 - Automated changelog generation
 - Major/minor version detection
 - Release set coordination UI

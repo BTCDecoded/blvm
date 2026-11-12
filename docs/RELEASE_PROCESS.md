@@ -83,6 +83,8 @@ Both variants are built for:
 - **Linux x86_64** (native)
 - **Windows x86_64** (cross-compiled with MinGW)
 
+The stable `ci.yml` release also ships Linux aarch64 (glibc) and static musl binaries for x86_64 and aarch64. The musl binaries run on any Linux, including NixOS and Alpine, and are the builds maintainers reproduce before signing.
+
 ## Release Artifacts
 
 ### Binaries Included
@@ -266,6 +268,7 @@ For patch releases:
 - Tags are immutable once created
 - Releases require passing tests
 - Artifact checksums are SHA256 files. A checksum is not a signature.
+- Every release file has Sigstore build provenance, and each release carries an attestation and verification bundle that maintainers sign after rebuilding. See [RELEASE_ATTESTATION.md](RELEASE_ATTESTATION.md).
 
 ## Cargo Registry Publishing
 
@@ -379,8 +382,7 @@ See workspace [DEVELOP_CHANNEL_GO_LIVE.md](../../docs/DEVELOP_CHANNEL_GO_LIVE.md
 ## Future Enhancements
 
 Planned improvements:
-- GPG signing of releases
-- Release attestations
+- Enroll maintainer release keys and set a signature threshold (`release-keys/policy.json`)
 - OpenTimestamps anchoring
 - Automated version bumping in versions.toml
 - Release notifications
