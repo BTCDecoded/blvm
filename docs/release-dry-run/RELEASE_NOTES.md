@@ -48,6 +48,14 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 
 ## Consensus
 
+- blvm-consensus: test(consensus): lock the BIP34 coinbase height encoding through 65535 ([f4e06a68a947](https://github.com/BTCDecoded/blvm-consensus/commit/f4e06a68a947153585a449711dafa608dc43dcc4))
+- blvm-consensus: test(consensus): lock merkle roots for every small tree of three ids ([a687e4a527b0](https://github.com/BTCDecoded/blvm-consensus/commit/a687e4a527b01e7e00248501f898b03de2a42a81))
+- blvm-consensus: test(consensus): lock sigop counts when a push hides the next opcode ([e1ef9d3a33f8](https://github.com/BTCDecoded/blvm-consensus/commit/e1ef9d3a33f839f3f2b34d1ff9c90bf068010e86))
+- blvm-consensus: test(consensus): lock witness programs across version and length ([6b8b3303a020](https://github.com/BTCDecoded/blvm-consensus/commit/6b8b3303a020d33fe7b790e6068a4ef8942636ae))
+- blvm-consensus: test(consensus): lock CLTV across the height and timestamp cut ([86d9e7116001](https://github.com/BTCDecoded/blvm-consensus/commit/86d9e71160010031dab586a123d67a9297ee16a3))
+- blvm-consensus: test(consensus): lock difficulty retarget across the compact grid ([30a9589fb57e](https://github.com/BTCDecoded/blvm-consensus/commit/30a9589fb57eb17c9a2c62afab4ae72509db98c2))
+- blvm-consensus: fix(consensus): keep the borrow when chainwork subtraction crosses a zero limb ([7f6296b62c0f](https://github.com/BTCDecoded/blvm-consensus/commit/7f6296b62c0f2ad3b495e0ddaad8933f984ae802))
+- blvm-consensus: fix(consensus): score every committed script and transaction vector ([db81faac6d65](https://github.com/BTCDecoded/blvm-consensus/commit/db81faac6d6550057840ac38de0855ede78259f7))
 - blvm-consensus: Bump version to 0.1.82 for release [skip ci] ([f63c32856a2d](https://github.com/BTCDecoded/blvm-consensus/commit/f63c32856a2da874296524f40b8cbd35518d8096))
 - blvm-consensus: refactor(consensus): move large test modules out of the implementation files ([8142c648586d](https://github.com/BTCDecoded/blvm-consensus/commit/8142c648586d01decaf863ddd84ea69e830b23f3))
 - blvm-consensus: Bump version to 0.1.81 for release [skip ci] ([ba0dd3f729a7](https://github.com/BTCDecoded/blvm-consensus/commit/ba0dd3f729a7aca419de0c4ee22dc302ff6d86a3))
@@ -93,11 +101,43 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 
 ## Security
 
-- None in this range.
+Ids below are copied from the advisory record.
+
+### Closed
+
+- BLVM-2026-0001 (consensus, closed, blvm-consensus, fixed version 0.1.80, crate release 0.1.80): An overflowing output sum was an internal error instead of an invalid block ([e58e0ad2003a](https://github.com/BTCDecoded/blvm-consensus/commit/e58e0ad2003a0474d0bb7d9751af29f6b426d3c1))
+- BLVM-2026-0002 (consensus, closed, blvm-node, fixed version 0.1.92, crate release 0.1.92): A failed reorg left the coin set rewound ([76f2b437ceed](https://github.com/BTCDecoded/blvm-node/commit/76f2b437ceed005da0d5b26365b06e952e6d4cc8))
+- BLVM-2026-0003 (resource exhaustion, closed, blvm-node, fixed version 0.1.88, crate release 0.1.88): Inbound TCP connections were not capped per address ([ca0b77e3e9f0](https://github.com/BTCDecoded/blvm-node/commit/ca0b77e3e9f016d06113590896a667b55a925efd))
+- BLVM-2026-0004 (local-only, closed, blvm-node, fixed version 0.1.88, crate release 0.1.88): Module processes were not confined ([6230a225e259](https://github.com/BTCDecoded/blvm-node/commit/6230a225e2592211be4f1a32395441a4844f7808))
+
+### Open
+
+- BLVM-2026-0101 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0118 still applies to the dependency tree
+- BLVM-2026-0102 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0119 still applies to the dependency tree
+- BLVM-2026-0103 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0338 still applies to the dependency tree
+- BLVM-2026-0104 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0339 still applies to the dependency tree
+- BLVM-2026-0105 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0340 still applies to the dependency tree
+- BLVM-2026-0106 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0341 still applies to the dependency tree
+- BLVM-2026-0107 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0342 still applies to the dependency tree
+- BLVM-2026-0108 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0424 still applies to the dependency tree
+- BLVM-2026-0109 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0491 still applies to the dependency tree
+- BLVM-2026-0110 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0504 still applies to the dependency tree
+- BLVM-2026-0111 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0487 still applies to the dependency tree
+- BLVM-2026-0112 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0489 still applies to the dependency tree
+- BLVM-2026-0113 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0512 still applies to the dependency tree
+- BLVM-2026-0114 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0511 still applies to the dependency tree
+- BLVM-2026-0115 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0505 still applies to the dependency tree
+- BLVM-2026-0116 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0490 still applies to the dependency tree
+- BLVM-2026-0117 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0514 still applies to the dependency tree
+
+### Commits classified as security
+
+- blvm-node: fix(node): redact RPC and governance secrets in Debug ([dcffe304ff5c](https://github.com/BTCDecoded/blvm-node/commit/dcffe304ff5c368218e8eff0bdb0434a53358d37))
 
 ## Features
 
 - blvm: feat(blvm): pin blvm-index in the default module set ([4fe0f7e14047](https://github.com/BTCDecoded/blvm/commit/4fe0f7e14047dd1362b21ef5730c5bb37b25a3a1))
+- blvm-node: feat(node): load the minimal-hardened profile without a public field ([e3d1da4f4849](https://github.com/BTCDecoded/blvm-node/commit/e3d1da4f4849d2796b882f1cd3aeaf4a48617228))
 - blvm-node: feat(module): add the node-owned timer service ([e2920875520d](https://github.com/BTCDecoded/blvm-node/commit/e2920875520d1bb91bda58ecffd9ecee450d612e))
 - blvm-spec-lock: feat(lock): compare Rust and btc-lean only as differential evidence ([b199730b8a2b](https://github.com/BTCDecoded/blvm-spec-lock/commit/b199730b8a2b11b7a2e7b6c3fa4a5a8418a9b3e4))
 - blvm-spec-lock: feat(lock): gate Lean coverage on the pinned checkout ([862442df865c](https://github.com/BTCDecoded/blvm-spec-lock/commit/862442df865c7e38d73d1f0962c3b3aadcfa612f))
@@ -106,6 +146,8 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 
 ## Fixes
 
+- blvm: fix(blvm): compare getblockcount across the three release artifacts ([46c23a0d255f](https://github.com/BTCDecoded/blvm/commit/46c23a0d255fc6e6f8ef3b60d98a556efe23a102))
+- blvm: fix(blvm): do not report artifact parity before the RPC comparison ([8ae3c4464cbe](https://github.com/BTCDecoded/blvm/commit/8ae3c4464cbe8abb5a66fba822a5eb9a0d936d31))
 - blvm: fix(blvm): load miniscript on a fresh website install ([202c7f9e365a](https://github.com/BTCDecoded/blvm/commit/202c7f9e365abfc5b723ea6820a1bc22c45ea2e9))
 - blvm: fix(blvm): resolve the release feature list to the heed3 default ([1dfb88712746](https://github.com/BTCDecoded/blvm/commit/1dfb8871274646138c3751ed43fcaea60c09fc0a))
 - blvm: fix(blvm): inline the feature-gated format arguments ([789edcb8d18d](https://github.com/BTCDecoded/blvm/commit/789edcb8d18d18f896ae4bc7f2e09e3e419796fa))
@@ -113,6 +155,7 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm: fix(blvm): inline the format arguments clippy rejects ([e6fe7200c5dc](https://github.com/BTCDecoded/blvm/commit/e6fe7200c5dc5c250e2b6313dd9bee8d8537410f))
 - blvm: fix(blvm): refuse a missing named config and replace the file on write ([e01398712202](https://github.com/BTCDecoded/blvm/commit/e013987122023d81d8ad9a525dce0fcb1c0616fd))
 - blvm: fix(blvm): refuse stratum flags when the binary has no stratum feature ([1c3cbd1e41ef](https://github.com/BTCDecoded/blvm/commit/1c3cbd1e41efd8b3954e02af20e10faa9d22cc29))
+- blvm-node: fix(node): give the no-commitment retire loop its engine handle ([18286b35533b](https://github.com/BTCDecoded/blvm-node/commit/18286b35533bf14afb57a69c56a50f696e9131e6))
 - blvm-node: fix(node): grind the side-block submit until it meets the regtest target ([70b8562522b5](https://github.com/BTCDecoded/blvm-node/commit/70b8562522b53dce01ba0435211252a44f156a91))
 - blvm-node: fix(node): connect a submitted sibling at its parent's height ([148f75f66fec](https://github.com/BTCDecoded/blvm-node/commit/148f75f66fecfc754e6098126fdaa043ac4c68bf))
 - blvm-node: fix(node): restore a failed reorg and bound peer intake ([76f2b437ceed](https://github.com/BTCDecoded/blvm-node/commit/76f2b437ceed005da0d5b26365b06e952e6d4cc8))
@@ -181,6 +224,7 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-node: fix(node): admit the second mempool fixture ([3aada044f765](https://github.com/BTCDecoded/blvm-node/commit/3aada044f765a9f98e6b0cfdf26a58cdbb480902))
 - blvm-node: fix(node): admit the policy the tests are actually checking ([23ff2493bd75](https://github.com/BTCDecoded/blvm-node/commit/23ff2493bd75da42eb28bea3bd6d688471f6dbc4))
 - blvm-node: fix(node): close mempool and template splits with Core ([f7804dcdc253](https://github.com/BTCDecoded/blvm-node/commit/f7804dcdc2535b58e447b98d3c4bb6a77b5b2606))
+- blvm-node: fix(node): keep bulk IBD peers busy and duplicate a covered front ([a74bde453f26](https://github.com/BTCDecoded/blvm-node/commit/a74bde453f262b08103f72f17dd0b20b30f29fad))
 - blvm-protocol: fix(protocol): match compact-block short ids from one mempool pass ([aeb88a8639a2](https://github.com/BTCDecoded/blvm-protocol/commit/aeb88a8639a2aaff256d32f8a3e5a478f6ff42bd))
 - blvm-protocol: fix(protocol): keep CSV and CLTV inactive at genesis ([1f649024eb7f](https://github.com/BTCDecoded/blvm-protocol/commit/1f649024eb7f3a59ab19938da8473453a5b7dbd8))
 - blvm-protocol: fix(protocol): match activation heights and reject malformed wire ([ccc361b1a343](https://github.com/BTCDecoded/blvm-protocol/commit/ccc361b1a343d1cb5e809754ac17e7756a98c341))
@@ -209,6 +253,13 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 
 ## Internal
 
+- blvm: ci: keep self-hosted runners for Rust compile and test ([3a3ea871eb5e](https://github.com/BTCDecoded/blvm/commit/3a3ea871eb5eb2fdaf25ab8b0f9de21ecb3b4bd4))
+- blvm: chore(blvm): record the reviewed minimal direct dependencies ([df0322894b66](https://github.com/BTCDecoded/blvm/commit/df0322894b666bb8f0449e386e3ff90477544b29))
+- blvm: test(blvm): reject unknown networks and a missing versions file ([f860fee912d4](https://github.com/BTCDecoded/blvm/commit/f860fee912d4fff6c47db93b00484cfecbac140e))
+- blvm: docs(blvm): keep repository boundary notes under the reporting policy ([00d4864631b1](https://github.com/BTCDecoded/blvm/commit/00d4864631b13a5f2bc367356daf088753f19719))
+- blvm: docs(blvm): add the reporting policy and the 0.2.0-beta.1 dry run ([cc88b56078e4](https://github.com/BTCDecoded/blvm/commit/cc88b56078e4b82ada2e8a4d2f3ded0b7b0412aa))
+- blvm: ci(blvm): check commits, advisories, and the release dry run ([5a382e133b52](https://github.com/BTCDecoded/blvm/commit/5a382e133b52c86ad6cbceebf2339ca4277bcf4e))
+- blvm: build(blvm): add the minimal feature set ([af182f5f9a7a](https://github.com/BTCDecoded/blvm/commit/af182f5f9a7abe22b26f46ec11ebabe72d60237a))
 - blvm: docs: mark release attestation as Designed ([d7741e325bd8](https://github.com/BTCDecoded/blvm/commit/d7741e325bd8e82a389da5249e5f05da52b363f8))
 - blvm: chore(blvm): lock the crates published for this release ([c33f405042c8](https://github.com/BTCDecoded/blvm/commit/c33f405042c824e6d151b286a156c3283ff0a915))
 - blvm: chore(blvm): lock the published consensus, node, protocol, and secp crates ([c911353d4287](https://github.com/BTCDecoded/blvm/commit/c911353d428731dbc7fc2319096425ea0612360a))
@@ -227,6 +278,16 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm: Bring the module pins and CLI feature writes from dens-keep-wip onto main. ([a88f86c2f39d](https://github.com/BTCDecoded/blvm/commit/a88f86c2f39deb2d285d66b4f10f3bec59f979c6))
 - blvm: Seed the checked mainnet assume-valid hash from the binary overlay. ([85559abd06fd](https://github.com/BTCDecoded/blvm/commit/85559abd06fd46a46185abc1de7c5d0b7ca5c1f2))
 - blvm: Seed the checked mainnet assume-valid hash from the binary overlay. ([cbe91500baab](https://github.com/BTCDecoded/blvm/commit/cbe91500baabcf11caaa60bee04789892b859940))
+- blvm: ci(release): pin Cargo.lock to consensus 0.1.73 ([8b9e2b82511d](https://github.com/BTCDecoded/blvm/commit/8b9e2b82511ddfc8427c524abfd9cbce672874b3))
+- blvm-node: ci: keep self-hosted runners for Rust compile and test ([097caf82d512](https://github.com/BTCDecoded/blvm-node/commit/097caf82d51228bfdc559d029090a65184a3d2ef))
+- blvm-node: test(node): reject a mismatched probe hash and more mempool previews ([dc75c4e7608a](https://github.com/BTCDecoded/blvm-node/commit/dc75c4e7608afe2104d3388a94fdcb9791fc7504))
+- blvm-node: docs(node): add the reporting policy and a reconstructed changelog ([3e6b1eb7ccce](https://github.com/BTCDecoded/blvm-node/commit/3e6b1eb7ccce455ed4b2bd52202f0458a636cbfd))
+- blvm-node: ci(node): require a freeze marker on validation paths ([54313b8a465a](https://github.com/BTCDecoded/blvm-node/commit/54313b8a465a1b22573d51ffcad23f7c5972de80))
+- blvm-node: build(node): add the minimal feature set ([0cab271c5a5c](https://github.com/BTCDecoded/blvm-node/commit/0cab271c5a5cf462fc751ae1f5c244378dfb17b9))
+- blvm-node: Ask the failure mode and the repository hazard on the pull request template. ([24400a7c6525](https://github.com/BTCDecoded/blvm-node/commit/24400a7c6525b93b1bf8a35d7f3e8e089d039642))
+- blvm-node: Add a pull request template for the governance classification. ([61511f88935d](https://github.com/BTCDecoded/blvm-node/commit/61511f88935d4b01864234316fb6ca9c76c66baf))
+- blvm-node: test(node): run the redb-off rejection test only when redb is off ([1fac4f106cbe](https://github.com/BTCDecoded/blvm-node/commit/1fac4f106cbee3fe555c30f8128a4a6665b10d47))
+- blvm-node: test(node): rustfmt the moved test modules; bind the IPC test socket under /tmp ([7e1ff3700192](https://github.com/BTCDecoded/blvm-node/commit/7e1ff37001929b375830af9a849793f64b3f88f7))
 - blvm-node: test(node): assert one existing reject from each public entry ([36bb40c7e9a3](https://github.com/BTCDecoded/blvm-node/commit/36bb40c7e9a3f805274fa7e1bda30d0a6c082560))
 - blvm-node: refactor(node): move large test modules out of the implementation files ([a1c44b4083f4](https://github.com/BTCDecoded/blvm-node/commit/a1c44b4083f4b644b5ce91b252d01c41e19445c0))
 - blvm-node: Bump version to 0.1.92 for release [skip ci] ([794cc2940a28](https://github.com/BTCDecoded/blvm-node/commit/794cc2940a28e300b0a745dbd774a5ab8fe5268e))
@@ -261,6 +322,11 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-node: Bump version to 0.1.84 for release [skip ci] ([58ea6d7a988a](https://github.com/BTCDecoded/blvm-node/commit/58ea6d7a988aa24e22579bc6c42846472faaa292))
 - blvm-node: style(node): format the mempool and template fixes ([74eb0a4c199d](https://github.com/BTCDecoded/blvm-node/commit/74eb0a4c199d7ea92e40d972affe49e2f2b5fe9a))
 - blvm-node: Store the checked mainnet assume-valid hash and bake production IBD defaults. ([0f9776e9b918](https://github.com/BTCDecoded/blvm-node/commit/0f9776e9b918efb25bdcd6278a1c5d51e0a6d036))
+- blvm-node: style(node): wrap the covered-front assertion ([bf6d9eefb0bc](https://github.com/BTCDecoded/blvm-node/commit/bf6d9eefb0bc08a86fb0bf216b19089018295b6b))
+- blvm-consensus: ci: keep self-hosted runners for Rust compile and test ([0a17b131d65d](https://github.com/BTCDecoded/blvm-consensus/commit/0a17b131d65dcb80620a87720a66f2f12b9de985))
+- blvm-consensus: docs(consensus): keep the dependency pin notes under the reporting policy ([1e178978fe5a](https://github.com/BTCDecoded/blvm-consensus/commit/1e178978fe5a25ffd6017cfb00d4396c1918520c))
+- blvm-consensus: docs(consensus): add the reporting policy and a reconstructed changelog ([56b0a7315593](https://github.com/BTCDecoded/blvm-consensus/commit/56b0a73155939088dfbc735d0de527496c9722ba))
+- blvm-consensus: ci(consensus): require a freeze marker on consensus source ([471bbd2dedcc](https://github.com/BTCDecoded/blvm-consensus/commit/471bbd2dedcc7ebf61ee0253e0900725a7d894a3))
 - blvm-consensus: docs: drop the 1,000-input cap and the strict-mode Partial failure ([35dd7186a491](https://github.com/BTCDecoded/blvm-consensus/commit/35dd7186a4916e6bdd6edd9f85f8ad97a489390f))
 - blvm-consensus: style(consensus): format the p2sh sigop assertion ([c9ddb1121117](https://github.com/BTCDecoded/blvm-consensus/commit/c9ddb112111732f5a5115fcae3c5c8340d2486b8))
 - blvm-consensus: ci(consensus): compile tests without the incremental cache ([9cd1aab283cb](https://github.com/BTCDecoded/blvm-consensus/commit/9cd1aab283cb0b4baeb9e471fbde3f92c7562b13))
@@ -268,6 +334,12 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-consensus: docs: count the 13 functions proved from the body ([265b0eadc62c](https://github.com/BTCDecoded/blvm-consensus/commit/265b0eadc62c460399a6381132f5effc8791a6f3))
 - blvm-consensus: ci(consensus): verify with spec-lock 0.1.45 ([e9ea2fef942c](https://github.com/BTCDecoded/blvm-consensus/commit/e9ea2fef942c29fab8f417f1b9650b1b956b6ee6))
 - blvm-consensus: style(consensus): format the pay-to-anchor and script-code paths ([706e6f50ae97](https://github.com/BTCDecoded/blvm-consensus/commit/706e6f50ae97760e08b73422831e16227e22b952))
+- blvm-protocol: test(protocol): run the committed SipHash-2-4 and basic block-filter rows ([17f9af3a217f](https://github.com/BTCDecoded/blvm-protocol/commit/17f9af3a217f14674c1e59fbc7ebd7856a9e8f6b))
+- blvm-protocol: ci: keep self-hosted runners for Rust compile and test ([2055d42f7451](https://github.com/BTCDecoded/blvm-protocol/commit/2055d42f745196a8d59430073ea24e2db41921f2))
+- blvm-protocol: test(protocol): reject short, bad, and unknown p2p frames ([d3146f8bce40](https://github.com/BTCDecoded/blvm-protocol/commit/d3146f8bce4010ddae33747c5f02c50f423f1bc5))
+- blvm-protocol: docs(protocol): keep protocol boundary notes under the reporting policy ([b9af795892c9](https://github.com/BTCDecoded/blvm-protocol/commit/b9af795892c98c5d4504c325db215a02be02ad51))
+- blvm-protocol: docs(protocol): add the reporting policy and a reconstructed changelog ([166601db6616](https://github.com/BTCDecoded/blvm-protocol/commit/166601db6616791dc4e60b464f39fc43bad84d17))
+- blvm-protocol: ci(protocol): require a freeze marker on consensus parameters ([33269e4257ab](https://github.com/BTCDecoded/blvm-protocol/commit/33269e4257ab24f7333553f3fb9a36be510b62f6))
 - blvm-protocol: Bump version to 0.1.48 for release [skip ci] ([0bc9307a2235](https://github.com/BTCDecoded/blvm-protocol/commit/0bc9307a2235831fff52548621301b6084a9e809))
 - blvm-protocol: refactor(protocol): move large test modules out of the implementation files ([f26aa3984435](https://github.com/BTCDecoded/blvm-protocol/commit/f26aa3984435c4a56ebe901904fae019ef2dadae))
 - blvm-protocol: Bump version to 0.1.47 for release [skip ci] ([1bbc6fb60f6a](https://github.com/BTCDecoded/blvm-protocol/commit/1bbc6fb60f6a5f874035bbfe3ca580d8d51d7404))
@@ -285,6 +357,9 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-protocol: Bump version to 0.1.40 for release [skip ci] ([58c1b41e5851](https://github.com/BTCDecoded/blvm-protocol/commit/58c1b41e5851a6cd2b0b3b1cc7867e22acf1b937))
 - blvm-protocol: docs: call this crate a BLVM tier and point links at the documentation host ([82ef8efb14b5](https://github.com/BTCDecoded/blvm-protocol/commit/82ef8efb14b542f22718cce86f6fcaab3e1cc0e0))
 - blvm-protocol: ci(protocol): verify with spec-lock 0.1.45 ([d71197e825a4](https://github.com/BTCDecoded/blvm-protocol/commit/d71197e825a4e09f1c16f25be5ea0c829f78cb0b))
+- blvm-spec: ci: keep self-hosted runners for Rust compile and test ([295ef1ae6bf3](https://github.com/BTCDecoded/blvm-spec/commit/295ef1ae6bf3340418fed3ef7d4348282d69ea83))
+- blvm-spec: docs(spec): state the severity scale inside the reporting policy ([b52ab2ea4c81](https://github.com/BTCDecoded/blvm-spec/commit/b52ab2ea4c81e5e04878dfc06654c48defe54b40))
+- blvm-spec: ci(spec): require a freeze marker on the normative text ([fe9c1a5881b2](https://github.com/BTCDecoded/blvm-spec/commit/fe9c1a5881b271c9caf67f1ba662eedbbfe30910))
 - blvm-spec: docs(spec): match block weight and witness-program extraction to the implementation ([072ff0abb046](https://github.com/BTCDecoded/blvm-spec/commit/072ff0abb0460bc624664f62bbe930eb9b3e2983))
 - blvm-spec: chore: update SPEC_META.json [skip ci] ([cb4d98a74e85](https://github.com/BTCDecoded/blvm-spec/commit/cb4d98a74e85bc19ca7b205c221f55ff3cec4792))
 - blvm-spec: docs(spec): match header time, EvalScript, and CLTV to the implementation ([5ee506b89409](https://github.com/BTCDecoded/blvm-spec/commit/5ee506b8940988e02550a631d8fd85fb638f8b6f))
@@ -301,6 +376,10 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-spec: docs: count the 13 functions proved from the body ([8a7b487402d3](https://github.com/BTCDecoded/blvm-spec/commit/8a7b487402d36ce5fcf9b597489f9cbf30740cad))
 - blvm-spec: chore: update SPEC_META.json [skip ci] ([356dc8777f47](https://github.com/BTCDecoded/blvm-spec/commit/356dc8777f47870319eb881669a0b2b0b39f1ccd))
 - blvm-spec: docs(spec): bound the witness formulas by the section 4 constants ([0950da2c0aad](https://github.com/BTCDecoded/blvm-spec/commit/0950da2c0aadd26cb4be78ceb07eec5a13b8812c))
+- blvm-spec-lock: ci: keep self-hosted runners for Rust compile and test ([2bc90f0e3147](https://github.com/BTCDecoded/blvm-spec-lock/commit/2bc90f0e3147f7f456938830bd164d3c957fc665))
+- blvm-spec-lock: docs(spec-lock): state the severity scale inside the reporting policy ([a8793259d724](https://github.com/BTCDecoded/blvm-spec-lock/commit/a8793259d7240236ca040c504f66962a9193685d))
+- blvm-spec-lock: docs(spec-lock): add the reporting policy and a reconstructed changelog ([8b388c44ac4c](https://github.com/BTCDecoded/blvm-spec-lock/commit/8b388c44ac4cb2aadb3ccab7d881b02e5beb52de))
+- blvm-spec-lock: ci(spec-lock): require a freeze marker on the checker ([6c0f37d71745](https://github.com/BTCDecoded/blvm-spec-lock/commit/6c0f37d71745e15915309f3da4dcc785e6289447))
 - blvm-spec-lock: Bump version to 0.1.54 for release [skip ci] ([bddfae4ac806](https://github.com/BTCDecoded/blvm-spec-lock/commit/bddfae4ac8063f78bf654d7a2245c810d89f98d1))
 - blvm-spec-lock: Bump version to 0.1.53 for release [skip ci] ([f363a57a50dd](https://github.com/BTCDecoded/blvm-spec-lock/commit/f363a57a50dd3dd9c0b58fb1c694dc151c6b25f1))
 - blvm-spec-lock: docs: stop saying --strict fails a Partial result ([d9a3cbe52c78](https://github.com/BTCDecoded/blvm-spec-lock/commit/d9a3cbe52c7837cc6e3aa834ee50e6556fcac761))
@@ -318,6 +397,10 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 - blvm-spec-lock: ci: run the pinned Lean gates without a skip switch ([12ce76e8808a](https://github.com/BTCDecoded/blvm-spec-lock/commit/12ce76e8808a438d007696c920eb48c2e6be5d71))
 - blvm-spec-lock: test(lock): fail the Lean gate on the seven bad links ([8b1e35906944](https://github.com/BTCDecoded/blvm-spec-lock/commit/8b1e35906944e7772174e076bc5ed21313f7043f))
 - blvm-spec-lock: docs: pin the btc-lean commit and the axiom allowlist ([8a427beba4fa](https://github.com/BTCDecoded/blvm-spec-lock/commit/8a427beba4fa3b3a823061b7415c3ff03c344f7a))
+- blvm-primitives: ci: keep self-hosted runners for Rust compile and test ([fa1cd6957cf2](https://github.com/BTCDecoded/blvm-primitives/commit/fa1cd6957cf21b534ef1a135bdc00a8fcec604e5))
+- blvm-primitives: test(primitives): reject non-minimal varints and check the subsidy schedule ([f512a93266ec](https://github.com/BTCDecoded/blvm-primitives/commit/f512a93266ecb8132c0797e5d47097f331535219))
+- blvm-primitives: docs(primitives): state the severity scale inside the reporting policy ([f7fe49d0bb29](https://github.com/BTCDecoded/blvm-primitives/commit/f7fe49d0bb294d115927bc7b7019f3a6b0c98683))
+- blvm-primitives: docs(primitives): add the reporting policy and a reconstructed changelog ([86695d3208b6](https://github.com/BTCDecoded/blvm-primitives/commit/86695d3208b6c1ac6ad5c962eda982782acb1d11))
 - blvm-primitives: test(primitives): reject truncated buffers and arithmetic overflow ([0802458403a1](https://github.com/BTCDecoded/blvm-primitives/commit/0802458403a155206560749ab279470832988fe4))
 - blvm-primitives: Bump version to 0.1.34 for release [skip ci] ([ede6efb409bd](https://github.com/BTCDecoded/blvm-primitives/commit/ede6efb409bdfc93cef9eb9a47a2be5e9094bc59))
 - blvm-primitives: Bump version to 0.1.33 for release [skip ci] ([426e811ee549](https://github.com/BTCDecoded/blvm-primitives/commit/426e811ee549a59ab703fd373c423eb26cb32c7f))
