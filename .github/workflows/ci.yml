@@ -936,7 +936,9 @@ jobs:
             | **Linux x86_64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm` + governance CLIs (+ checksum file inside) |
             | **Linux aarch64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz` | `blvm` for 64-bit ARM Linux (+ checksum file inside) |
             | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | `pacman -U` |
+            | **Linux aarch64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-aarch64.pkg.tar.gz` | Raspberry Pi 4/5 (64-bit OS); `pacman -U` |
             | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | `cargo deb` (matches standalone binary) |
+            | **Linux aarch64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_arm64.deb` | Raspberry Pi 4/5 (64-bit OS) |
             | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | `cargo generate-rpm` |
             | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Linux defaults minus Unix-only nix/libc |
             | **Windows x86_64** (zip) | `blvm-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | Same as .exe in archive form |
@@ -982,16 +984,27 @@ jobs:
             sudo mv blvm /usr/local/bin/
             ```
 
-            **Debian/Ubuntu:**
+            **Debian/Ubuntu (x86_64):**
             ```bash
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_amd64.deb
             sudo dpkg -i blvm_${{ steps.version.outputs.version }}_amd64.deb
+            ```
+
+            **Debian/Ubuntu (Raspberry Pi 4/5, 64-bit OS):**
+            ```bash
+            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_arm64.deb
+            sudo dpkg -i blvm_${{ steps.version.outputs.version }}_arm64.deb
             ```
 
             **RHEL/Fedora:**
             ```bash
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
             sudo rpm -i blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
+            ```
+
+            **Nix / NixOS:** this tag includes `flake.nix` (heed3 package and a NixOS module for x86_64 and aarch64).
+            ```bash
+            nix build github:${{ github.repository }}/${{ steps.version.outputs.version_tag }}
             ```
 
             **Windows:** Download `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe`, verify checksum, and run from a terminal.

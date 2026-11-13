@@ -9,9 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMONS_DIR="$(dirname "$SCRIPT_DIR")"
 PARENT_DIR="$(dirname "$COMMONS_DIR")"
 VERSION="${1:-0.1.0}"
+ARCH="${2:-x86_64}"
+BIN_PATH="${3:-${PARENT_DIR}/blvm/target/release/blvm}"
 
 PACKAGE_NAME="blvm"
-PKGBUILD_DIR="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-arch"
+PKGBUILD_DIR="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-arch-${ARCH}"
 PKG_DIR="${PKGBUILD_DIR}/pkg"
 
 log_info() {
@@ -29,12 +31,12 @@ mkdir -p "${PKGBUILD_DIR}"
 mkdir -p "${PKG_DIR}/${PACKAGE_NAME}/usr/bin"
 
 # Copy binary
-if [ -f "${PARENT_DIR}/blvm/target/release/blvm" ]; then
-    cp "${PARENT_DIR}/blvm/target/release/blvm" "${PKG_DIR}/${PACKAGE_NAME}/usr/bin/"
+if [ -f "${BIN_PATH}" ]; then
+    cp "${BIN_PATH}" "${PKG_DIR}/${PACKAGE_NAME}/usr/bin/blvm"
     chmod +x "${PKG_DIR}/${PACKAGE_NAME}/usr/bin/blvm"
     log_success "Copied binary"
 else
-    echo "Error: Binary not found at ${PARENT_DIR}/blvm/target/release/blvm"
+    echo "Error: Binary not found at ${BIN_PATH}"
     exit 1
 fi
 
@@ -45,7 +47,7 @@ pkgname=${PACKAGE_NAME}
 pkgver=${VERSION}
 pkgrel=1
 pkgdesc="Bitcoin Commons BLVM - Bitcoin node"
-arch=('x86_64')
+arch=('${ARCH}')
 url="https://btcdecoded.org"
 license=('MIT')
 source=("blvm")
@@ -59,7 +61,7 @@ EOF
 # Arch-style payload tarball (gzip); suitable for manual pacman -U or mirrors
 log_info "Building Arch-style .pkg.tar.gz package..."
 cd "${PKGBUILD_DIR}"
-OUT="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-x86_64.pkg.tar.gz"
+OUT="${COMMONS_DIR}/artifacts/${PACKAGE_NAME}-${VERSION}-${ARCH}.pkg.tar.gz"
 tar -czf "${OUT}" -C "${PKG_DIR}/${PACKAGE_NAME}" .
 
 log_success "Created: ${OUT}"

@@ -2,7 +2,7 @@
 #
 # Create Debian package for blvm binary (base or experimental variant).
 #
-# Usage: package-deb.sh <semver> <deb-arch e.g. amd64> [base|experimental]
+# Usage: package-deb.sh <semver> <deb-arch e.g. amd64|arm64> [base|experimental] [binary]
 #
 
 set -euo pipefail
@@ -13,6 +13,7 @@ PARENT_DIR="$(dirname "$COMMONS_DIR")"
 VERSION="${1:-0.1.0}"
 ARCH="${2:-amd64}"
 VARIANT="${3:-base}"
+BIN_PATH="${4:-${PARENT_DIR}/blvm/target/release/blvm}"
 
 if [ "$VARIANT" != "base" ] && [ "$VARIANT" != "experimental" ]; then
   echo "ERROR: variant must be base or experimental" >&2
@@ -46,12 +47,12 @@ rm -rf "${PACKAGE_DIR}"
 mkdir -p "${DEBIAN_DIR}"
 mkdir -p "${BINARY_DIR}"
 
-if [ -f "${PARENT_DIR}/blvm/target/release/blvm" ]; then
-  cp "${PARENT_DIR}/blvm/target/release/blvm" "${BINARY_DIR}/${BIN_DEST_NAME}"
+if [ -f "${BIN_PATH}" ]; then
+  cp "${BIN_PATH}" "${BINARY_DIR}/${BIN_DEST_NAME}"
   chmod +x "${BINARY_DIR}/${BIN_DEST_NAME}"
   log_success "Copied binary"
 else
-  echo "Error: Binary not found at ${PARENT_DIR}/blvm/target/release/blvm"
+  echo "Error: Binary not found at ${BIN_PATH}"
   exit 1
 fi
 

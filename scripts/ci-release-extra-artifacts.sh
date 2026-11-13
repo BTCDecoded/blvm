@@ -87,6 +87,14 @@ collect_base_variants
 chmod +x "${BLVM_ROOT}/scripts/package-arch.sh" || true
 (cd "${BLVM_ROOT}" && ./scripts/package-arch.sh "${VERSION}")
 
+AARCH64_BIN="${BLVM_ROOT}/target/aarch64-unknown-linux-gnu/release/blvm"
+(cd "${BLVM_ROOT}" && ./scripts/package-arch.sh "${VERSION}" aarch64 "${AARCH64_BIN}")
+if command -v dpkg-deb >/dev/null 2>&1; then
+  (cd "${BLVM_ROOT}" && ./scripts/package-deb.sh "${VERSION}" arm64 base "${AARCH64_BIN}")
+else
+  log "WARN: dpkg-deb missing — skip arm64 .deb"
+fi
+
 log "artifacts/:"
 ls -la "${BLVM_ROOT}/artifacts/" 2>/dev/null || true
 log "Done."
