@@ -1,0 +1,27 @@
+[changelog]
+header = """# Changelog
+
+All notable changes to this crate are documented in this file.
+The format is based on Keep a Changelog.
+Entries grouped as Reconstructed were taken from git history before Conventional Commits were enforced.
+"""
+body = """
+## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group }}
+{% for commit in commits %}
+- {{ commit.message }} ([{{ commit.id }}]({{ commit.id }}))
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+tag_pattern = "v[0-9].*"
+commit_parsers = [
+  { message = "^feat", group = "Added" },
+  { message = "^fix", group = "Fixed" },
+  { message = "^.*", group = "Reconstructed" },
+]
