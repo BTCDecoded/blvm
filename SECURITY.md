@@ -1,111 +1,60 @@
-# Security Policy
+# Security policy
 
-This document covers repo-specific security boundaries. See the [BTCDecoded Security Policy](https://github.com/BTCDecoded/.github/blob/main/SECURITY.md) for organization-wide policy.
+BLVM validates Bitcoin. A consensus bug, a remote crash, and a memory-safety bug are the reports we want first.
 
-## Supported Versions
+## Report in private
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+Do not open a public GitHub issue for a vulnerability.
 
-## Reporting a Vulnerability
+1. GitHub private vulnerability reporting on the repository that contains the bug: `https://github.com/BTCDecoded/<repo>/security/advisories/new`.
+2. Email `security@thebitcoincommons.org`.
 
-**This repository contains build orchestration and release automation for the entire Bitcoin Commons ecosystem. Security vulnerabilities could affect all repositories and releases.**
+The encrypted channel is that mailbox. A published key is **not on file yet**. Until a maintainer publishes a fingerprint in this file, email is unencrypted and GitHub private reporting is the channel that keeps the report off the public issue tracker. Do not send a live mainnet exploit to a public list while the key is missing.
 
-### Critical Security Issues
+Include what you can: the crate, the commit, the network, whether you think it splits the chain or only crashes one process, and a minimal reproduction. A patch is welcome and not required.
 
-If you discover a security vulnerability in commons, please report it immediately:
+## Scope
 
-1. **DO NOT** create a public GitHub issue
-2. **DO NOT** discuss the vulnerability publicly
-3. **DO NOT** post on social media or forums
+In scope:
 
-### How to Report
+- Consensus and validation in `blvm-consensus`, `blvm-spec`, `blvm-spec-lock`, and the frozen paths in `blvm-protocol` and `blvm-node`.
+- Remote crash, denial of service, and memory safety in the node, the RPC server, and the P2P stack.
+- Authentication bypass on RPC.
+- Chainstate corruption after a crash or a reorg.
 
-**Email:** security@thebitcoincommons.org  
-**Subject:** [SECURITY] commons vulnerability
+Out of scope:
 
-Include the following information:
-- Description of the vulnerability
-- Steps to reproduce
-- Potential impact
-- Suggested fix (if any)
-- Your contact information
+- A third-party module you installed yourself, unless the node failed to confine it.
+- Social engineering of operators.
+- Issues that require a local account and do not cross into chainstate or keys, unless they are memory safety.
 
-### Response Timeline
+The node does not custody keys in the default build. Wallet-key bugs in a separate module are in scope for that module's repository and out of scope for consensus.
 
-- **Acknowledgment:** Within 24 hours
-- **Initial Assessment:** Within 72 hours
-- **Fix Development:** 1-2 weeks (depending on severity)
-- **Public Disclosure:** Coordinated with fix release
+## Response targets
 
-### Vulnerability Types
+These are targets, not a claim about past performance. The advisory record is the evidence.
 
-#### Critical (P0)
-- Build script injection vulnerabilities
-- Version coordination tampering
-- Release artifact corruption
-- Workflow security bypasses
-- Supply chain attacks
+| Step | Target |
+| --- | --- |
+| Acknowledgement | 2 days |
+| Triage, including a severity label from `docs/security/SEVERITY.md` | 7 days |
+| Fix for consensus, remote crash, or memory safety | 14 days after triage |
+| Fix for resource exhaustion | 30 days after triage |
+| Fix for local-only and informational | 90 days after triage |
+| Disclosure | When the fix is in a release, or sooner if the bug is being exploited. The default embargo after a fix is released is none: the release is the disclosure. A reporter can ask for a coordinated date up to 90 days after the fix. |
 
-#### High (P1)
-- Script execution vulnerabilities
-- Configuration file parsing issues
-- Authentication/authorization bypasses
-- Information disclosure
+## Embargo and credit
 
-#### Medium (P2)
-- Performance issues
-- Documentation errors
-- Non-critical script errors
+We keep the report private until the fix is released, unless the bug is already public or actively exploited. We credit the reporter in the advisory when they agree in writing. Silence is not consent. The reconstructed November entries leave the reporter blank and set `reporter_consent` to `pending`.
 
-### Security Considerations
+## Advisories
 
-#### Build Script Security
-- All scripts must validate inputs
-- No command injection vulnerabilities
-- Proper file path sanitization
-- Secure temporary file handling
+The append-only record is `docs/security/advisories/`. One OSV JSON file per id. A correction is a new id that references the old one. Do not edit a published file. The index is `INDEX.md`. The public counts are `docs/security/METRICS.md`.
 
-#### Version Coordination
-- Version files must be validated
-- No tampering with version mappings
-- Secure version file distribution
-- Integrity checks on version data
+Advisory files are signed the same way release tags are signed, once a signing key exists. They are unsigned in this tree. `scripts/release/sign-release.sh` exits 2 until `user.signingkey` is set.
 
-#### Workflow Security
-- GitHub Actions workflows must be secure
-- No secrets in workflow files
-- Proper authentication for API calls
-- Secure artifact handling
+Dependency advisories that affect a shipped build get an entry in the same directory. `cargo audit` and `cargo deny` run in CI. Ignore entries belong in `.cargo/audit.toml` with a reason, not only in a workflow flag.
 
-### Testing Requirements
+## Supported versions
 
-Before reporting, please verify:
-- [ ] The issue reproduces consistently
-- [ ] The issue affects build or release processes
-- [ ] The issue is not already known
-- [ ] The issue is not a feature request
-
-### Security Updates
-
-Security updates will be:
-- Released as patch versions (0.1.x)
-- Clearly marked as security fixes
-- Backported to all supported versions
-- Announced on our security mailing list
-
-### Contact Information
-
-- **Security Team:** security@thebitcoincommons.org
-- **General Inquiries:** info@btcdecoded.org
-- **Website:** https://btcdecoded.org
-
-### Acknowledgments
-
-We thank the security researchers who help keep the Bitcoin Commons ecosystem secure through responsible disclosure.
-
----
-
-**Remember:** This repository orchestrates builds and releases for the entire Bitcoin Commons ecosystem. Any vulnerabilities could affect all repositories. Please report responsibly.
-
+Security fixes target the current beta line once `0.2.0-beta.1` is published. Until that tag exists, the supported line is the highest published `0.1.x` tag of the affected crate. Older `0.1` tags are not maintained as a second line.
