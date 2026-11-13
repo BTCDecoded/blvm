@@ -129,6 +129,7 @@ Ids below are copied from the advisory record.
 - BLVM-2026-0115 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0505 still applies to the dependency tree
 - BLVM-2026-0116 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0490 still applies to the dependency tree
 - BLVM-2026-0117 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0514 still applies to the dependency tree
+- BLVM-2026-0118 (remote crash, open, blvm-node, fixed version unset, crate release unset): A compact-filter length that overflows the cursor aborts the parser ([9096b8414777](https://github.com/BTCDecoded/blvm-node/commit/9096b8414777f8718de1264ba9ac81dcd00d1dfc))
 
 ### Commits classified as security
 
@@ -146,6 +147,7 @@ Ids below are copied from the advisory record.
 
 ## Fixes
 
+- blvm: fix(blvm): copy advisory ids into the beta release notes ([1b775638cd29](https://github.com/BTCDecoded/blvm/commit/1b775638cd29c50a27b056b98b5142dbd9252965))
 - blvm: fix(blvm): compare getblockcount across the three release artifacts ([46c23a0d255f](https://github.com/BTCDecoded/blvm/commit/46c23a0d255fc6e6f8ef3b60d98a556efe23a102))
 - blvm: fix(blvm): do not report artifact parity before the RPC comparison ([8ae3c4464cbe](https://github.com/BTCDecoded/blvm/commit/8ae3c4464cbe8abb5a66fba822a5eb9a0d936d31))
 - blvm: fix(blvm): load miniscript on a fresh website install ([202c7f9e365a](https://github.com/BTCDecoded/blvm/commit/202c7f9e365abfc5b723ea6820a1bc22c45ea2e9))
@@ -155,6 +157,7 @@ Ids below are copied from the advisory record.
 - blvm: fix(blvm): inline the format arguments clippy rejects ([e6fe7200c5dc](https://github.com/BTCDecoded/blvm/commit/e6fe7200c5dc5c250e2b6313dd9bee8d8537410f))
 - blvm: fix(blvm): refuse a missing named config and replace the file on write ([e01398712202](https://github.com/BTCDecoded/blvm/commit/e013987122023d81d8ad9a525dce0fcb1c0616fd))
 - blvm: fix(blvm): refuse stratum flags when the binary has no stratum feature ([1c3cbd1e41ef](https://github.com/BTCDecoded/blvm/commit/1c3cbd1e41efd8b3954e02af20e10faa9d22cc29))
+- blvm-node: fix(node): reject a compact-filter length that overflows ([5d8915a7c741](https://github.com/BTCDecoded/blvm-node/commit/5d8915a7c7417dd116fd4f7f4201323a70c0c338))
 - blvm-node: fix(node): give the no-commitment retire loop its engine handle ([18286b35533b](https://github.com/BTCDecoded/blvm-node/commit/18286b35533bf14afb57a69c56a50f696e9131e6))
 - blvm-node: fix(node): grind the side-block submit until it meets the regtest target ([70b8562522b5](https://github.com/BTCDecoded/blvm-node/commit/70b8562522b53dce01ba0435211252a44f156a91))
 - blvm-node: fix(node): connect a submitted sibling at its parent's height ([148f75f66fec](https://github.com/BTCDecoded/blvm-node/commit/148f75f66fecfc754e6098126fdaa043ac4c68bf))
@@ -253,6 +256,7 @@ Ids below are copied from the advisory record.
 
 ## Internal
 
+- blvm: docs(blvm): record the minimal-build audit surface ([7515194aaca3](https://github.com/BTCDecoded/blvm/commit/7515194aaca35c1d490e7f9636f69330c701c82e))
 - blvm: ci: keep self-hosted runners for Rust compile and test ([3a3ea871eb5e](https://github.com/BTCDecoded/blvm/commit/3a3ea871eb5eb2fdaf25ab8b0f9de21ecb3b4bd4))
 - blvm: chore(blvm): record the reviewed minimal direct dependencies ([df0322894b66](https://github.com/BTCDecoded/blvm/commit/df0322894b666bb8f0449e386e3ff90477544b29))
 - blvm: test(blvm): reject unknown networks and a missing versions file ([f860fee912d4](https://github.com/BTCDecoded/blvm/commit/f860fee912d4fff6c47db93b00484cfecbac140e))
