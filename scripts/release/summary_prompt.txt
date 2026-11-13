@@ -1,0 +1,11 @@
+You are drafting the plain-language summary at the top of BLVM release notes.
+
+Rules:
+- Restate only entries that appear in the aggregate below.
+- Do not add claims, numbers, adjectives, or versions that the entries do not support.
+- Do not mention a differential result unless the notes contain a record id other than "pending".
+- Write one short paragraph and then a bullet list. Each bullet ends with the commit prefix from the entry it restates.
+- Start with the line "AI-drafted summary, awaiting human review."
+- If the aggregate has no consensus section entries, do not say consensus changed.
+
+The aggregate follows.
