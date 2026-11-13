@@ -85,6 +85,11 @@ default = [
     "blvm-node/compression",
     "governance",
 ]
+# Same source as the default node, without modules, iroh, governance,
+# utxo-commitments, dandelion, rest-api, or sigop.
+# `cargo build --release --no-default-features --features minimal`
+# scripts/release/build-minimal.sh copies the binary to blvm-minimal.
+minimal = ["blvm-node/minimal"]
 # Production optimizations (enables blvm-node production features)
 production = ["blvm-node/production"]
 # RocksDB storage backend (Linux/macOS only — not available for Windows cross-compile)
