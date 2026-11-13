@@ -20,5 +20,7 @@ if [ "$missing" -ne 0 ]; then
   echo "parity: source, prebuilt, and docker image are not all present. Exit 2."
   exit 2
 fi
-echo "parity runner is present. A full comparison needs the three artifacts on disk."
-exit 0
+# Names being set is not a comparison. Exit 0 only after getblockcount matches.
+echo "parity: the three names are set, and this script does not start the node or compare RPC results yet."
+echo "parity: refusing to report success. Exit 2."
+exit 2
