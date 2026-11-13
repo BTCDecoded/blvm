@@ -48,6 +48,7 @@ git = "72c097b88febb66c5708268cec108163565dbd43"
 
 ## Consensus
 
+- blvm-consensus: test: reject a transaction with no inputs, no outputs, or a negative value ([180e8adc53be](https://github.com/BTCDecoded/blvm-consensus/commit/180e8adc53be805f2d35fcc174d2d8b5d27345ee))
 - blvm-consensus: test(consensus): lock the BIP34 coinbase height encoding through 65535 ([f4e06a68a947](https://github.com/BTCDecoded/blvm-consensus/commit/f4e06a68a947153585a449711dafa608dc43dcc4))
 - blvm-consensus: test(consensus): lock merkle roots for every small tree of three ids ([a687e4a527b0](https://github.com/BTCDecoded/blvm-consensus/commit/a687e4a527b01e7e00248501f898b03de2a42a81))
 - blvm-consensus: test(consensus): lock sigop counts when a push hides the next opcode ([e1ef9d3a33f8](https://github.com/BTCDecoded/blvm-consensus/commit/e1ef9d3a33f839f3f2b34d1ff9c90bf068010e86))
@@ -130,6 +131,9 @@ Ids below are copied from the advisory record.
 - BLVM-2026-0116 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0490 still applies to the dependency tree
 - BLVM-2026-0117 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0514 still applies to the dependency tree
 - BLVM-2026-0118 (remote crash, open, blvm-node, fixed version unset, crate release unset): A compact-filter length that overflows the cursor aborts the parser ([9096b8414777](https://github.com/BTCDecoded/blvm-node/commit/9096b8414777f8718de1264ba9ac81dcd00d1dfc))
+- BLVM-2026-0119 (local-only, open, blvm-node, fixed version unset, crate release unset): The module spawn log printed MODULE_CONFIG values ([140bbeb9f984](https://github.com/BTCDecoded/blvm-node/commit/140bbeb9f98479b5bed1feb83824b98a56c79d57))
+- BLVM-2026-0120 (local-only, open, blvm-node, fixed version unset, crate release unset): A module manifest key was accepted as the publisher ([277cf3b8c663](https://github.com/BTCDecoded/blvm-node/commit/277cf3b8c6638df974e9566e1adf49588199b1ba))
+- BLVM-2026-0121 (local-only, open, blvm-node, fixed version unset, crate release unset): A module handshake accepted an id the node did not mint ([d0649ea0bba2](https://github.com/BTCDecoded/blvm-node/commit/d0649ea0bba23e59b42c0c51568a6e00960f69b5))
 
 ### Commits classified as security
 
@@ -157,6 +161,10 @@ Ids below are copied from the advisory record.
 - blvm: fix(blvm): inline the format arguments clippy rejects ([e6fe7200c5dc](https://github.com/BTCDecoded/blvm/commit/e6fe7200c5dc5c250e2b6313dd9bee8d8537410f))
 - blvm: fix(blvm): refuse a missing named config and replace the file on write ([e01398712202](https://github.com/BTCDecoded/blvm/commit/e013987122023d81d8ad9a525dce0fcb1c0616fd))
 - blvm: fix(blvm): refuse stratum flags when the binary has no stratum feature ([1c3cbd1e41ef](https://github.com/BTCDecoded/blvm/commit/1c3cbd1e41efd8b3954e02af20e10faa9d22cc29))
+- blvm-node: fix(node): reject a module handshake the node did not issue ([5a44747fd7b5](https://github.com/BTCDecoded/blvm-node/commit/5a44747fd7b5117ced9b7f6903a15505fadd6525))
+- blvm-node: fix(node): do not treat a manifest key as a module publisher ([0edb2c967f03](https://github.com/BTCDecoded/blvm-node/commit/0edb2c967f03e147096091fed936492e246bc506))
+- blvm-node: fix(node): keep module config out of the spawn log ([3ebe0450fdb0](https://github.com/BTCDecoded/blvm-node/commit/3ebe0450fdb0580507d6c18af86071a5c842ae2d))
+- blvm-node: fix(node): resume header sync when stored chainwork meets the floor ([f32b7048e0c4](https://github.com/BTCDecoded/blvm-node/commit/f32b7048e0c47a8ac716caeba008b15e6a1e21b8))
 - blvm-node: fix(node): reject a compact-filter length that overflows ([5d8915a7c741](https://github.com/BTCDecoded/blvm-node/commit/5d8915a7c7417dd116fd4f7f4201323a70c0c338))
 - blvm-node: fix(node): give the no-commitment retire loop its engine handle ([18286b35533b](https://github.com/BTCDecoded/blvm-node/commit/18286b35533bf14afb57a69c56a50f696e9131e6))
 - blvm-node: fix(node): grind the side-block submit until it meets the regtest target ([70b8562522b5](https://github.com/BTCDecoded/blvm-node/commit/70b8562522b53dce01ba0435211252a44f156a91))
@@ -256,6 +264,7 @@ Ids below are copied from the advisory record.
 
 ## Internal
 
+- blvm: docs(blvm): list the compact-filter crash in the dry-run notes ([858b826e8ec0](https://github.com/BTCDecoded/blvm/commit/858b826e8ec0845164a63500f2b352ea917eb534))
 - blvm: docs(blvm): record the minimal-build audit surface ([7515194aaca3](https://github.com/BTCDecoded/blvm/commit/7515194aaca35c1d490e7f9636f69330c701c82e))
 - blvm: ci: keep self-hosted runners for Rust compile and test ([3a3ea871eb5e](https://github.com/BTCDecoded/blvm/commit/3a3ea871eb5eb2fdaf25ab8b0f9de21ecb3b4bd4))
 - blvm: chore(blvm): record the reviewed minimal direct dependencies ([df0322894b66](https://github.com/BTCDecoded/blvm/commit/df0322894b666bb8f0449e386e3ff90477544b29))
@@ -283,6 +292,7 @@ Ids below are copied from the advisory record.
 - blvm: Seed the checked mainnet assume-valid hash from the binary overlay. ([85559abd06fd](https://github.com/BTCDecoded/blvm/commit/85559abd06fd46a46185abc1de7c5d0b7ca5c1f2))
 - blvm: Seed the checked mainnet assume-valid hash from the binary overlay. ([cbe91500baab](https://github.com/BTCDecoded/blvm/commit/cbe91500baabcf11caaa60bee04789892b859940))
 - blvm: ci(release): pin Cargo.lock to consensus 0.1.73 ([8b9e2b82511d](https://github.com/BTCDecoded/blvm/commit/8b9e2b82511ddfc8427c524abfd9cbce672874b3))
+- blvm-node: test(node): capture the spawn log from the real spawn path ([3f862ff80eda](https://github.com/BTCDecoded/blvm-node/commit/3f862ff80eda16c0ae8c7c4b9a782532617f9e9d))
 - blvm-node: ci: keep self-hosted runners for Rust compile and test ([097caf82d512](https://github.com/BTCDecoded/blvm-node/commit/097caf82d51228bfdc559d029090a65184a3d2ef))
 - blvm-node: test(node): reject a mismatched probe hash and more mempool previews ([dc75c4e7608a](https://github.com/BTCDecoded/blvm-node/commit/dc75c4e7608afe2104d3388a94fdcb9791fc7504))
 - blvm-node: docs(node): add the reporting policy and a reconstructed changelog ([3e6b1eb7ccce](https://github.com/BTCDecoded/blvm-node/commit/3e6b1eb7ccce455ed4b2bd52202f0458a636cbfd))
@@ -338,6 +348,7 @@ Ids below are copied from the advisory record.
 - blvm-consensus: docs: count the 13 functions proved from the body ([265b0eadc62c](https://github.com/BTCDecoded/blvm-consensus/commit/265b0eadc62c460399a6381132f5effc8791a6f3))
 - blvm-consensus: ci(consensus): verify with spec-lock 0.1.45 ([e9ea2fef942c](https://github.com/BTCDecoded/blvm-consensus/commit/e9ea2fef942c29fab8f417f1b9650b1b956b6ee6))
 - blvm-consensus: style(consensus): format the pay-to-anchor and script-code paths ([706e6f50ae97](https://github.com/BTCDecoded/blvm-consensus/commit/706e6f50ae97760e08b73422831e16227e22b952))
+- blvm-protocol: test: reject a short ping, pong, feefilter, and a non-bech32 address ([2e962ed9ee65](https://github.com/BTCDecoded/blvm-protocol/commit/2e962ed9ee651f6002ab9e4dece7b2bb561ca66f))
 - blvm-protocol: test(protocol): run the committed SipHash-2-4 and basic block-filter rows ([17f9af3a217f](https://github.com/BTCDecoded/blvm-protocol/commit/17f9af3a217f14674c1e59fbc7ebd7856a9e8f6b))
 - blvm-protocol: ci: keep self-hosted runners for Rust compile and test ([2055d42f7451](https://github.com/BTCDecoded/blvm-protocol/commit/2055d42f745196a8d59430073ea24e2db41921f2))
 - blvm-protocol: test(protocol): reject short, bad, and unknown p2p frames ([d3146f8bce40](https://github.com/BTCDecoded/blvm-protocol/commit/d3146f8bce4010ddae33747c5f02c50f423f1bc5))
