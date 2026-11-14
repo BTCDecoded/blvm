@@ -506,26 +506,6 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
 
-      - name: Select the published blvm-node
-        run: |
-          set -euo pipefail
-          cd blvm
-          # Git's lock can still name a blvm-node from before the minimal feature.
-          # Every variant in this release, including blvm-minimal, resolves one
-          # published crate. Publish blvm-node from origin/main before dispatching.
-          cargo update -p blvm-node
-          python3 - <<'PY'
-          import json, subprocess, sys
-          meta = json.loads(subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--locked"]))
-          nodes = [pkg for pkg in meta["packages"] if pkg["name"] == "blvm-node"]
-          if not nodes:
-              sys.exit("Cargo.lock has no blvm-node")
-          node = nodes[0]
-          print(f"blvm-node {node['version']}")
-          if "minimal" not in node["features"]:
-              sys.exit("published blvm-node has no minimal feature; publish origin/main before this release")
-          PY
-
       - name: Install CUDA toolkit (nvcc and headers)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
         run: |
@@ -625,23 +605,6 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
           RUSTFLAGS: "-C debuginfo=0"
-
-      - name: Build minimal variant (Linux)
-        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
-        run: |
-          set -euo pipefail
-          if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
-            echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
-            unset CARGO_BUILD_JOBS
-          fi
-          cd blvm
-          export CARGO_TARGET_DIR="${RUNNER_TEMP}/blvm-minimal-linux"
-          chmod +x scripts/release/check-minimal-deps.sh scripts/release/build-minimal.sh scripts/release/package-minimal.sh
-          ./scripts/release/check-minimal-deps.sh
-          ./scripts/release/build-minimal.sh
-          ./scripts/release/package-minimal.sh "${CARGO_TARGET_DIR}/release/blvm-minimal" linux-x86_64
-        env:
-          RUSTFLAGS: "-C debuginfo=0"
       
       - name: Build base variant (Windows cross-compile) - Optimized (using published crates)
         if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
@@ -732,25 +695,6 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_INCREMENTAL: "1"
-          RUSTFLAGS: "-C debuginfo=0"
-
-      - name: Build minimal variant (Windows)
-        if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
-        run: |
-          set -euo pipefail
-          cd blvm
-          export CARGO_TARGET_DIR="${RUNNER_TEMP}/blvm-minimal-windows"
-          export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
-          export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
-          export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
-          export PKG_CONFIG_ALLOW_CROSS=1
-          cargo build --release --locked --target x86_64-pc-windows-gnu \
-            --no-default-features --features minimal
-          chmod +x scripts/release/package-minimal.sh
-          ./scripts/release/package-minimal.sh \
-            "${CARGO_TARGET_DIR}/x86_64-pc-windows-gnu/release/blvm.exe" \
-            windows-x86_64
-        env:
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Verify deterministic builds (Linux base variant)
@@ -987,8 +931,6 @@ jobs:
             "blvm/artifacts/blvm-${tag}-"*.zip \
             "blvm/artifacts/blvm-experimental-${tag}-"*.tar.gz \
             "blvm/artifacts/blvm-experimental-${tag}-"*.zip \
-            "blvm/artifacts/blvm-minimal-${tag}-"*.tar.gz \
-            "blvm/artifacts/blvm-minimal-${tag}-"*.zip \
             blvm/artifacts/SHA256SUMS-blvm-* \
             blvm/artifacts/blvm_*.deb \
             blvm/artifacts/blvm-experimental_*.deb \

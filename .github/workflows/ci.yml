@@ -791,7 +791,7 @@ jobs:
           VERSION_TAG: ${{ steps.version.outputs.version_tag }}
           CARGO_BUILD_JOBS: 8
         run: |
-          chmod +x scripts/release/build-minimal-archives.sh scripts/release/package-minimal.sh
+          chmod +x scripts/release/build-minimal-archives.sh scripts/release/package-minimal.sh scripts/release/check-minimal-deps.sh
           bash scripts/release/build-minimal-archives.sh
 
       - name: Package .deb (Debian/Ubuntu)

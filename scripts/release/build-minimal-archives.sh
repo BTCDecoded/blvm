@@ -33,6 +33,8 @@ if "minimal" not in node.get("features", {}):
 print(f"minimal feature present on blvm-node {node.get('version')}")
 PY
 
+sh scripts/release/check-minimal-deps.sh
+
 pack() {
   sh scripts/release/package-minimal.sh "$1" "$2"
 }
