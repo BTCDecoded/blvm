@@ -505,7 +505,27 @@ jobs:
           echo "✅ Cargo.toml files updated to use published crates"
         env:
           PARENT_DIR: ${{ github.workspace }}
-      
+
+      - name: Select the published blvm-node
+        run: |
+          set -euo pipefail
+          cd blvm
+          # Git's lock can still name a blvm-node from before the minimal feature.
+          # Every variant in this release, including blvm-minimal, resolves one
+          # published crate. Publish blvm-node from origin/main before dispatching.
+          cargo update -p blvm-node
+          python3 - <<'PY'
+          import json, subprocess, sys
+          meta = json.loads(subprocess.check_output(["cargo", "metadata", "--format-version", "1", "--locked"]))
+          nodes = [pkg for pkg in meta["packages"] if pkg["name"] == "blvm-node"]
+          if not nodes:
+              sys.exit("Cargo.lock has no blvm-node")
+          node = nodes[0]
+          print(f"blvm-node {node['version']}")
+          if "minimal" not in node["features"]:
+              sys.exit("published blvm-node has no minimal feature; publish origin/main before this release")
+          PY
+
       - name: Install CUDA toolkit (nvcc and headers)
         if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
         run: |
@@ -604,6 +624,22 @@ jobs:
           echo "✅ Experimental binaries built using published crates"
         env:
           PARENT_DIR: ${{ github.workspace }}
+          RUSTFLAGS: "-C debuginfo=0"
+
+      - name: Build minimal variant (Linux)
+        if: ${{ inputs.platform == 'linux' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        run: |
+          set -euo pipefail
+          if [ "${CARGO_BUILD_JOBS:-}" = "0" ]; then
+            echo "⚠️  CARGO_BUILD_JOBS is set to 0, unsetting it..."
+            unset CARGO_BUILD_JOBS
+          fi
+          cd blvm
+          chmod +x scripts/release/check-minimal-deps.sh scripts/release/build-minimal.sh scripts/release/package-minimal.sh
+          ./scripts/release/check-minimal-deps.sh
+          ./scripts/release/build-minimal.sh
+          ./scripts/release/package-minimal.sh
+        env:
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Build base variant (Windows cross-compile) - Optimized (using published crates)
@@ -931,6 +967,8 @@ jobs:
             "blvm/artifacts/blvm-${tag}-"*.zip \
             "blvm/artifacts/blvm-experimental-${tag}-"*.tar.gz \
             "blvm/artifacts/blvm-experimental-${tag}-"*.zip \
+            "blvm/artifacts/blvm-minimal-${tag}-"*.tar.gz \
+            "blvm/artifacts/blvm-minimal-${tag}-"*.zip \
             blvm/artifacts/SHA256SUMS-blvm-* \
             blvm/artifacts/blvm_*.deb \
             blvm/artifacts/blvm-experimental_*.deb \

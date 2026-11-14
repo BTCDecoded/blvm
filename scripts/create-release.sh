@@ -130,6 +130,15 @@ BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
 
 (On Windows, extract the \`.zip\` and run \`blvm.exe\` from the archive root.)
 
+## Minimal bundle (\`blvm-minimal-${VERSION_TAG}-linux-x86_64.tar.gz\`)
+
+Same source and the same published \`blvm-node\` as the bundles above, built with \`--locked --no-default-features --features minimal\`. The archive contains \`blvm-minimal\` and \`minimal-hardened.toml\` when that crate ships the profile. It does not contain governance or SDK tools. With no config file, the binary loads the embedded profile and does not seed assume-valid.
+
+\`\`\`bash
+tar xzf blvm-minimal-${VERSION_TAG}-linux-x86_64.tar.gz
+sha256sum -c SHA256SUMS-blvm-minimal-linux-x86_64
+\`\`\`
+
 ## Verification
 
 Verify checksums (per-platform file inside the archive):
@@ -179,6 +188,13 @@ rename_archives() {
             if [ -f "blvm-governance-${platform}.${ext}" ]; then
                 mv "blvm-governance-${platform}.${ext}" "blvm-governance-${VERSION_TAG}-${platform}.${ext}"
                 log_success "Renamed: blvm-governance-${platform}.${ext} -> blvm-governance-${VERSION_TAG}-${platform}.${ext}"
+            fi
+        done
+
+        for ext in tar.gz zip; do
+            if [ -f "blvm-minimal-${platform}.${ext}" ]; then
+                mv "blvm-minimal-${platform}.${ext}" "blvm-minimal-${VERSION_TAG}-${platform}.${ext}"
+                log_success "Renamed: blvm-minimal-${platform}.${ext} -> blvm-minimal-${VERSION_TAG}-${platform}.${ext}"
             fi
         done
     done
