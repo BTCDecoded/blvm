@@ -790,10 +790,10 @@ fn resolve_rpc_addr(
 
 fn find_config_file(cli_config: &Option<PathBuf>) -> Option<PathBuf> {
     // 1. CLI-specified config file (highest priority)
-    if let Some(path) = cli_config {
-        if path.exists() {
-            return Some(path.clone());
-        }
+    if let Some(path) = cli_config
+        && path.exists()
+    {
+        return Some(path.clone());
     }
 
     // 2. Current directory
@@ -1340,16 +1340,16 @@ fn apply_cli_advanced_config(config: &mut NodeConfig, advanced: &AdvancedConfig)
     // AssumeUTXO: -assumeutxo=<64-char block hash>
     if let Some(ref val) = advanced.assumeutxo {
         if val.len() == 64 && val.chars().all(|c| c.is_ascii_hexdigit()) {
-            if let Ok(hash_bytes) = hex::decode(val) {
-                if hash_bytes.len() == 32 {
-                    let mut arr = [0u8; 32];
-                    arr.copy_from_slice(&hash_bytes);
-                    config.assumeutxo_blockhash = Some(arr);
-                    info!(
-                        "AssumeUTXO: will attempt to load snapshot at block hash {}",
-                        val
-                    );
-                }
+            if let Ok(hash_bytes) = hex::decode(val)
+                && hash_bytes.len() == 32
+            {
+                let mut arr = [0u8; 32];
+                arr.copy_from_slice(&hash_bytes);
+                config.assumeutxo_blockhash = Some(arr);
+                info!(
+                    "AssumeUTXO: will attempt to load snapshot at block hash {}",
+                    val
+                );
             }
         } else {
             tracing::warn!(
@@ -1597,10 +1597,9 @@ fn handle_version() -> Result<()> {
     if let Ok(sha) = std::process::Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
         .output()
+        && let Ok(sha_str) = String::from_utf8(sha.stdout)
     {
-        if let Ok(sha_str) = String::from_utf8(sha.stdout) {
-            println!("Git: {}", sha_str.trim());
-        }
+        println!("Git: {}", sha_str.trim());
     }
 
     // Show enabled features
@@ -1700,13 +1699,13 @@ async fn handle_network(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()>
     if let Some(connections) = info.get("connections").and_then(|v| v.as_u64()) {
         println!("Connections: {connections}");
     }
-    if let Some(local_addrs) = info.get("localaddresses").and_then(|v| v.as_array()) {
-        if !local_addrs.is_empty() {
-            println!("Local Addresses:");
-            for addr in local_addrs {
-                if let Some(addr_str) = addr.get("address").and_then(|v| v.as_str()) {
-                    println!("  {addr_str}");
-                }
+    if let Some(local_addrs) = info.get("localaddresses").and_then(|v| v.as_array())
+        && !local_addrs.is_empty()
+    {
+        println!("Local Addresses:");
+        for addr in local_addrs {
+            if let Some(addr_str) = addr.get("address").and_then(|v| v.as_str()) {
+                println!("  {addr_str}");
             }
         }
     }
