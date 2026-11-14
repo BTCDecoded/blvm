@@ -64,6 +64,7 @@ if kind == "bin":
 elif kind == "docker":
     command = [
         "docker", "run", "--rm", "--network", "host",
+        "--user", f"{os.getuid()}:{os.getgid()}",
         "-v", f"{data}:/data", "-v", f"{work}:/cfg:ro",
         artifact, "--network", "regtest", "--data-dir", "/data",
         "--config", "/cfg/blvm.toml", "--noassumevalid",
