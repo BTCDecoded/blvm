@@ -76,9 +76,9 @@ def main() -> None:
     summary = [
         "# Security metrics",
         "",
-        "Generated from `docs/security/advisories`. Report dates are unset on the",
-        "reconstructed entries, so report-to-fix is not computed. Fix-to-release uses",
-        "the commit timestamp and the tag timestamp.",
+        "Generated from `docs/security/advisories`. A report date is set only when",
+        "the discovery time was recorded. Fix-to-release uses the commit timestamp",
+        "and the tag timestamp. An entry with no release date stays out of that median.",
         "",
         f"- Advisories: {len(records)}",
         f"- Open: {open_count}",
