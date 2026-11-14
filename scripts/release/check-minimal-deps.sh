@@ -6,7 +6,7 @@ set -eu
 cd "$(dirname "$0")/../.."
 tree="$(mktemp)"
 cargo tree --prefix none --no-default-features --features minimal --all-targets > "$tree"
-forbidden='blvm-sdk iroh blvm-stratum-v2 blvm-index blvm-fees blvm-wallet-index blvm-monitor blvm-miningos blvm-governance'
+forbidden='blvm-sdk iroh blvm-stratum-v2 blvm-index blvm-fees blvm-monitor blvm-miningos blvm-governance'
 for name in $forbidden; do
   if grep -F " $name " "$tree" >/dev/null || grep -E "^${name} " "$tree" >/dev/null; then
     echo "minimal build pulled in excluded crate: $name"

@@ -21,13 +21,8 @@
   },
   {
     "name": "blvm-index",
-    "description": "Script history, Electrum, and Esplora. Replaces blvm-wallet-index without changing the database.",
+    "description": "Script history, Electrum, and Esplora. The node binds the listeners.",
     "repo": "BTCDecoded/blvm-index"
-  },
-  {
-    "name": "blvm-wallet-index",
-    "description": "Script history, Electrum, and Esplora address stats. Separate process and database.",
-    "repo": "BTCDecoded/blvm-wallet-index"
   },
   {
     "name": "blvm-payment",

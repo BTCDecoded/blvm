@@ -66,7 +66,6 @@ Forbidden names in that tree:
 - blvm-stratum-v2: absent
 - blvm-index: absent
 - blvm-fees: absent
-- blvm-wallet-index: absent
 - blvm-monitor: absent
 - blvm-miningos: absent
 - blvm-governance: absent

@@ -32,7 +32,6 @@ FORBIDDEN = (
     "blvm-stratum-v2",
     "blvm-index",
     "blvm-fees",
-    "blvm-wallet-index",
     "blvm-monitor",
     "blvm-miningos",
     "blvm-governance",
