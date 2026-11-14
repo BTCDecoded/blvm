@@ -875,6 +875,15 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         return Err(anyhow::anyhow!("Config file specified but not found"));
     }
 
+    // The minimal binary has no module, iroh, or dandelion features. With no
+    // config file, start from the embedded profile instead of the open defaults.
+    #[cfg(all(feature = "minimal", not(feature = "dandelion")))]
+    if !config_loaded_from_file {
+        info!("No config file found. Loaded the embedded minimal-hardened profile.");
+        config = NodeConfig::minimal_hardened().context("embedded minimal-hardened profile")?;
+        config_loaded_from_file = true;
+    }
+
     // 3. Load ENV overrides
     let env_overrides = EnvOverrides::from_env();
 
@@ -987,7 +996,8 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 
     // Seed the network height before a hash-only --assumevalid. --noassumevalid
     // and --assumevalid 0 suppress the seed and clear both fields below.
-    if !assume_valid_cli_disables(&cli.advanced) {
+    // A minimal-hardened document rejects the seed. Parsing already recorded that.
+    if !assume_valid_cli_disables(&cli.advanced) && !config.rejects_assume_valid_seed() {
         seed_assume_valid_height(&mut config, &network);
     }
 
@@ -2003,6 +2013,27 @@ async fn handle_module_cli(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn minimal_hardened_file_does_not_seed_assume_valid() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("node.toml");
+        std::fs::write(&path, NodeConfig::minimal_hardened_document()).expect("write profile");
+        let cli = Cli::try_parse_from([
+            "blvm",
+            "--network",
+            "mainnet",
+            "--config",
+            path.to_str().expect("profile path"),
+        ])
+        .expect("parse hardened profile");
+        let (config, _, _, _, _) = build_final_config(&cli).expect("hardened profile loads");
+        assert!(config.rejects_assume_valid_seed());
+        let seeded = config.block_validation.as_ref().is_some_and(|block| {
+            block.assume_valid_height > 0 || block.assume_valid_hash.is_some()
+        });
+        assert!(!seeded, "hardened profile was given an assume-valid seed");
+    }
 
     #[test]
     fn env_bip158_false_clears_compact_filters() {

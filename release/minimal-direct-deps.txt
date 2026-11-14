@@ -1,0 +1,16 @@
+anyhow
+assert_cmd
+blvm-node
+clap
+hex
+predicates
+reqwest
+rkyv
+serde
+serde_json
+tempfile
+time
+tokio
+toml
+tracing
+tracing-subscriber
