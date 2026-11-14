@@ -635,10 +635,11 @@ jobs:
             unset CARGO_BUILD_JOBS
           fi
           cd blvm
+          export CARGO_TARGET_DIR="${RUNNER_TEMP}/blvm-minimal-linux"
           chmod +x scripts/release/check-minimal-deps.sh scripts/release/build-minimal.sh scripts/release/package-minimal.sh
           ./scripts/release/check-minimal-deps.sh
           ./scripts/release/build-minimal.sh
-          ./scripts/release/package-minimal.sh
+          ./scripts/release/package-minimal.sh "${CARGO_TARGET_DIR}/release/blvm-minimal" linux-x86_64
         env:
           RUSTFLAGS: "-C debuginfo=0"
       
@@ -731,6 +732,25 @@ jobs:
         env:
           PARENT_DIR: ${{ github.workspace }}
           CARGO_INCREMENTAL: "1"
+          RUSTFLAGS: "-C debuginfo=0"
+
+      - name: Build minimal variant (Windows)
+        if: ${{ inputs.platform == 'windows' || inputs.platform == 'both' || (github.event_name == 'push' && (inputs.platform == '' || inputs.platform == 'both')) }}
+        run: |
+          set -euo pipefail
+          cd blvm
+          export CARGO_TARGET_DIR="${RUNNER_TEMP}/blvm-minimal-windows"
+          export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
+          export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
+          export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
+          export PKG_CONFIG_ALLOW_CROSS=1
+          cargo build --release --locked --target x86_64-pc-windows-gnu \
+            --no-default-features --features minimal
+          chmod +x scripts/release/package-minimal.sh
+          ./scripts/release/package-minimal.sh \
+            "${CARGO_TARGET_DIR}/x86_64-pc-windows-gnu/release/blvm.exe" \
+            windows-x86_64
+        env:
           RUSTFLAGS: "-C debuginfo=0"
       
       - name: Verify deterministic builds (Linux base variant)

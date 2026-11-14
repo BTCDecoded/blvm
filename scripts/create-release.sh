@@ -130,14 +130,16 @@ BLVM_BACKGROUND=1 ./scripts/start-ibd-mainnet.sh
 
 (On Windows, extract the \`.zip\` and run \`blvm.exe\` from the archive root.)
 
-## Minimal bundle (\`blvm-minimal-${VERSION_TAG}-linux-x86_64.tar.gz\`)
+## Minimal bundles
 
-Same source and the same published \`blvm-node\` as the bundles above, built with \`--locked --no-default-features --features minimal\`. The archive contains \`blvm-minimal\` and \`minimal-hardened.toml\` when that crate ships the profile. It does not contain governance or SDK tools. With no config file, the binary loads the embedded profile and does not seed assume-valid.
+Same source and the same published \`blvm-node\` as the bundles above, built with \`--locked --no-default-features --features minimal\`. One archive per platform: \`blvm-minimal-${VERSION_TAG}-linux-x86_64.tar.gz\`, \`blvm-minimal-${VERSION_TAG}-linux-aarch64.tar.gz\`, and \`blvm-minimal-${VERSION_TAG}-windows-x86_64.zip\`. Each archive contains the minimal binary (\`blvm-minimal.exe\` on Windows), \`minimal-hardened.toml\`, and \`SHA256SUMS\`. It does not contain governance or SDK tools. With no config file, the binary loads the embedded profile and does not seed assume-valid.
 
 \`\`\`bash
 tar xzf blvm-minimal-${VERSION_TAG}-linux-x86_64.tar.gz
-sha256sum -c SHA256SUMS-blvm-minimal-linux-x86_64
+sha256sum -c SHA256SUMS
 \`\`\`
+
+On Windows, extract \`blvm-minimal-${VERSION_TAG}-windows-x86_64.zip\` and run \`blvm-minimal.exe\` from the archive root.
 
 ## Verification
 

@@ -6,6 +6,7 @@
 set -eu
 cd "$(dirname "$0")/../.."
 cargo build --release --locked --no-default-features --features minimal
-mkdir -p target/release
-cp -f target/release/blvm target/release/blvm-minimal
-echo "target/release/blvm-minimal"
+dest="${CARGO_TARGET_DIR:-target}"
+mkdir -p "${dest}/release"
+cp -f "${dest}/release/blvm" "${dest}/release/blvm-minimal"
+echo "${dest}/release/blvm-minimal"
