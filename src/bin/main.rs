@@ -229,6 +229,9 @@ enum ConfigCommand {
     },
     /// Show configuration file path
     Path,
+    /// List deployment profiles. Named profiles other than minimal-hardened are
+    /// accepted and not applied yet.
+    Profiles,
     /// Set config value(s). Use dotted keys for primary and module config.
     /// Examples: storage.data_dir=./data, modules.blvm-stratum-v2.listen_addr=0.0.0.1:3333
     Set {
@@ -236,12 +239,12 @@ enum ConfigCommand {
         #[arg(required = true, value_name = "KEY=VALUE")]
         assignments: Vec<String>,
     },
-    /// Convert Bitcoin Core bitcoin.conf to blvm config.toml
+    /// Convert Bitcoin Core bitcoin.conf to blvm.toml
     ConvertCore {
         /// Bitcoin Core config file (bitcoin.conf)
         input: PathBuf,
-        /// Output path (default: config.toml)
-        #[arg(default_value = "config.toml")]
+        /// Output path (default: blvm.toml). The node loads blvm.toml, not config.toml.
+        #[arg(default_value = "blvm.toml")]
         output: PathBuf,
         /// Verbose output
         #[arg(short, long)]
@@ -304,7 +307,9 @@ struct AdvancedConfig {
     #[arg(long, value_name = "BLOCKHASH")]
     assumeutxo: Option<String>,
 
-    /// Target number of peers to connect to (default: 8)
+    /// Desired outbound connections. Sets network_timing.target_peer_count
+    /// (default 8 once that table exists). This is not the outbound cap:
+    /// max_peers defaults to 100, and BLVM_NODE_MAX_PEERS overrides that cap.
     #[arg(long)]
     target_peer_count: Option<usize>,
 
@@ -394,25 +399,31 @@ async fn main() -> Result<()> {
             let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
             handle_sync(rpc_addr, &config).await
         }
-        Some(Command::Config { ref subcommand }) => {
-            let (config, _, _, _, _) = build_final_config(&cli)?;
-            match subcommand {
-                ConfigCommand::Show => handle_config_show(&config),
-                ConfigCommand::Validate { path } => {
-                    handle_config_validate(path.clone(), &cli.config)
-                }
-                ConfigCommand::Path => handle_config_path(&cli.config),
-                ConfigCommand::Set { assignments } => handle_config_set(&cli.config, assignments),
-                ConfigCommand::ConvertCore {
-                    input,
-                    output,
-                    verbose,
-                } => {
-                    blvm_node::cli::run_config_convert_core(input, output, *verbose)?;
-                    Ok(())
+        Some(Command::Config { ref subcommand }) => match subcommand {
+            ConfigCommand::Profiles => handle_config_profiles(),
+            other => {
+                let (config, _, _, _, _) = build_final_config(&cli)?;
+                match other {
+                    ConfigCommand::Show => handle_config_show(&config),
+                    ConfigCommand::Validate { path } => {
+                        handle_config_validate(path.clone(), &cli.config)
+                    }
+                    ConfigCommand::Path => handle_config_path(&cli.config),
+                    ConfigCommand::Set { assignments } => {
+                        handle_config_set(&cli.config, assignments)
+                    }
+                    ConfigCommand::ConvertCore {
+                        input,
+                        output,
+                        verbose,
+                    } => {
+                        blvm_node::cli::run_config_convert_core(input, output, *verbose)?;
+                        Ok(())
+                    }
+                    ConfigCommand::Profiles => handle_config_profiles(),
                 }
             }
-        }
+        },
         #[cfg(feature = "rocksdb")]
         Some(Command::Migrate { ref subcommand }) => match subcommand {
             MigrateCommand::Core {
@@ -543,10 +554,9 @@ async fn main() -> Result<()> {
 
             let rpc_bind = config.rpc_addr.unwrap_or(rpc_addr);
             info!("Starting Bitcoin Commons BLVM Node");
-            info!("Network: {:?}", network);
-            info!("RPC address: {}", rpc_bind);
-            info!("P2P listen address: {}", listen_addr);
-            info!("Data directory: {}", data_dir);
+            for line in blvm_node::config::profiles::operator_start_lines(&config, &data_dir) {
+                info!("{line}");
+            }
 
             unsafe {
                 std::env::set_var("DATA_DIR", &data_dir);
@@ -873,16 +883,31 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
         }
     } else if cli.config.is_some() {
         return Err(anyhow::anyhow!("Config file specified but not found"));
+    } else {
+        if Path::new("config.toml").is_file() {
+            warn!(
+                "./config.toml was not loaded. The node reads blvm.toml. `blvm config convert-core` writes blvm.toml."
+            );
+        }
+        // The minimal binary has no module, iroh, or dandelion features. With no
+        // config file, start from the embedded profile instead of the open defaults.
+        #[cfg(all(feature = "minimal", not(feature = "dandelion")))]
+        {
+            info!("No config file found. Loaded the embedded minimal-hardened profile.");
+            config = NodeConfig::minimal_hardened().context("embedded minimal-hardened profile")?;
+            config_loaded_from_file = true;
+        }
+        #[cfg(not(all(feature = "minimal", not(feature = "dandelion"))))]
+        {
+            info!("No config file found. Loaded the embedded local profile.");
+            config = NodeConfig::local().context("embedded local profile")?;
+            config_loaded_from_file = true;
+        }
     }
-
-    // The minimal binary has no module, iroh, or dandelion features. With no
-    // config file, start from the embedded profile instead of the open defaults.
-    #[cfg(all(feature = "minimal", not(feature = "dandelion")))]
-    if !config_loaded_from_file {
-        info!("No config file found. Loaded the embedded minimal-hardened profile.");
-        config = NodeConfig::minimal_hardened().context("embedded minimal-hardened profile")?;
-        config_loaded_from_file = true;
-    }
+    let skip_assume_valid_seed = config
+        .profile
+        .as_deref()
+        .is_some_and(blvm_node::config::profiles::skips_assume_valid_seed);
 
     // 3. Load ENV overrides
     let env_overrides = EnvOverrides::from_env();
@@ -996,8 +1021,11 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
 
     // Seed the network height before a hash-only --assumevalid. --noassumevalid
     // and --assumevalid 0 suppress the seed and clear both fields below.
-    // A minimal-hardened document rejects the seed. Parsing already recorded that.
-    if !assume_valid_cli_disables(&cli.advanced) && !config.rejects_assume_valid_seed() {
+    // `local` and `minimal-hardened` do not set assume-valid, and the seed must not add it.
+    if !assume_valid_cli_disables(&cli.advanced)
+        && !config.rejects_assume_valid_seed()
+        && !skip_assume_valid_seed
+    {
         seed_assume_valid_height(&mut config, &network);
     }
 
@@ -1500,7 +1528,6 @@ async fn rpc_call_with_auth(
 ) -> Result<Value> {
     let url = format!("http://{rpc_addr}");
     let client = reqwest::Client::new();
-
     let request = json!({
         "jsonrpc": "2.0",
         "method": method,
@@ -1758,6 +1785,19 @@ async fn handle_sync(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
         println!("Status: ⏳ Verifying");
     }
 
+    Ok(())
+}
+
+fn handle_config_profiles() -> Result<()> {
+    println!("id\tapplication\tsummary");
+    for profile in blvm_node::config::profiles::deployment_profiles() {
+        let application = match profile.application {
+            blvm_node::config::profiles::ProfileApplication::Overlay => "overlay",
+            blvm_node::config::profiles::ProfileApplication::Lock => "lock",
+            blvm_node::config::profiles::ProfileApplication::NamedOnly => "named",
+        };
+        println!("{}\t{application}\t{}", profile.id, profile.summary);
+    }
     Ok(())
 }
 
