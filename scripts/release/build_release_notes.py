@@ -464,6 +464,29 @@ def accumulate(repo: Path) -> str:
     return assemble(sections, order)
 
 
+def published(text: str) -> dict[str, str]:
+    _, sections = parse_notes(text)
+    return {name: body for name, body in sections.items() if name != "Unreleased"}
+
+
+def check_notes(path: Path, fresh: str) -> int:
+    if not path.is_file():
+        print(f"missing {path}")
+        return 1
+    disk = published(path.read_text())
+    generated = published(fresh)
+    if disk.keys() != generated.keys():
+        print("published sections:", ", ".join(sorted(disk)))
+        print("regenerated sections:", ", ".join(sorted(generated)))
+        return 1
+    for name in sorted(generated):
+        if disk[name] != generated[name]:
+            print(f"published section {name} does not match regeneration")
+            return 1
+    print("published sections match")
+    return 0
+
+
 def self_test() -> int:
     closed = {
         "id": "BLVM-2026-0001",
@@ -530,6 +553,15 @@ def self_test() -> int:
     if "new" not in parsed_again["Unreleased"] or "old" in parsed_again["Unreleased"]:
         print("Unreleased was not replaced")
         return 1
+    sample = Path("/tmp/blvm-notes-check.md")
+    sample.write_text(again)
+    if check_notes(sample, again) != 0:
+        print("check rejected a file that matches")
+        return 1
+    sample.write_text(again.replace("kept", "edited"))
+    if check_notes(sample, again) != 1:
+        print("check accepted an edited published section")
+        return 1
     print("self-test passed")
     return 0
 
@@ -556,14 +588,21 @@ def main() -> int:
         action="store_true",
         help="Rewrite Unreleased and add any missing project-tag section. Leave published sections as they are.",
     )
-    parser.add_argument("--repo", type=Path, help="Repository whose tags and Cargo.lock are the source. Used with --accumulate.")
+    parser.add_argument("--repo", type=Path, help="Repository whose tags and Cargo.lock are the source. Used with --accumulate and --check.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail when a published section differs from regeneration. Unreleased may be behind HEAD.",
+    )
     args = parser.parse_args()
     if args.self_test:
         return self_test()
-    if args.accumulate:
+    if args.accumulate or args.check:
         repo = args.repo or Path.cwd()
         text = accumulate(repo)
         out = repo / "docs" / "release" / "RELEASE_NOTES.md"
+        if args.check:
+            return check_notes(out, text)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(text)
         print(out)

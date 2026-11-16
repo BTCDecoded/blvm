@@ -26,6 +26,18 @@ log_success() {
 
 create_release_notes() {
     local notes_file="${ARTIFACTS_DIR}/RELEASE_NOTES.md"
+    case "${VERSION_TAG}" in
+        *prerelease*)
+            echo "release notes refuse ${VERSION_TAG}: prerelease is not a project version" >&2
+            exit 2
+            ;;
+        v0.[2-9].*|v[1-9]*|0.[2-9].*|[1-9]*)
+            ;;
+        *)
+            echo "release notes refuse ${VERSION_TAG}: project versions start at 0.2" >&2
+            exit 2
+            ;;
+    esac
     mkdir -p "$ARTIFACTS_DIR"
     python3 "${SCRIPT_DIR}/release/build_release_notes.py" --accumulate --repo "${COMMONS_DIR}"
     cp "${COMMONS_DIR}/docs/release/RELEASE_NOTES.md" "$notes_file"
