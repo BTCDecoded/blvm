@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0122",
+  "modified": "2026-11-15T21:39:15-05:00",
+  "published": "2026-11-15T21:39:15-05:00",
+  "summary": "The working-tree lock no longer matches BLVM-2026-0101 through BLVM-2026-0117",
+  "details": "Correction of BLVM-2026-0101 through BLVM-2026-0117. Those files stay as published. Their details name iroh 0.95, hickory-proto 0.25.2, quinn-proto before 0.11.18, and wasmtime 36.0.19. The blvm lock on 2026-11-15 has iroh 1.0.0, hickory-proto 0.26.3, hickory-resolver 0.26.3, quinn 0.11.12, quinn-proto 0.11.19, and wasmtime 36.0.20. The blvm-node lock has the same iroh, hickory, and quinn-proto versions and no wasmtime package. cargo audit on both locks reported no vulnerabilities. BLVM-2026-0101 through BLVM-2026-0117 stay open: this lock has no commit and no release tag. Reporter credit is pending consent.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0338"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "informational",
+    "state": "open",
+    "report_date": "2026-11-15T21:39:15-05:00",
+    "fix_date": null,
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": null,
+    "fixed_version": null,
+    "release": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "corrects": [
+      "BLVM-2026-0101",
+      "BLVM-2026-0102",
+      "BLVM-2026-0103",
+      "BLVM-2026-0104",
+      "BLVM-2026-0105",
+      "BLVM-2026-0106",
+      "BLVM-2026-0107",
+      "BLVM-2026-0108",
+      "BLVM-2026-0109",
+      "BLVM-2026-0110",
+      "BLVM-2026-0111",
+      "BLVM-2026-0112",
+      "BLVM-2026-0113",
+      "BLVM-2026-0114",
+      "BLVM-2026-0115",
+      "BLVM-2026-0116",
+      "BLVM-2026-0117"
+    ],
+    "blvm_crates": [
+      "blvm",
+      "blvm-node"
+    ]
+  }
+}

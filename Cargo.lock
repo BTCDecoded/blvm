@@ -411,6 +411,7 @@ dependencies = [
  "hex",
  "openssl",
  "predicates",
+ "quinn-proto",
  "reqwest 0.12.26",
  "rkyv",
  "rustls",

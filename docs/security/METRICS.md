@@ -4,12 +4,12 @@ Generated from `docs/security/advisories`. A report date is set only when
 the discovery time was recorded. Fix-to-release uses the commit timestamp
 and the tag timestamp. An entry with no release date stays out of that median.
 
-- Advisories: 25
-- Open: 21
+- Advisories: 26
+- Open: 22
 - Closed: 4
 - By severity:
   - consensus: 2
-  - informational: 5
+  - informational: 6
   - local-only: 4
   - remote crash: 7
   - resource exhaustion: 7

@@ -31,4 +31,5 @@ detached signature, `BLVM-*.json.asc`, from `338B 0CE4 AE55 6EBD A677 2C51 DE34 
 | [BLVM-2026-0119](BLVM-2026-0119.json) | local-only | open | blvm-node |  | 140bbeb9f984 |
 | [BLVM-2026-0120](BLVM-2026-0120.json) | local-only | open | blvm-node |  | 277cf3b8c663 |
 | [BLVM-2026-0121](BLVM-2026-0121.json) | local-only | open | blvm-node |  | d0649ea0bba2 |
+| [BLVM-2026-0122](BLVM-2026-0122.json) | informational | open | blvm |  |  |
 
