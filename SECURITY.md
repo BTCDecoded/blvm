@@ -72,7 +72,7 @@ Dependency advisories that affect a shipped build get an entry in the same recor
 
 ## Supported versions
 
-Security fixes target the current beta line once `0.2.0-beta.1` is published. Until that tag exists, the supported line is the highest published `0.1.x` tag of the affected crate. Older `0.1` tags are not maintained as a second line.
+The supported project line is `v0.2.0-beta.1`. Security fixes for the node binary target that tag. A crate's supported line stays its highest published `0.1.x` tag until that crate's own release says otherwise. Older tags are not a second maintained line.
 
 The reporting policy above is the one in force. Older timelines, bounty language, and an "all 0.1.x supported" table are not restored. The notes below are this repository's existing boundary text.
 
