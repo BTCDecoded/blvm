@@ -3,6 +3,7 @@ artifacts/
 *.tar.gz
 *.zip
 SHA256SUMS
+!docs/release/**/SHA256SUMS
 
 # Temporary files
 *.log
