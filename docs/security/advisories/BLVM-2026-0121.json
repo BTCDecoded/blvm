@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0121",
+  "modified": "2026-11-13T14:43:44-05:00",
+  "published": "2026-11-13T14:43:44-05:00",
+  "summary": "A module handshake accepted an id the node did not mint",
+  "details": "The socket peer chose the id used for permissions and for the invocation channel. Handshake now requires an id the node minted. origin/main commit d0649ea0bba23e59b42c0c51568a6e00960f69b5. Local stability/beta-gate has it as 5a44747fd7b5117ced9b7f6903a15505fadd6525. The regression unissued_module_id_is_rejected passed on that commit. No release tag contains the fix. Reporter credit is blank pending consent. The report date was not separate from the fix commit.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm-node"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/BTCDecoded/blvm-node/commit/d0649ea0bba23e59b42c0c51568a6e00960f69b5"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "local-only",
+    "state": "open",
+    "report_date": null,
+    "fix_date": "2026-11-13T12:36:31-05:00",
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": "d0649ea0bba23e59b42c0c51568a6e00960f69b5",
+    "fixed_version": null,
+    "release": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm-node"
+    ]
+  }
+}

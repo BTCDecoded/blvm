@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0111",
+  "modified": "2026-11-13T05:00:00Z",
+  "published": "2026-11-13T05:00:00Z",
+  "summary": "RUSTSEC-2026-0487 still applies to the dependency tree",
+  "details": "Panic on a malformed `alpn` value when parsing SVCB or HTTPS records from text. hickory-proto 0.25.2 is in the default node through iroh 0.95.1. cargo audit on 2026-11-13 says the published upgrade is >=0.26.2. No 0.25 patch is named. The minimal feature tree measured on this host does not contain hickory. This is not a Bitcoin consensus bug. Reporter credit is pending consent. This entry was taken from cargo audit, not from a private report.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "hickory-proto"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0487"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "remote crash",
+    "rustsec": "RUSTSEC-2026-0487",
+    "state": "open",
+    "report_date": null,
+    "fix_date": null,
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": null,
+    "fixed_version": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm",
+      "blvm-node"
+    ]
+  }
+}

@@ -64,9 +64,9 @@ We keep the report private until the fix is released, unless the bug is already 
 
 ## Advisories
 
-The append-only record is one OSV JSON file per advisory id, plus a generated index. A correction is a new id that references the old one. Do not edit a published file. Public counts are generated from that record.
+The append-only record is `docs/security/advisories/` in this repository. One OSV JSON file per advisory id, plus `INDEX.md`. A correction is a new id that references the old one. Do not edit a published file. Public counts are `docs/security/METRICS.md`.
 
-Advisory files are signed with the same key as release tags, once a signing key exists. They are unsigned until that key is configured.
+Each advisory file is signed with key `338B 0CE4 AE55 6EBD A677 2C51 DE34 66C3 CA36 3748`, the same key as a release tag. The signature is the `.json.asc` file beside the JSON.
 
 Dependency advisories that affect a shipped build get an entry in the same record. `cargo audit` and `cargo deny` run in CI. Ignore entries belong in `.cargo/audit.toml` with a reason, not only in a workflow flag.
 

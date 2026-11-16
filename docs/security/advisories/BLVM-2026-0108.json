@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0108",
+  "modified": "2026-11-12T00:00:00Z",
+  "published": "2026-11-12T00:00:00Z",
+  "summary": "RUSTSEC-2026-0424 still applies to the dependency tree",
+  "details": "wasmtime 36.0.19 is in the tree through blvm-sdk. The published fix is wasmtime >= 36.0.20. The default blvm binary does not enable the wasm-modules feature. Reporter credit is pending consent. This entry was reconstructed from the cargo audit ignore list, not from a private report.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "wasmtime"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0424"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "remote crash",
+    "rustsec": "RUSTSEC-2026-0424",
+    "state": "open",
+    "report_date": null,
+    "fix_date": null,
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": null,
+    "fixed_version": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm",
+      "blvm-node"
+    ]
+  }
+}

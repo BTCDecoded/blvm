@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0118",
+  "modified": "2026-11-13T14:37:59-05:00",
+  "published": "2026-11-13T14:37:59-05:00",
+  "summary": "A compact-filter length that overflows the cursor aborts the parser",
+  "details": "decode_cfilter added the decoded filter length to the payload cursor. A length of u64::MAX overflowed that addition and aborted the process. The node fuzz target node_p2p_allowed_frames on freeze commit 36bb40c exited 77 at 2026-11-13T16:04:43Z. The 50-byte input is sha256 261a963679bb2e62b769a8fb6565a67a02068dca3f53a1cdbcd32c374ec399f9. This is a parser panic, not a consensus-rule change. origin/main fixed it in 9096b8414777f8718de1264ba9ac81dcd00d1dfc by using checked_add. Tag v0.1.92 does not contain that commit. Local stability/beta-gate cherry-picked it as 5d8915a7c7417dd116fd4f7f4201323a70c0c338. On that commit, cfilter_length_does_not_overflow passed: 1 passed, 2035 filtered out. No release tag contains the fix, so the advisory stays open. Reporter credit is blank pending consent.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm-node"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/BTCDecoded/blvm-node/commit/9096b8414777f8718de1264ba9ac81dcd00d1dfc"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "remote crash",
+    "state": "open",
+    "report_date": "2026-11-13T16:04:43Z",
+    "fix_date": "2026-11-13T12:33:55-05:00",
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": "9096b8414777f8718de1264ba9ac81dcd00d1dfc",
+    "fixed_version": null,
+    "release": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm-node"
+    ]
+  }
+}

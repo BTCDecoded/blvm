@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0104",
+  "modified": "2026-11-12T00:00:00Z",
+  "published": "2026-11-12T00:00:00Z",
+  "summary": "RUSTSEC-2026-0339 still applies to the dependency tree",
+  "details": "Pending connection-id retirements are unbounded. Patched in quinn-proto >= 0.11.17, which does not resolve next to iroh 0.95. Reporter credit is pending consent. This entry was reconstructed from the cargo audit ignore list, not from a private report.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "quinn-proto"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://rustsec.org/advisories/RUSTSEC-2026-0339"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "resource exhaustion",
+    "rustsec": "RUSTSEC-2026-0339",
+    "state": "open",
+    "report_date": null,
+    "fix_date": null,
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": null,
+    "fixed_version": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm",
+      "blvm-node"
+    ]
+  }
+}

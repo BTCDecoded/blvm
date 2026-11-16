@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0119",
+  "modified": "2026-11-13T14:43:44-05:00",
+  "published": "2026-11-13T14:43:44-05:00",
+  "summary": "The module spawn log printed MODULE_CONFIG values",
+  "details": "The debug line formatted the whole process command, so MODULE_CONFIG values were written to the spawn log. The fix logs the module id only. origin/main commit 140bbeb9f98479b5bed1feb83824b98a56c79d57. Local stability/beta-gate has it as 3ebe0450fdb0580507d6c18af86071a5c842ae2d. The regression spawn_log_does_not_include_module_config passed on that commit. No release tag contains the fix. Reporter credit is blank pending consent. The report date was not separate from the fix commit.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm-node"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/BTCDecoded/blvm-node/commit/140bbeb9f98479b5bed1feb83824b98a56c79d57"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "local-only",
+    "state": "open",
+    "report_date": null,
+    "fix_date": "2026-11-13T12:36:31-05:00",
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": "140bbeb9f98479b5bed1feb83824b98a56c79d57",
+    "fixed_version": null,
+    "release": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm-node"
+    ]
+  }
+}

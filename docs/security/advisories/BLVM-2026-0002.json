@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0002",
+  "modified": "2026-11-11 04:12:45 -0500",
+  "published": "2026-11-11 04:12:45 -0500",
+  "summary": "A failed reorg left the coin set rewound",
+  "details": "A failed attempt to activate a heavier fork left the coin set rewound. The same fix restores those coins on startup and bounds a package transaction count that was allocated before it was checked. Peer address selection no longer follows that peer for outbound queues. Reporter credit is blank pending consent. The report date was not in the commit or the tag.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm-node"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "0.1.92"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/BTCDecoded/blvm-node/commit/76f2b437ceed005da0d5b26365b06e952e6d4cc8"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "consensus",
+    "state": "closed",
+    "report_date": null,
+    "fix_date": "2026-11-11T02:01:05-05:00",
+    "release_date": "2026-11-11 04:12:45 -0500",
+    "disclosure_date": "2026-11-11 04:12:45 -0500",
+    "fix_commit": "76f2b437ceed005da0d5b26365b06e952e6d4cc8",
+    "fixed_version": "0.1.92",
+    "release": "0.1.92",
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm-node"
+    ]
+  }
+}

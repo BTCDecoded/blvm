@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.6.0",
+  "id": "BLVM-2026-0120",
+  "modified": "2026-11-13T14:43:44-05:00",
+  "published": "2026-11-13T14:43:44-05:00",
+  "summary": "A module manifest key was accepted as the publisher",
+  "details": "A signatures table carried its own public key, so a self-signed module passed the gate that refuses an unsigned one. The fix does not treat that embedded key as a trust anchor. origin/main commit 277cf3b8c6638df974e9566e1adf49588199b1ba. Local stability/beta-gate has it as 0edb2c967f03e147096091fed936492e246bc506. The regression embedded_signature_key_is_not_a_trust_anchor passed on that commit. No release tag contains the fix. Reporter credit is blank pending consent. The report date was not separate from the fix commit.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "crates.io",
+        "name": "blvm-node"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://github.com/BTCDecoded/blvm-node/commit/277cf3b8c6638df974e9566e1adf49588199b1ba"
+    }
+  ],
+  "database_specific": {
+    "blvm_severity": "local-only",
+    "state": "open",
+    "report_date": null,
+    "fix_date": "2026-11-13T12:36:31-05:00",
+    "release_date": null,
+    "disclosure_date": null,
+    "fix_commit": "277cf3b8c6638df974e9566e1adf49588199b1ba",
+    "fixed_version": null,
+    "release": null,
+    "reporter": null,
+    "reporter_consent": "pending",
+    "blvm_crates": [
+      "blvm-node"
+    ]
+  }
+}
