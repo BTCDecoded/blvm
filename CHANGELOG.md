@@ -8,6 +8,10 @@ were not enforced when those commits were written. Merge commits are omitted.
 
 ## [Unreleased]
 
+### Security
+
+- Pin `quinn-proto` to 0.11.19. `quinn` 0.11.12 requires `quinn-proto` >= 0.11.18 (RUSTSEC-2026-0338 through 0342). `cargo audit` on this lock reports no vulnerabilities, so those ids are no longer ignored in `.cargo/audit.toml` or `deny.toml`.
+
 ## [v0.1.0-prerelease] - 2025-11-14
 
 ### Reconstructed

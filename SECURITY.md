@@ -53,13 +53,13 @@ We keep the report private until the fix is released, unless the bug is already 
 
 The append-only record is one OSV JSON file per advisory id, plus a generated index. A correction is a new id that references the old one. Do not edit a published file. Public counts are generated from that record.
 
-Advisory files are signed with the same key as release tags, once a signing key exists. They are unsigned until that key is configured.
+Advisory files are signed with `338B 0CE4 AE55 6EBD A677 2C51 DE34 66C3 CA36 3748`, the same key as the release tags.
 
 Dependency advisories that affect a shipped build get an entry in the same record. `cargo audit` and `cargo deny` run in CI. Ignore entries belong in `.cargo/audit.toml` with a reason, not only in a workflow flag.
 
 ## Supported versions
 
-Security fixes target the current beta line once `0.2.0-beta.1` is published. Until that tag exists, the supported line is the highest published `0.1.x` tag of the affected crate. Older `0.1` tags are not maintained as a second line.
+Security fixes on the beta line target `v0.2.0-beta.1` (`14bf908`). The latest GitHub Release asset remains v0.1.80. Older `0.1` tags are not maintained as a second line.
 
 The reporting policy above is the one in force. Older timelines, bounty language, and an "all 0.1.x supported" table are not restored. The notes below are this repository's existing boundary text.
 

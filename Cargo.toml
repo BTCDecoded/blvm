@@ -35,8 +35,8 @@ reqwest = { version = "0.12", features = ["json"], default-features = false }
 hex = "0.4"
 # RUSTSEC-2026-0009: iroh/rcgen pull time 0.3.45; force patched release (strip-patch CI has no blvm-node git patch).
 time = { version = ">=0.3.47", default-features = false }
-# quinn-proto stays at 0.11.15 in the iroh 1.0 bump. The 0.11.19 bump is separate.
-quinn-proto = "=0.11.15"
+# RUSTSEC-2026-0338 through 0342. quinn 0.11.12 requires quinn-proto >= 0.11.18.
+quinn-proto = "=0.11.19"
 # RUSTSEC-2026-0204: sled 0.34.7 allows crossbeam-epoch 0.9.5, which still resolves to 0.9.18.
 crossbeam-epoch = ">=0.9.20"
 # RUSTSEC-2026-0258 via reqwest/hyper.
