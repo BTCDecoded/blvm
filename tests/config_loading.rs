@@ -145,12 +145,10 @@ fn test_config_save_and_reload() {
     let temp_dir = TempDir::new().unwrap();
     let config_path = temp_dir.path().join("test.toml");
 
-    // Create a config
-    let config = NodeConfig {
-        max_outbound_peers: Some(100),
-        protocol_version: Some("Testnet".to_string()),
-        ..Default::default()
-    };
+    // Create a config. Functional update cannot see private fields.
+    let mut config = NodeConfig::default();
+    config.max_outbound_peers = Some(100);
+    config.protocol_version = Some("Testnet".to_string());
 
     // Save it
     config

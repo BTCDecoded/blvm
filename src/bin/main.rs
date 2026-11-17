@@ -861,9 +861,9 @@ fn network_from_config_or_default(config: &NodeConfig) -> Network {
 }
 
 fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, SocketAddr, Network)> {
-    // 1. Start with defaults
-    let mut config = NodeConfig::default();
-    let mut config_loaded_from_file = false;
+    // Every path that continues assigns both. An initial default is never read.
+    let mut config;
+    let config_loaded_from_file;
 
     // 2. Load config file (if found)
     if let Some(config_path) = find_config_file(&cli.config) {
