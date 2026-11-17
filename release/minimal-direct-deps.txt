@@ -4,6 +4,7 @@ blvm-node
 clap
 hex
 predicates
+quinn-proto
 reqwest
 rkyv
 serde

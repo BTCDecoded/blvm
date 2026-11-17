@@ -1,0 +1,10 @@
+# BLVM spec-lock attestation
+# A signature over this file attests that the named checker verified
+# the named spec bytes for the binaries listed below.
+spec_lock_tool_version=0.1.63
+spec_version=0.0.0-dev+072ff0a
+spec_lock_spec_git_sha=46d8a97442c2f37ec9fa37bd3cf7b1af52080058
+spec_content_sha256=6f300cc64a6747aacc5fbc2f1b5b83dc344b40c70b71b291e31152f10e3a39e9
+spec_lock_verify_json_sha256=b59ffdf996e50eef796a9a89941735540b5364a4227b635ffdf03155591952b6
+# checksums
+b7e406e5518763923d1619c581bd8f3ee769a828636786666126f352f81cb6cf  blvm-minimal
