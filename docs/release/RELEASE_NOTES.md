@@ -4,18 +4,18 @@ Each section is generated from the previous git tag, `Cargo.lock` at that tag, a
 
 ## [Unreleased]
 
-Previous tag: v0.2.0-beta.1
+Previous tag: v0.2.0-beta.2
 DIFFERENTIAL_RECORD_ID: pending
 
 ### Linked crates
 
 Versions read from `Cargo.lock` at this revision.
 
-- `blvm-node` 0.1.96
-- `blvm-consensus` 0.1.83
-- `blvm-protocol` 0.1.54
-- `blvm-sdk` 0.1.25
-- `blvm-primitives` 0.1.37
+- `blvm-node` 0.1.98
+- `blvm-consensus` 0.1.84
+- `blvm-protocol` 0.1.55
+- `blvm-sdk` 0.1.26
+- `blvm-primitives` 0.1.38
 - `blvm-secp256k1` 0.1.19
 
 ### Checksums
@@ -72,11 +72,94 @@ Ids copied from the advisory JSON at this revision.
 
 ### Fixes
 
+- None in this range.
+
+### Internal
+
+- None in this range.
+
+## [0.2.0-beta.2] - 2026-11-17
+
+Previous tag: v0.2.0-beta.1
+DIFFERENTIAL_RECORD_ID: pending
+
+### Linked crates
+
+Versions read from `Cargo.lock` at this revision.
+
+- `blvm-node` 0.1.98
+- `blvm-consensus` 0.1.84
+- `blvm-protocol` 0.1.55
+- `blvm-sdk` 0.1.26
+- `blvm-primitives` 0.1.38
+- `blvm-secp256k1` 0.1.19
+
+### Checksums
+
+```
+b7e406e5518763923d1619c581bd8f3ee769a828636786666126f352f81cb6cf  blvm-minimal
+```
+
+### Consensus
+
+- None in this range.
+
+### Breaking changes
+
+- None in this range.
+
+### Security
+
+Ids copied from the advisory JSON at this revision.
+
+#### Closed
+
+- BLVM-2026-0001 (consensus, closed, blvm-consensus, fixed version 0.1.80, crate release 0.1.80): An overflowing output sum was an internal error instead of an invalid block ([e58e0ad2003a](https://github.com/BTCDecoded/blvm-consensus/commit/e58e0ad2003a0474d0bb7d9751af29f6b426d3c1))
+- BLVM-2026-0002 (consensus, closed, blvm-node, fixed version 0.1.92, crate release 0.1.92): A failed reorg left the coin set rewound ([76f2b437ceed](https://github.com/BTCDecoded/blvm-node/commit/76f2b437ceed005da0d5b26365b06e952e6d4cc8))
+- BLVM-2026-0003 (resource exhaustion, closed, blvm-node, fixed version 0.1.88, crate release 0.1.88): Inbound TCP connections were not capped per address ([ca0b77e3e9f0](https://github.com/BTCDecoded/blvm-node/commit/ca0b77e3e9f016d06113590896a667b55a925efd))
+- BLVM-2026-0004 (local-only, closed, blvm-node, fixed version 0.1.88, crate release 0.1.88): Module processes were not confined ([6230a225e259](https://github.com/BTCDecoded/blvm-node/commit/6230a225e2592211be4f1a32395441a4844f7808))
+
+#### Open
+
+- BLVM-2026-0101 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0118 still applies to the dependency tree
+- BLVM-2026-0102 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0119 still applies to the dependency tree
+- BLVM-2026-0103 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0338 still applies to the dependency tree
+- BLVM-2026-0104 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0339 still applies to the dependency tree
+- BLVM-2026-0105 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0340 still applies to the dependency tree
+- BLVM-2026-0106 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0341 still applies to the dependency tree
+- BLVM-2026-0107 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0342 still applies to the dependency tree
+- BLVM-2026-0108 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0424 still applies to the dependency tree
+- BLVM-2026-0109 (resource exhaustion, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0491 still applies to the dependency tree
+- BLVM-2026-0110 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0504 still applies to the dependency tree
+- BLVM-2026-0111 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0487 still applies to the dependency tree
+- BLVM-2026-0112 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0489 still applies to the dependency tree
+- BLVM-2026-0113 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0512 still applies to the dependency tree
+- BLVM-2026-0114 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0511 still applies to the dependency tree
+- BLVM-2026-0115 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0505 still applies to the dependency tree
+- BLVM-2026-0116 (remote crash, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0490 still applies to the dependency tree
+- BLVM-2026-0117 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): RUSTSEC-2026-0514 still applies to the dependency tree
+- BLVM-2026-0118 (remote crash, open, blvm-node, fixed version unset, crate release unset): A compact-filter length that overflows the cursor aborts the parser ([9096b8414777](https://github.com/BTCDecoded/blvm-node/commit/9096b8414777f8718de1264ba9ac81dcd00d1dfc))
+- BLVM-2026-0119 (local-only, open, blvm-node, fixed version unset, crate release unset): The module spawn log printed MODULE_CONFIG values ([140bbeb9f984](https://github.com/BTCDecoded/blvm-node/commit/140bbeb9f98479b5bed1feb83824b98a56c79d57))
+- BLVM-2026-0120 (local-only, open, blvm-node, fixed version unset, crate release unset): A module manifest key was accepted as the publisher ([277cf3b8c663](https://github.com/BTCDecoded/blvm-node/commit/277cf3b8c6638df974e9566e1adf49588199b1ba))
+- BLVM-2026-0121 (local-only, open, blvm-node, fixed version unset, crate release unset): A module handshake accepted an id the node did not mint ([d0649ea0bba2](https://github.com/BTCDecoded/blvm-node/commit/d0649ea0bba23e59b42c0c51568a6e00960f69b5))
+- BLVM-2026-0122 (informational, open, blvm, blvm-node, fixed version unset, crate release unset): The working-tree lock no longer matches BLVM-2026-0101 through BLVM-2026-0117
+
+### Features
+
+- None in this range.
+
+### Fixes
+
 - fix(blvm): pin quinn-proto 0.11.19 on main ([9b93aad6b612](https://github.com/BTCDecoded/blvm/commit/9b93aad6b61268df771ef9390bcf6a2efbd81b39))
+- fix(blvm): clear the main clippy, config, and libz-sys failures ([2e4b35e4a92d](https://github.com/BTCDecoded/blvm/commit/2e4b35e4a92dc53e17244b2424c84514adac8e8e))
 
 ### Internal
 
 - docs: name the supported beta line ([296d0a8b003f](https://github.com/BTCDecoded/blvm/commit/296d0a8b003f266406f6d2c7a8d39dc82c1a782f))
+- docs: accumulate release notes from the previous tag ([0961e6133227](https://github.com/BTCDecoded/blvm/commit/0961e6133227232805417be44e2bc19fa010b326))
+- ci: check published release notes and refuse a crate tag ([c9bb0d9cc210](https://github.com/BTCDecoded/blvm/commit/c9bb0d9cc210ff2e15bbd4408536e1b95c21cb09))
+- chore(blvm): lock the published crate stack [skip_release] [skip_docker] ([01058e519f34](https://github.com/BTCDecoded/blvm/commit/01058e519f342ef53d0e605a68a8e291dd8d95e9))
+- docs: sign the 0.2.0-beta.2 minimal binary ([929bef3a72bb](https://github.com/BTCDecoded/blvm/commit/929bef3a72bba3c83329ec0ec562dab595f6664c))
 
 ## [0.2.0-beta.1] - 2026-11-15
 
