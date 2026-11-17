@@ -427,9 +427,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.83"
+version = "0.1.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18a25f4b06afbaf33cf44075d4b3432a5eeead31f6a8c4cea158f16fa309237a"
+checksum = "db2d68cd6476c0eb5cd0ff5b3910c9c0d53fd60cb669289e98e491f0526456d1"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
@@ -461,9 +461,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-node"
-version = "0.1.96"
+version = "0.1.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25af3c7bfcaa60045a441f255d8997ae1ee6e0d4bcff4cc887e6ded6e7657d63"
+checksum = "6c877e8ef6c5ee77ead5d1ddf649bdbc2686ec10a64d8ccd09e0cd4312b12224"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -529,9 +529,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-primitives"
-version = "0.1.37"
+version = "0.1.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc1f95baff1142d18dba2c08b7d047a369cb7eea2f79481d589a61e29a997631"
+checksum = "430dcc61450d458dd02c0800d0b41827ea9fa46abdabab7b9cb545cf2c121524"
 dependencies = [
  "bitcoin_hashes",
  "ripemd",
@@ -545,9 +545,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-protocol"
-version = "0.1.54"
+version = "0.1.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb37c2aa6449bd91282a10b7a167018cf24a9d17749dbea7bdf060a277cdd019"
+checksum = "d573b60992ad0614a35f0a4b4668d3cc60cb7c7228941584d38d6911e05f14fb"
 dependencies = [
  "anyhow",
  "bech32",
@@ -571,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk"
-version = "0.1.25"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea6d34aac5d7040995efda1b1d4f12ac7998e7485aab5f7d82fa8c306aa8a8be"
+checksum = "a229a5e746d44f96c39a2b3db15e951b82404a172380257924d649d1a791d56c"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -603,9 +603,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk-macros"
-version = "0.1.25"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ffa5d7b8b94aba607d8e8f2334c52d3dc870272495ed001322344be5c94946e"
+checksum = "2e4582f427a6847a240c66f98879d11df9904ddf68654d63a6a37d7031044bce"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4017,9 +4017,9 @@ dependencies = [
 
 [[package]]
 name = "quinn"
-version = "0.11.11"
+version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c1a41e437b6bbd489372cd4971de128e85c855f56c57f283d20ff016cf7c0a8"
+checksum = "4051e23e9185c255a7e33ef59cdbca87a22d359052eecd22fc6b901fb37d9d11"
 dependencies = [
  "bytes",
  "cfg_aliases 0.2.2",
