@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+# Install as /etc/init.d/blvm and pair with blvm.openrcconf as /etc/conf.d/blvm.
+# The process stays in the foreground. supervise-daemon restarts a crash.
+
+name="BLVM"
+description="Bitcoin Commons BLVM node"
+
+command="/usr/bin/blvm"
+command_args="--config ${BLVM_CONFIG:-/etc/blvm/blvm.toml} --data-dir ${BLVM_DATADIR:-/var/lib/blvm}"
+command_user="${BLVM_USER:-blvm}:${BLVM_GROUP:-blvm}"
+supervisor="supervise-daemon"
+supervise_daemon_args="--chdir ${BLVM_DATADIR:-/var/lib/blvm}"
+respawn_delay=5
+retry="SIGTERM/240"
+
+depend() {
+	need net
+	after net
+}
+
+start_pre() {
+	export NO_COLOR="${NO_COLOR:-1}"
+	checkpath -d -o "${BLVM_USER:-blvm}:${BLVM_GROUP:-blvm}" -m 0710 \
+		"${BLVM_DATADIR:-/var/lib/blvm}"
+}

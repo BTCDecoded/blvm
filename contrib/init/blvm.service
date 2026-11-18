@@ -1,0 +1,45 @@
+# The .deb and .rpm install this file and do not enable it.
+# Do not edit the installed file in place. Use: systemctl edit blvm
+# The package also installs usr/lib/sysusers.d/blvm.conf and
+# usr/share/doc/blvm/blvm.toml.example. Copy that example to
+# /etc/blvm/blvm.toml before the first start.
+
+[Unit]
+Description=BLVM node
+Documentation=https://docs.btcdecoded.org/blvm/node/operations.html
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/blvm --config /etc/blvm/blvm.toml --data-dir /var/lib/blvm
+User=blvm
+Group=blvm
+WorkingDirectory=/var/lib/blvm
+Environment=NO_COLOR=1
+KillSignal=SIGTERM
+# Empty regtest, release binary, 2026-11-18: exec to "RPC server listening"
+# was 0.101s. Heed open inside that was 0.002s. Plus the 60s slack used for
+# TimeoutStopSec. A larger store that opens slower needs a drop-in.
+TimeoutStartSec=61
+TimeoutStopSec=240
+# Same 240s floor as the stop timeout (180 + 60). The process pings only
+# while a runtime heartbeat is younger than this. A wedged runtime is killed.
+# A busy sync that still polls is left alone.
+WatchdogSec=240
+Restart=on-failure
+
+StateDirectory=blvm
+StateDirectoryMode=0710
+ConfigurationDirectory=blvm
+ConfigurationDirectoryMode=0710
+RuntimeDirectory=blvm
+RuntimeDirectoryMode=0710
+
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

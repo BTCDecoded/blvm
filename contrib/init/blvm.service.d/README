@@ -1,0 +1,7 @@
+Memory caps and extra environment belong in a drop-in:
+
+    systemctl edit blvm
+
+This file is named README, not a .conf, so systemd does not load it.
+Do not put BLVM_IBD_* or a host MemoryMax in the shipped unit.
+Logs stay on stderr. Journald collects them. Do not add a log file or logrotate.

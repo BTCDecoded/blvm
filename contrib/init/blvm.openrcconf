@@ -1,0 +1,6 @@
+# /etc/conf.d/blvm
+BLVM_CONFIG=/etc/blvm/blvm.toml
+BLVM_DATADIR=/var/lib/blvm
+BLVM_USER=blvm
+BLVM_GROUP=blvm
+NO_COLOR=1

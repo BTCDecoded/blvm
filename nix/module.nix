@@ -2,9 +2,6 @@
 
 let
   cfg = config.services.blvm;
-  rpcHostPort = lib.splitString ":" cfg.rpc.address;
-  rpcHost = builtins.head rpcHostPort;
-  rpcPort = builtins.elemAt rpcHostPort 1;
   configFile = pkgs.writeText "blvm.toml" ''
     [storage]
     database_backend = "heed3"
@@ -58,8 +55,8 @@ in
         type = lib.types.bool;
         default = true;
         description = ''
-          Bind the RPC listener with --rpc-addr and curl /health on that
-          host and port. When false, the unit has no health check.
+          Bind the RPC listener with --rpc-addr. When false, ExecStart omits
+          that flag. Ready is the RPC port binding, not sync.
         '';
       };
 
@@ -68,8 +65,7 @@ in
         default = "127.0.0.1:8332";
         example = "127.0.0.1:18443";
         description = ''
-          RPC bind address passed as --rpc-addr. The health check uses this
-          host and port; it does not assume 8332.
+          RPC bind address passed as --rpc-addr.
         '';
       };
     };
@@ -91,9 +87,12 @@ in
     systemd.services.blvm = {
       description = "BLVM node";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
+      after = [ "network-online.target" "time-sync.target" ];
       wants = [ "network-online.target" ];
+      environment.NO_COLOR = "1";
       serviceConfig = {
+        Type = "notify";
+        NotifyAccess = "main";
         User = cfg.user;
         Group = cfg.group;
         StateDirectory = "blvm";
@@ -107,10 +106,14 @@ in
         ] ++ lib.optionals cfg.rpc.enable [
           "--rpc-addr ${cfg.rpc.address}"
         ] ++ cfg.extraArgs);
+        KillSignal = "SIGTERM";
+        TimeoutStartSec = 61;
+        TimeoutStopSec = 240;
+        WatchdogSec = 240;
         Restart = "on-failure";
-        RestartSec = 5;
-      } // lib.optionalAttrs cfg.rpc.enable {
-        ExecStartPost = "${pkgs.curl}/bin/curl -fsS --retry 60 --retry-connrefused --retry-delay 2 http://${rpcHost}:${rpcPort}/health";
+        ProtectSystem = "full";
+        NoNewPrivileges = true;
+        PrivateTmp = true;
       };
     };
   };

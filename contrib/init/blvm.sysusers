@@ -1,0 +1,4 @@
+# systemd-sysusers fragment. Install as /usr/lib/sysusers.d/blvm.conf
+# u creates a system user and a group of the same name. Home is omitted
+# so ProtectHome cannot hide the state directory.
+u blvm - "BLVM node" -

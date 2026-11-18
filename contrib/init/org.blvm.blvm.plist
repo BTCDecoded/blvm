@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Per-user LaunchAgent: copy to ~/Library/LaunchAgents/org.blvm.blvm.plist
+and replace the config and data-dir arguments with paths under the home directory.
+KeepAlive SuccessfulExit false means a clean stop stays stopped.
+Load with: launchctl load ~/Library/LaunchAgents/org.blvm.blvm.plist
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.blvm.blvm</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/blvm</string>
+		<string>--config</string>
+		<string>/Library/Application Support/BLVM/blvm.toml</string>
+		<string>--data-dir</string>
+		<string>/Library/Application Support/BLVM</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>/Library/Application Support/BLVM</string>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>NO_COLOR</key>
+		<string>1</string>
+	</dict>
+</dict>
+</plist>

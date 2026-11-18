@@ -1,0 +1,13 @@
+Windows service sample: blvm-windows.xml (WinSW).
+
+WinSW stop sends Ctrl+C. The Windows build waits on Ctrl+C and sets the same
+shutdown watch SIGTERM sets on Unix. The 30-second main-loop exit and the
+180-second backstop stay as they are. stoptimeout is 240 seconds.
+
+sc.exe create is not this sample. The binary does not register a service
+control handler, so SERVICE_CONTROL_STOP would not reach the watch.
+
+The Windows release omits libc, so acquire_data_dir_lock does not run. A
+second process can open the same datadir. Run one service.
+
+This folder is not an installer. The sample start mode is Manual.

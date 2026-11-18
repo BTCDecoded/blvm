@@ -1,0 +1,13 @@
+# System config for the service samples. Install as /etc/blvm/blvm.toml.
+# The unit passes --data-dir. Do not set storage.data_dir to a home path.
+# A file with no protocol_version starts regtest. This sample is mainnet.
+# RPC stays on loopback. The cookie is {datadir}/.cookie mode 0600 when no
+# password is set. Default blvm-zmq binds 127.0.0.1:28332 through 28336.
+
+protocol_version = "mainnet"
+transport_preference = "tcponly"
+listen_addr = "0.0.0.0:8333"
+rpc_addr = "127.0.0.1:8332"
+
+[logging]
+level = "info"

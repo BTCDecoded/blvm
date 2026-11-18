@@ -179,13 +179,21 @@ extended-description = """\
 Bitcoin Commons BLVM is a Bitcoin node binary.
 It provides a full Bitcoin node with module system support, RPC interface,
 and cross-transport networking (TCP, QUIC/Iroh)."""
+# Do not add [package.metadata.deb.systemd-units]. cargo-deb's default
+# scripts enable and start the unit. The operator enables it.
 assets = [
   ["target/release/blvm", "usr/bin/blvm", "755"],
+  ["contrib/init/blvm.service", "usr/lib/systemd/system/blvm.service", "644"],
+  ["contrib/init/blvm.sysusers", "usr/lib/sysusers.d/blvm.conf", "644"],
+  ["contrib/init/blvm.toml.example", "usr/share/doc/blvm/blvm.toml.example", "644"],
 ]
 
 [package.metadata.generate-rpm]
 assets = [
   { source = "target/release/blvm", dest = "/usr/bin/blvm", mode = "0755" },
+  { source = "contrib/init/blvm.service", dest = "/usr/lib/systemd/system/blvm.service", mode = "0644" },
+  { source = "contrib/init/blvm.sysusers", dest = "/usr/lib/sysusers.d/blvm.conf", mode = "0644" },
+  { source = "contrib/init/blvm.toml.example", dest = "/usr/share/doc/blvm/blvm.toml.example", mode = "0644" },
 ]
 [profile.release-debug]
 inherits = "release"

@@ -1,0 +1,22 @@
+<service>
+  <!--
+    WinSW sample. Not an installer. Copy it next to WinSW.exe and set
+    executable to the installed blvm.exe.
+    Stop sends Ctrl+C. That is the Windows console handler, which sets the
+    same shutdown watch SIGTERM sets on Unix. stoptimeout is 240 seconds,
+    the same floor as TimeoutStopSec.
+    The Windows release omits libc, so it does not take the datadir lock.
+    Run one process against a datadir.
+    sc.exe create does not deliver stop to this binary. It has no service
+    control handler.
+  -->
+  <id>blvm</id>
+  <name>BLVM</name>
+  <description>BLVM node</description>
+  <executable>blvm.exe</executable>
+  <arguments>--config "%ProgramData%\BLVM\blvm.toml" --data-dir "%ProgramData%\BLVM"</arguments>
+  <workingdirectory>%ProgramData%\BLVM</workingdirectory>
+  <startmode>Manual</startmode>
+  <stoptimeout>240 sec</stoptimeout>
+  <env name="NO_COLOR" value="1" />
+</service>

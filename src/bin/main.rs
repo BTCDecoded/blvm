@@ -374,9 +374,9 @@ async fn main() -> Result<()> {
             handle_status(rpc_addr, &config).await
         }
         Some(Command::Health { rpc_addr }) => {
-            let (config, _, _, resolved_rpc, _) = build_final_config(&cli)?;
+            let (config, data_dir, _, resolved_rpc, _) = build_final_config(&cli)?;
             let rpc_addr = rpc_addr.unwrap_or(resolved_rpc);
-            handle_health(rpc_addr, &config).await
+            handle_health(rpc_addr, &config, &data_dir).await
         }
         Some(Command::Version) => handle_version(),
         Some(Command::Chain { rpc_addr }) => {
@@ -1613,8 +1613,39 @@ async fn handle_status(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> 
     Ok(())
 }
 
-async fn handle_health(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> {
-    match rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await {
+/// `__cookie__:<secret>` from `{datadir}/.cookie`. A configured password or bearer token wins.
+fn cookie_if_no_configured_secret(config: &NodeConfig, data_dir: &str) -> Option<(String, String)> {
+    if let Some(auth) = config.rpc_auth.as_ref() {
+        if auth.password.is_some() || !auth.tokens.is_empty() || !auth.admin_tokens.is_empty() {
+            return None;
+        }
+    }
+    let text = std::fs::read_to_string(std::path::Path::new(data_dir).join(".cookie")).ok()?;
+    parse_cookie_line(text.lines().next().unwrap_or(""))
+}
+
+fn parse_cookie_line(line: &str) -> Option<(String, String)> {
+    let (user, password) = line.trim().split_once(':')?;
+    if user.is_empty() || password.is_empty() {
+        return None;
+    }
+    Some((user.to_string(), password.to_string()))
+}
+
+async fn handle_health(rpc_addr: SocketAddr, config: &NodeConfig, data_dir: &str) -> Result<()> {
+    let result = if let Some((user, password)) = cookie_if_no_configured_secret(config, data_dir) {
+        rpc_call_with_auth(
+            rpc_addr,
+            "getblockchaininfo",
+            json!([]),
+            Some(&user),
+            Some(&password),
+        )
+        .await
+    } else {
+        rpc_call_with_config(rpc_addr, config, "getblockchaininfo", json!([])).await
+    };
+    match result {
         Ok(_) => {
             println!("✅ Node is healthy");
             Ok(())
@@ -2053,6 +2084,23 @@ async fn handle_module_cli(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn health_reads_datadir_cookie_when_no_password_is_set() {
+        let dir = std::env::temp_dir().join(format!("blvm-cookie-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        std::fs::write(dir.join(".cookie"), "__cookie__:abc\n").expect("cookie");
+        let config = NodeConfig::default();
+        let (user, password) =
+            cookie_if_no_configured_secret(&config, dir.to_str().expect("utf8 path"))
+                .expect("cookie credentials");
+        assert_eq!(user, "__cookie__");
+        assert_eq!(password, "abc");
+        assert!(parse_cookie_line("").is_none());
+        assert!(parse_cookie_line(":secret").is_none());
+        let _ = std::fs::remove_file(dir.join(".cookie"));
+        let _ = std::fs::remove_dir(&dir);
+    }
 
     #[test]
     fn minimal_hardened_file_does_not_seed_assume_valid() {
