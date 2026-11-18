@@ -1622,10 +1622,10 @@ async fn handle_status(rpc_addr: SocketAddr, config: &NodeConfig) -> Result<()> 
 
 /// `__cookie__:<secret>` from `{datadir}/.cookie`. A configured password or bearer token wins.
 fn cookie_if_no_configured_secret(config: &NodeConfig, data_dir: &str) -> Option<(String, String)> {
-    if let Some(auth) = config.rpc_auth.as_ref() {
-        if auth.password.is_some() || !auth.tokens.is_empty() || !auth.admin_tokens.is_empty() {
-            return None;
-        }
+    if let Some(auth) = config.rpc_auth.as_ref()
+        && (auth.password.is_some() || !auth.tokens.is_empty() || !auth.admin_tokens.is_empty())
+    {
+        return None;
     }
     let text = std::fs::read_to_string(std::path::Path::new(data_dir).join(".cookie")).ok()?;
     parse_cookie_line(text.lines().next().unwrap_or(""))
