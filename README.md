@@ -16,14 +16,14 @@ Always verify the checksum file shipped with the artifact you downloaded (`check
 
 | Format | Linux x86_64 | Linux aarch64 | Windows x86_64 |
 |--------|--------------|---------------|----------------|
-| `.deb` (Debian/Ubuntu) | yes | — | — |
-| `.rpm` (Fedora/RHEL) | yes | — | — |
-| `.pkg.tar.gz` (Arch) | yes | — | — |
+| `.deb` (Debian/Ubuntu) | yes, with the unit | yes, binary only | — |
+| `.rpm` (Fedora/RHEL) | yes, with the unit | — | — |
+| `.pkg.tar.gz` (Arch) | yes, binary only | yes, binary only | — |
 | `.tar.gz` archive | yes | yes | — |
 | Standalone binary | yes | yes | — |
 | Portable `.exe` / `.zip` | — | — | yes |
 
-The `.deb` and `.rpm` install a systemd unit and do not enable it. The Arch package, the tarball, the standalone binary, and the Windows zip do not include a unit. [Service manager](https://docs.btcdecoded.org/blvm/node/operations.html#service-manager).
+The x86_64 `.deb` and the `.rpm` install a systemd unit and do not enable it. The arm64 `.deb`, the Arch packages, the tarball, the standalone binary, and the Windows zip do not include a unit. [Service manager](https://docs.btcdecoded.org/blvm/node/operations.html#service-manager).
 
 **Docker (stable):** [`ghcr.io/btcdecoded/blvm`](https://github.com/BTCDecoded/blvm/pkgs/container/blvm) — tag matches the GitHub Release (see install page). The image in this tree runs as uid 61100. The tag on the install page is the last published image.
 

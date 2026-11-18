@@ -951,7 +951,7 @@ jobs:
             | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | `pacman -U` |
             | **Linux aarch64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-aarch64.pkg.tar.gz` | Raspberry Pi 4/5 (64-bit OS); `pacman -U` |
             | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | Installs `blvm.service` and does not enable it |
-            | **Linux aarch64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_arm64.deb` | Installs `blvm.service` and does not enable it |
+            | **Linux aarch64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_arm64.deb` | Binary only. Does not install the unit |
             | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | Installs `blvm.service` and does not enable it |
             | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Linux defaults minus Unix-only nix/libc |
             | **Windows x86_64** (zip) | `blvm-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | Same as .exe in archive form |
@@ -1011,7 +1011,6 @@ jobs:
             ```bash
             curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_arm64.deb
             sudo dpkg -i blvm_${{ steps.version.outputs.version }}_arm64.deb
-            sudo cp /usr/share/doc/blvm/blvm.toml.example /etc/blvm/blvm.toml
             ```
 
             **RHEL/Fedora:**
@@ -1021,7 +1020,7 @@ jobs:
             sudo cp /usr/share/doc/blvm/blvm.toml.example /etc/blvm/blvm.toml
             ```
 
-            The `.deb` and `.rpm` install the systemd unit and do not enable it. Copy the example to `/etc/blvm/blvm.toml` before enabling. The unit is `Type=notify`: `systemctl start` returns when the process sends `READY=1`, and fails at 61 seconds if that binary never sends it. This release links the published `blvm-node` crate. The Arch package, tarballs, and standalone binaries do not include a unit.
+            The x86_64 `.deb` and the `.rpm` install the systemd unit and do not enable it. Copy the example to `/etc/blvm/blvm.toml` before enabling. The unit is `Type=notify`: `systemctl start` returns when the process sends `READY=1`, and fails at 61 seconds if that binary never sends it. This release links the published `blvm-node` crate. The arm64 `.deb`, the Arch packages, the tarballs, and the standalone binaries do not include a unit.
 
             **Docker** (uid 61100, data directory `/var/lib/blvm`, RPC stays on loopback):
             ```bash
