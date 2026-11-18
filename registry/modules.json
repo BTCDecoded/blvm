@@ -11,7 +11,7 @@
   },
   {
     "name": "blvm-governance",
-    "description": "Governance module for blvm-node: on-chain proposal voting and community signaling.",
+    "description": "Optional governance webhook. Not enabled by default. Posts to a URL, or forwards block posts to blvm-commons.",
     "repo": "BTCDecoded/blvm-governance"
   },
   {
