@@ -857,7 +857,6 @@ fn transport_from_env(name: &str) -> Option<blvm_node::config::TransportPreferen
     }
 }
 
-
 fn network_from_str(s: &str) -> Option<Network> {
     match blvm::canonical_network_name(s)? {
         "mainnet" => Some(Network::Mainnet),
@@ -2108,8 +2107,6 @@ mod tests {
         let _ = std::fs::remove_file(dir.join(".cookie"));
         let _ = std::fs::remove_dir(&dir);
     }
-
-    #[test]
 
     #[test]
     fn transport_env_accepts_toml_and_cli_spellings() {
