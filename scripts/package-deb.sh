@@ -56,6 +56,23 @@ else
   exit 1
 fi
 
+# Same three files as cargo-deb. No postinst: the unit stays disabled.
+UNIT_SRC="${COMMONS_DIR}/contrib/init"
+install_unit() {
+  local src="$1" dest="$2"
+  if [ ! -f "${UNIT_SRC}/${src}" ]; then
+    echo "Error: missing ${UNIT_SRC}/${src}" >&2
+    exit 1
+  fi
+  mkdir -p "${PACKAGE_DIR}/$(dirname "${dest}")"
+  cp "${UNIT_SRC}/${src}" "${PACKAGE_DIR}/${dest}"
+  chmod 644 "${PACKAGE_DIR}/${dest}"
+}
+install_unit blvm.service usr/lib/systemd/system/blvm.service
+install_unit blvm.sysusers usr/lib/sysusers.d/blvm.conf
+install_unit blvm.toml.example usr/share/doc/blvm/blvm.toml.example
+log_success "Installed blvm.service, sysusers, and the example TOML"
+
 cat > "${DEBIAN_DIR}/control" <<EOF
 Package: ${PACKAGE_NAME}
 Version: ${VERSION}
@@ -65,7 +82,8 @@ Architecture: ${ARCH}
 Maintainer: Bitcoin Commons Team <team@btcdecoded.org>
 Description: ${DESC_TITLE}
  Bitcoin Commons BLVM is a minimal Bitcoin node implementation using
- blvm-consensus for consensus. This package installs the \`blvm\` binary.
+ blvm-consensus for consensus. This package installs the \`blvm\` binary,
+ blvm.service, and an example TOML. It does not enable the service.
 Homepage: https://btcdecoded.org
 EOF
 

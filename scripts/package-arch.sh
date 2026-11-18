@@ -40,6 +40,25 @@ else
     exit 1
 fi
 
+# Same three files as cargo-deb. The tarball does not enable the unit.
+UNIT_SRC="${COMMONS_DIR}/contrib/init"
+PKG_ROOT="${PKG_DIR}/${PACKAGE_NAME}"
+install_unit() {
+    local src="$1" dest="$2"
+    if [ ! -f "${UNIT_SRC}/${src}" ]; then
+        echo "Error: missing ${UNIT_SRC}/${src}" >&2
+        exit 1
+    fi
+    mkdir -p "${PKG_ROOT}/$(dirname "${dest}")"
+    cp "${UNIT_SRC}/${src}" "${PKG_ROOT}/${dest}"
+    chmod 644 "${PKG_ROOT}/${dest}"
+    cp "${UNIT_SRC}/${src}" "${PKGBUILD_DIR}/${src}"
+}
+install_unit blvm.service usr/lib/systemd/system/blvm.service
+install_unit blvm.sysusers usr/lib/sysusers.d/blvm.conf
+install_unit blvm.toml.example usr/share/doc/blvm/blvm.toml.example
+log_success "Installed blvm.service, sysusers, and the example TOML"
+
 # Create PKGBUILD
 cat > "${PKGBUILD_DIR}/PKGBUILD" <<EOF
 # Maintainer: Bitcoin Commons Team <team@btcdecoded.org>
@@ -50,11 +69,14 @@ pkgdesc="Bitcoin Commons BLVM - Bitcoin node"
 arch=('${ARCH}')
 url="https://btcdecoded.org"
 license=('MIT')
-source=("blvm")
-sha256sums=('SKIP')
+source=("blvm" "blvm.service" "blvm.sysusers" "blvm.toml.example")
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 package() {
     install -Dm755 "\${srcdir}/blvm" "\${pkgdir}/usr/bin/blvm"
+    install -Dm644 "\${srcdir}/blvm.service" "\${pkgdir}/usr/lib/systemd/system/blvm.service"
+    install -Dm644 "\${srcdir}/blvm.sysusers" "\${pkgdir}/usr/lib/sysusers.d/blvm.conf"
+    install -Dm644 "\${srcdir}/blvm.toml.example" "\${pkgdir}/usr/share/doc/blvm/blvm.toml.example"
 }
 EOF
 

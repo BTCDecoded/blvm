@@ -1,4 +1,4 @@
-# The .deb and .rpm install this file and do not enable it.
+# The Linux packages install this file and do not enable it.
 # Do not edit the installed file in place. Use: systemctl edit blvm
 # The package also installs usr/lib/sysusers.d/blvm.conf and
 # usr/share/doc/blvm/blvm.toml.example. Copy that example to
