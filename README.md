@@ -23,7 +23,9 @@ Always verify the checksum file shipped with the artifact you downloaded (`check
 | Standalone binary | yes | yes | — |
 | Portable `.exe` / `.zip` | — | — | yes |
 
-**Docker (stable):** [`ghcr.io/btcdecoded/blvm`](https://github.com/BTCDecoded/blvm/pkgs/container/blvm) — tag matches the GitHub Release (see install page).
+The `.deb` and `.rpm` install a systemd unit and do not enable it. The Arch package, the tarball, the standalone binary, and the Windows zip do not include a unit. [Service manager](https://docs.btcdecoded.org/blvm/node/operations.html#service-manager).
+
+**Docker (stable):** [`ghcr.io/btcdecoded/blvm`](https://github.com/BTCDecoded/blvm/pkgs/container/blvm) — tag matches the GitHub Release (see install page). The image in this tree runs as uid 61100. The tag on the install page is the last published image.
 
 **Nightly (rolling):** `develop` branch → GitHub `nightly` assets and `ghcr.io/btcdecoded/blvm:nightly`. See [Release channels](https://docs.btcdecoded.org/blvm/development/release-process.html#release-channels).
 
@@ -42,6 +44,7 @@ Release tarballs also ship helper scripts and example configs (e.g. [`blvm-mainn
 | Storage backends | [Storage Backends](https://docs.btcdecoded.org/blvm/node/storage-backends.html) |
 | RPC | [RPC API Reference](https://docs.btcdecoded.org/blvm/node/rpc-api.html) |
 | IBD tuning | [IBD configuration](https://docs.btcdecoded.org/blvm/node/configuration.html#ibd-configuration) · [IBD engine](https://docs.btcdecoded.org/blvm/node/ibd-engine.html) |
+| Service manager | [systemd, OpenRC, launchd, Windows](https://docs.btcdecoded.org/blvm/node/operations.html#service-manager) |
 | Troubleshooting | [Troubleshooting](https://docs.btcdecoded.org/blvm/appendices/troubleshooting.html) |
 | Contributing | [Contributing](https://docs.btcdecoded.org/blvm/development/contributing.html) |
 
@@ -80,11 +83,7 @@ cargo build --release --locked
 
 Optional backends and experimental flags: explicit `--features` — [Installation — experimental variant](https://docs.btcdecoded.org/blvm/getting-started/installation.html#experimental-variant).
 
-**RocksDB** (when using `blvm-mainnet-ibd.toml.example`):
-
-```bash
-cargo build --release --locked --features rocksdb
-```
+`blvm-mainnet-ibd.toml.example` sets `database_backend = "heed3"`. The default release build above already includes that backend. RocksDB is a separate `--features rocksdb` build and is not what the example opens.
 
 ## Architecture
 
