@@ -57,8 +57,8 @@ Search order for the file: `--config`, `./blvm.toml`, `~/.config/blvm/blvm.toml`
 ## File sketch
 
 ```toml
-listen_addr = "0.0.0.0:8333"
-rpc_addr = "127.0.0.1:8332"
+listen_addr = "127.0.0.1:18444"
+rpc_addr = "127.0.0.1:18443"
 protocol_version = "regtest"
 max_peers = 100
 transport_preference = "tcponly"

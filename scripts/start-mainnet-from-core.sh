@@ -3,18 +3,21 @@
 #
 # - Migrates chainstate/index into <CORE_DATADIR>/blvm/ on first run (auto_migrate_core)
 # - Reads block bodies from Core blocks/ in place (reuse_core_block_files)
+# - Requires a binary built with --features rocksdb. The default build is heed3
+#   only and has neither the migrate command nor the Core block-file reader.
+#   With both features, the BLVM store is still heed3.
 # - Resumes catch-up IBD to network tip via run-loop [CATCH_UP] (see blvm-node)
 #
 # Usage:
 #   ./scripts/start-mainnet-from-core.sh
-#   BLVM_CORE_DATADIR=/home/josh/bitcoin-core-data BLVM_BACKGROUND=1 ./scripts/start-mainnet-from-core.sh
+#   BLVM_CORE_DATADIR=/path/to/bitcoin BLVM_BACKGROUND=1 ./scripts/start-mainnet-from-core.sh
 #   BLVM_SKIP_MIGRATE=1 ./scripts/start-mainnet-from-core.sh   # store already migrated
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BLVM_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CORE_DATADIR="${BLVM_CORE_DATADIR:-/home/josh/bitcoin-core-data}"
+CORE_DATADIR="${BLVM_CORE_DATADIR:-$HOME/.bitcoin}"
 CONFIG_FILE="${BLVM_CONFIG:-$BLVM_ROOT/blvm-mainnet-core.toml.example}"
 LOG_FILE="${BLVM_IBD_LOG:-$CORE_DATADIR/blvm-sync.log}"
 BLVM_STORE="$CORE_DATADIR/blvm"
@@ -31,7 +34,14 @@ elif [ -x "$BLVM_ROOT/blvm" ]; then
 elif command -v blvm >/dev/null 2>&1; then
     BINARY="$(command -v blvm)"
 else
-    echo "blvm binary not found. Set BLVM_BINARY or cargo build --release in blvm/." >&2
+    echo "blvm binary not found. Set BLVM_BINARY or: cargo build --release --features rocksdb" >&2
+    exit 1
+fi
+
+if ! "$BINARY" help migrate >/dev/null 2>&1; then
+    echo "This blvm binary has no Core migrate command." >&2
+    echo "Core chainstate is LevelDB. Rebuild with: cargo build --release --features rocksdb" >&2
+    echo "The default build does not read Core blocks/ in place." >&2
     exit 1
 fi
 

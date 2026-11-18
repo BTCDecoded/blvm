@@ -2,28 +2,29 @@
 #   blvm --config blvm-mainnet-ibd.toml.example --network mainnet --data-dir ~/.local/share/blvm-mainnet
 # IBD: parallel mode; auto-prefers LAN Core; optional BLVM_IBD_PEERS / BLVM_IBD_MODE
 #
-# ── Hardware requirements ──────────────────────────────────────────────────────
-#   Full IBD (no pruning):    ≥ 700 GB disk,  ≥ 16 GB RAM recommended
-#   Pruned IBD (this config): ≥ 80 GB disk,   ≥ 4 GB RAM minimum
-#   Minimum viable (slow):    ≥ 60 GB disk,   ≥ 4 GB RAM
+# ── Hardware ───────────────────────────────────────────────────────────────────
+#   Disk (heed3/LMDB): the map is 70% of free space, clamped 48 GiB–4 TiB, then
+#   data.mdb+128 GiB when resuming. Omit [storage.heed3] map_size_mb unless you
+#   must pin a ceiling.
 #
-#   Disk sizing (heed3/LMDB):  blvm auto-sizes the map to 70% of free disk space
-#     on startup (clamped 48 GiB–4 TiB), then raises to data.mdb+128 GiB when
-#     resuming an existing store.  Omit [storage.heed3] map_size_mb for auto-tune
-#     (default for soak/testing).  Override only when you must pin a ceiling.
+#   RAM: MemoryGuard sizes the UTXO cache and download-ahead. workload = "auto"
+#   below classifies the envelope from free RAM. It does not grant a 16 GiB cache.
+#   Figures are the tier clamp. The envelope (45% of the RSS budget) can still
+#   shrink the cache. Under 12 GB RAM, or under 6144 MiB free, the cache is also
+#   at most 7% of RAM, and that cap is between 128 and 384 MiB.
+#     under 4 GB:                 cache 64–128 MiB,    ahead 64
+#     4–7 GB:                     cache 128–256 MiB,   ahead 128
+#     8–11 GB:                    cache 256–512 MiB,   then the 7% cap; ahead 256
+#     12–15 GB:                   cache 768–1536 MiB,  ahead 256
+#     ~16 GB through 18 GiB:      cache 1024–1400 MiB, ahead 320
+#     above ~18 GB and under 32:  cache 2048–4096 MiB, ahead 512
+#     ≥ 32 GB, shared envelope:   cache up to 4096 MiB
+#     ≥ 32 GB, dedicated envelope: cache up to 16384 MiB
+#     ahead at ≥ 32 GB is 1024, or 2048 at ≥ 64 GB
 #
-#   RAM tiers (MemoryGuard auto-detects and scales UTXO cache + pipeline):
-#     ≥ 32 GB → Dedicated: 16 GB UTXO cache, 1024 blocks ahead
-#     16–31 GB → 1400 MB UTXO cache, 320–512 blocks ahead
-#     8–15 GB → 512–1536 MB UTXO cache, 256 blocks ahead
-#     4–7 GB  → 128–256 MB UTXO cache, 128 blocks ahead  ← budget VPS / Pi 5
-#     < 4 GB  → 64–128 MB UTXO cache,  64 blocks ahead   ← very constrained
-#
-# ── BPS notes ─────────────────────────────────────────────────────────────────
-#   BPS is limited by the number of archival (full-history) peers.  At high
-#   block heights (> 700k) most nodes prune; expect 4–12 archival peers which
-#   caps BPS at ~5–30 depending on peer bandwidth.  Set target_outbound_peers
-#   in [network_timing] higher (e.g. 16) to connect to more peers.
+# ── Peers ─────────────────────────────────────────────────────────────────────
+#   Outbound target defaults to 8. The peer cap (max_peers) defaults to 100.
+#   That target is not the IBD download roster.
 # ──────────────────────────────────────────────────────────────────────────────
 
 transport_preference = "tcponly"
@@ -42,39 +43,26 @@ database_backend = "heed3"
 # map_size_mb = 2097152
 
 [storage.pruning]
-incremental_prune_during_ibd = true
-prune_window_size = 144
-min_blocks_for_incremental_prune = 288
+# Every 144 blocks, drop bodies behind keep_blocks. The block-accepted path
+# does this during sync. incremental_prune_during_ibd skips writing bodies
+# outside keep_blocks for normal and aggressive. Deleting them during IBD
+# still requires aggressive.
+# mode is disabled (keep every body), normal, or aggressive. aggressive also
+# writes UTXO commitments. Omitted keep_blocks is 288.
 auto_prune = true
-auto_prune_interval = 144
-min_blocks_to_keep = 144
-
-[storage.pruning.mode]
-type = "normal"
-keep_from_height = 0
-min_recent_blocks = 144
-
-[network_timing]
-# Increase to get more archival peers. Each additional peer adds ~5–8 BPS on WAN.
-# Archival peer ratio at h>700k is ~30–50%, so set 2–3× your desired IBD worker count.
-target_peer_count = 128
+mode = "normal"
+keep_blocks = 144
 
 [ibd]
-# P2: 64-block chunks with P1 peer cap (24) → 2048/64 = 32 slots; better GetData efficiency
-# than 32 while still keeping many peers busy under W5/A1 ahead floor 512 (512/64 = 8 min).
+# Download chunk, and how many blocks one peer may have in flight.
 chunk_size = 64
 max_blocks_in_transit_per_peer = 128
 download_timeout_secs = 45
-# W6/W8: 45s matches gap micro timeout; multi-block hard deadline scales to ≥90s in code.
 mode = "parallel"
-eviction = "fifo"
-# Leave false unless this machine runs ONLY blvm (no IDE, LLM, browser, GPU inference).
-# MemoryGuard auto-detects workload from MemAvailable; setting true on a shared host
-# (e.g. laptop + Cursor) was a common OOM cause — ignored when MemAvailable < 70% unless
-# BLVM_IBD_EXCLUSIVE=1 is set.
-dedicated = false
-# Age-tiered UTXO engine (default on). Legacy opt-out: utxo_engine = false or BLVM_IBD_ENGINE=0.
-# utxo_engine = true
+# auto | shared | dedicated. auto uses free RAM after headers.
+# shared keeps the smaller envelope. dedicated asks for the larger one and is refused below 70% free.
+# BLVM_IBD_EXCLUSIVE=1 forces the larger envelope.
+workload = "auto"
 
 [rpc]
 max_request_size_bytes = 1048576
@@ -82,5 +70,9 @@ max_request_size_bytes = 1048576
 [logging]
 level = "info"
 
-# [modules] is omitted so the built-in default stays on: blvm-miniscript,
-# blvm-zmq, and blvm-index. getdescriptorinfo and analyzepsbt need blvm-miniscript.
+# Baseline modules. blvm-miniscript serves getdescriptorinfo and analyzepsbt.
+[modules]
+enabled = true
+blvm-miniscript = "0.1.*"
+blvm-zmq = "0.1.*"
+blvm-index = "0.1.*"

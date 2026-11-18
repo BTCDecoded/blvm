@@ -2,10 +2,12 @@
 # Copy this file to blvm.toml and customize as needed
 # Usage: blvm --config blvm.toml
 
-# Network listening address
-listen_addr = "0.0.0.0:8333"
+# This file is regtest. P2P stays on loopback. Mainnet is 8333; regtest is 18444.
+listen_addr = "127.0.0.1:18444"
 
-# Transport: TOML serde uses tcponly | irohonly | quinnonly | hybrid | all (CLI/ENV use tcp_lowercase)
+# TOML tags: tcponly, irohonly, quinnonly, hybrid, all.
+# BLVM_NODE_TRANSPORT accepts those tags and tcp, tcp_only, iroh, iroh_only, quinn, quinn_only.
+# quinnonly and all need those features. The default build has iroh, not quinn.
 transport_preference = "tcponly"
 
 # Maximum number of peers
@@ -43,12 +45,12 @@ enable_self_advertisement = true
 
 # Storage and pruning configuration
 # [storage]
-# database_backend = "auto"  # default release build: usually RocksDB; or force "redb", "sled", etc.
+# database_backend = "auto"  # default build: heed3. RocksDB only if heed3 is compiled out and --features rocksdb is on.
 # 
 # [storage.pruning]
-# mode = { type = "normal", keep_from_height = 0, min_recent_blocks = 288 }
+# mode = "normal"
+# keep_blocks = 288
 # auto_prune = true
-# min_blocks_to_keep = 144
 
 # Module system configuration
 [modules]

@@ -3,12 +3,15 @@
 #
 # Usage:
 #   ./scripts/start-mainnet-from-core.sh
-#   BLVM_CORE_DATADIR=/home/josh/bitcoin-core-data ./scripts/start-mainnet-from-core.sh
+#   BLVM_CORE_DATADIR=/path/to/bitcoin ./scripts/start-mainnet-from-core.sh
 #
 # Requirements:
 #   - bitcoind STOPPED (no live chainstate/blocks index lock)
 #   - Non-pruned Core blocks/ + chainstate/
-#   - blvm built with rocksdb (default release)
+#   - blvm built with --features rocksdb. That feature is not in the default
+#     build. Core chainstate is LevelDB, and the in-place blk reader is compiled
+#     with the same feature. database_backend = "auto" still creates heed3 when
+#     heed3 is also compiled, which the default feature set does.
 
 transport_preference = "tcponly"
 # Avoid P2P clash if bitcoind is also on :8333 — stop Core or change listen_addr.
@@ -17,32 +20,37 @@ protocol_version = "BitcoinV1"
 
 [storage]
 # Bitcoin Core datadir (contains blocks/ + chainstate/). BLVM store opens at <data_dir>/blvm/.
-data_dir = "/home/josh/bitcoin-core-data"
-# Migrate creates heed3 by default (auto); matches `blvm migrate core` without --backend override.
+data_dir = "~/.bitcoin"
+# auto creates heed3 when that feature is compiled. `blvm migrate core` uses
+# the same default. That command has no backend flag.
 database_backend = "auto"
 auto_migrate_core = true
 reuse_core_block_files = true
 # core_migrate_destination defaults to "<data_dir>/blvm"
+# Prune deletes a body this store copied, and only when an undo exists.
+# Reuse leaves Core blocks/ in place. Set reuse_core_block_files = false
+# before normal or aggressive can shrink this store.
 
 [storage.pruning]
-incremental_prune_during_ibd = true
-prune_window_size = 144
-min_blocks_for_incremental_prune = 288
-auto_prune = true
-auto_prune_interval = 144
-min_blocks_to_keep = 144
-
-[storage.pruning.mode]
-type = "normal"
-keep_from_height = 0
-min_recent_blocks = 144
+# false: do not run the 144-block pass.
+auto_prune = false
+# Parallel IBD skips writing bodies already outside keep_blocks when this
+# flag is on and the mode is not disabled. Deleting those bodies during
+# IBD still requires aggressive.
+# incremental_prune_during_ibd = false
+# mode:
+#   disabled   — keep every body. keep_blocks is ignored.
+#   normal     — keep the last keep_blocks bodies. Omitted, that is 288.
+#   aggressive — the same window, and write UTXO commitments before the delete.
+#                The default build has the utxo-commitments feature.
+mode = "disabled"
+# keep_blocks = 288
 
 [ibd]
 chunk_size = 128
 max_blocks_in_transit_per_peer = 128
 download_timeout_secs = 30
 mode = "parallel"
-eviction = "fifo"
 
 [rpc]
 max_request_size_bytes = 1048576
@@ -50,5 +58,9 @@ max_request_size_bytes = 1048576
 [logging]
 level = "info"
 
-# [modules] is omitted so the built-in default stays on: blvm-miniscript,
-# blvm-zmq, and blvm-index. getdescriptorinfo and analyzepsbt need blvm-miniscript.
+# Baseline modules. blvm-miniscript serves getdescriptorinfo and analyzepsbt.
+[modules]
+enabled = true
+blvm-miniscript = "0.1.*"
+blvm-zmq = "0.1.*"
+blvm-index = "0.1.*"

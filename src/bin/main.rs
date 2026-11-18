@@ -840,6 +840,24 @@ fn network_from_cli_enum(network: &Network) -> &'static str {
     }
 }
 
+/// `BLVM_NODE_TRANSPORT`. TOML tags (`tcponly`) and the underscored CLI names both work.
+fn transport_from_env(name: &str) -> Option<blvm_node::config::TransportPreferenceConfig> {
+    use blvm_node::config::TransportPreferenceConfig;
+    match name.to_lowercase().as_str() {
+        "tcp_only" | "tcp" | "tcponly" => Some(TransportPreferenceConfig::TcpOnly),
+        #[cfg(feature = "iroh")]
+        "iroh_only" | "iroh" | "irohonly" => Some(TransportPreferenceConfig::IrohOnly),
+        #[cfg(feature = "iroh")]
+        "hybrid" => Some(TransportPreferenceConfig::Hybrid),
+        #[cfg(feature = "quinn")]
+        "quinn_only" | "quinn" | "quinnonly" => Some(TransportPreferenceConfig::QuinnOnly),
+        #[cfg(all(feature = "quinn", feature = "iroh"))]
+        "all" => Some(TransportPreferenceConfig::All),
+        _ => None,
+    }
+}
+
+
 fn network_from_str(s: &str) -> Option<Network> {
     match blvm::canonical_network_name(s)? {
         "mainnet" => Some(Network::Mainnet),
@@ -934,20 +952,9 @@ fn build_final_config(cli: &Cli) -> Result<(NodeConfig, String, SocketAddr, Sock
     if let Some(transport) = &env_overrides.transport {
         info!("Transport overridden by ENV: {}", transport);
         // Parse transport preference
-        match transport.to_lowercase().as_str() {
-            "tcp_only" | "tcp" => {
-                config.transport_preference = blvm_node::config::TransportPreferenceConfig::TcpOnly;
-            }
-            #[cfg(feature = "iroh")]
-            "iroh_only" | "iroh" => {
-                config.transport_preference =
-                    blvm_node::config::TransportPreferenceConfig::IrohOnly;
-            }
-            #[cfg(feature = "iroh")]
-            "hybrid" => {
-                config.transport_preference = blvm_node::config::TransportPreferenceConfig::Hybrid;
-            }
-            _ => {
+        match transport_from_env(transport) {
+            Some(preference) => config.transport_preference = preference,
+            None => {
                 warn!(
                     "Unknown transport preference: {}. Using default.",
                     transport
@@ -2103,6 +2110,30 @@ mod tests {
     }
 
     #[test]
+
+    #[test]
+    fn transport_env_accepts_toml_and_cli_spellings() {
+        use blvm_node::config::TransportPreferenceConfig;
+        assert!(matches!(
+            transport_from_env("tcponly"),
+            Some(TransportPreferenceConfig::TcpOnly)
+        ));
+        assert!(matches!(
+            transport_from_env("tcp_only"),
+            Some(TransportPreferenceConfig::TcpOnly)
+        ));
+        assert!(matches!(
+            transport_from_env("TCP"),
+            Some(TransportPreferenceConfig::TcpOnly)
+        ));
+        assert!(transport_from_env("tcp_lowercase").is_none());
+        #[cfg(feature = "iroh")]
+        assert!(matches!(
+            transport_from_env("irohonly"),
+            Some(TransportPreferenceConfig::IrohOnly)
+        ));
+    }
+
     fn minimal_hardened_file_does_not_seed_assume_valid() {
         let dir = tempfile::tempdir().expect("tempdir");
         let path = dir.path().join("node.toml");
