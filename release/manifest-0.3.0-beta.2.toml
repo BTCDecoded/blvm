@@ -1,0 +1,43 @@
+# Pins for the 0.3.0-beta.2 binary.
+# version is the crates.io crate in Cargo.lock. git is that repo's main
+# when the binary was built. The publish job's patch bump is not always
+# merged, so Cargo.toml at git can lag version.
+project_version = "0.3.0-beta.2"
+differential_record_id = "pending"
+variants = ["blvm", "blvm-minimal"]
+
+[crates.blvm]
+version = "0.1.0"
+git = "003e217f326cea6e81e36717a784d341cb10ac05"
+
+[crates.blvm-node]
+version = "0.1.101"
+git = "c126aafa7e164d42f668e601474e1c16bfe54270"
+
+[crates.blvm-consensus]
+version = "0.1.84"
+git = "8fd4140855337e631031af86d0582690e1da0cea"
+
+[crates.blvm-protocol]
+version = "0.1.55"
+git = "044e60276fe4f92731ae87b7ac864f0a1b3f6728"
+
+[crates.blvm-spec-lock]
+version = "0.1.63"
+git = "91739d251c1a367cd39bc85e147cd82c9d79c864"
+
+[crates.blvm-primitives]
+version = "0.1.38"
+git = "d1fa2e7443cfaf1f26d815acff0c42bc2f9649b9"
+
+[crates.blvm-secp256k1]
+version = "0.1.19"
+git = "bde125067b405d043e661ca12dc23f344704d242"
+
+[crates.blvm-muhash]
+version = "0.1.12"
+git = "e60ac9ae32bc67eabbb9930e08b295457d490ea1"
+
+[crates.blvm-sdk]
+version = "0.1.26"
+git = "ba758f5f27a09f4eb70146417fe9d31f8817b482"

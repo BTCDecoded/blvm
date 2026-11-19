@@ -1,0 +1,15 @@
+# BLVM spec-lock attestation
+# A signature over this file attests that the named checker verified
+# the named spec bytes for the binaries listed below.
+# Spec-lock 0.1.63 is unchanged. The three spec documents hash the same
+# as 0.3.0-beta.1. spec git is the spec tree those bytes were read from.
+spec_lock_tool_version=0.1.63
+spec_version=0.0.0-dev+072ff0a
+spec_lock_spec_git_sha=6d47c1cbed6add058e9c5a7c375792a8ce33b009
+spec_content_sha256=6f300cc64a6747aacc5fbc2f1b5b83dc344b40c70b71b291e31152f10e3a39e9
+spec_lock_verify_json_sha256=b59ffdf996e50eef796a9a89941735540b5364a4227b635ffdf03155591952b6
+# checksums
+50701d3ecbb5d68a59805f45cd2074587dff4bb2f8f9091d638e8f1b56ceffc2  blvm-0.3.0-beta.2-linux-x86_64
+b481beec669556b0e388afd345fc6ee9fc4e3b22bf5cd5fb2fe0b89b294d0d2e  blvm-0.3.0-beta.2-linux-aarch64
+5d7233067a746fe0c73340a7106e2823cf078af5720edfae1cac1f4ca11d17d4  blvm-0.3.0-beta.2-windows-x86_64.exe
+53ef31b178efe40939bd1d3aaacbf129c4d1612da8a28869a77fa6d39adf85be  blvm-minimal-0.3.0-beta.2-linux-x86_64
