@@ -22,8 +22,8 @@ jobs:
         uses: BTCDecoded/rust-ci/install-rust-toolchain@main
 
       # Pinned for the runner's rustc 1.91: cargo-deny 0.22.0 needs 1.95.
-      # Do not put [skip ci] on the commit that changes this file. GitHub skips
-      # every workflow when that token is present, including this one.
+      # A commit that mentions the skip-ci token in brackets skips every workflow,
+      # including this one. Say "skip-ci" in prose instead.
       # 0.21.0 is the newest release with MSRV <= 1.91 (1.89). Drop the pin when the
       # runner toolchain is bumped.
       - name: Install cargo-deny
