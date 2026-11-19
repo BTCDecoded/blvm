@@ -1,0 +1,14 @@
+# BLVM spec-lock attestation
+# A signature over this file attests that the named checker verified
+# the named spec bytes for the binaries listed below.
+# The three spec documents changed since 0.3.0-beta.2.
+# cargo-spec-lock 0.1.63 was not re-run, so this file has no verify-json hash.
+spec_lock_tool_version=0.1.63
+spec_version=0.0.0-dev+2940d2f
+spec_lock_spec_git_sha=36eb379a06d0f640bf4763166d5b2ead81ce9094
+spec_content_sha256=d890f629bc9ce9c631f62f4447a5b5ee04592c55e033208f5c626cf788b74dd2
+# checksums
+303e0d1d2a546d58939d919881a9420d87c6b52fb218b0a484cf6c5eaef767b6  blvm-0.3.0-beta.3-linux-x86_64
+c448e7a8f9cd8f26493e66496af956a815fc2a67a906c641faccc1a4f537b9a9  blvm-0.3.0-beta.3-linux-aarch64
+d77024c2e8ec539b623995cd9e7ec26348a0e49a39107bc10a028676e00e746c  blvm-0.3.0-beta.3-windows-x86_64.exe
+5fec9c3a98fdea999d25f812eec757f4e0d1c53f228023a88154ece89bae8751  blvm-minimal-0.3.0-beta.3-linux-x86_64
