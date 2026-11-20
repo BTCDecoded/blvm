@@ -427,9 +427,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-consensus"
-version = "0.1.84"
+version = "0.1.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2d68cd6476c0eb5cd0ff5b3910c9c0d53fd60cb669289e98e491f0526456d1"
+checksum = "414ad0ef0515aa0c732639bdb555888400eaefbfb73674166fd13bd21c82fb21"
 dependencies = [
  "bitcoin_hashes",
  "blvm-primitives",
