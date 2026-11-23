@@ -1,0 +1,13 @@
+# BLVM spec-lock attestation
+# A signature over this file attests that the named checker verified
+# the named spec bytes for the binaries listed below.
+spec_lock_tool_version=0.1.83
+spec_version=0.0.0-dev+a9870e2
+spec_lock_spec_git_sha=81b3d25f18b3bc80e8541eca0648ca0867a50ab6
+spec_content_sha256=fde29c3541cdf84838e764d2108d3823f0d1dd235ffd79b7703c90d4af092f06
+spec_lock_verify_json_sha256=6eeebb96a08d8e7468dc5a6d63ef649a056c8c147132e3c7c2fca19b38c4786b
+# checksums
+82813df890f34d709a2f611d31d779c9f96e804b2fdc5867d855c527ce200ada  blvm-0.3.0-beta.8-linux-x86_64
+180e6b34de643b0dde69762c110cb048b7d2f8026b0dcc2ddab0f5ed845650f4  blvm-0.3.0-beta.8-linux-aarch64
+8d7c14545a353348f3b66ea679cd646a7afac6f418db306ef9fb3ade2425350b  blvm-0.3.0-beta.8-windows-x86_64.exe
+de8a1267ed4094861014ed88fb285a6094a1fe42a6c025481f07530ede8e3ba7  blvm-minimal-0.3.0-beta.8-linux-x86_64

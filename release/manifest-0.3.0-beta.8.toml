@@ -1,0 +1,43 @@
+# Pins for the 0.3.0-beta.8 binary.
+# version is the crates.io crate in Cargo.lock. git is that repo's main
+# when the published crate was cut. Later unpublished main commits are
+# not in the binary, so an unchanged crate keeps its previous git pin.
+project_version = "0.3.0-beta.8"
+differential_record_id = "pending"
+variants = ["blvm", "blvm-minimal"]
+
+[crates.blvm]
+version = "0.1.0"
+git = "b112f3a4f571af11e6362f74ddc462d91aa7254d"
+
+[crates.blvm-node]
+version = "0.1.106"
+git = "72fd4a6ac9c9e06391ccd1b0bce670bf7b95c391"
+
+[crates.blvm-consensus]
+version = "0.1.86"
+git = "19cb01ee5fbe108a89f1e6fe88f187b826b6ac99"
+
+[crates.blvm-protocol]
+version = "0.1.55"
+git = "044e60276fe4f92731ae87b7ac864f0a1b3f6728"
+
+[crates.blvm-spec-lock]
+version = "0.1.66"
+git = "1706e0a66710a04207dbc66a05b6be69aaffb0c5"
+
+[crates.blvm-primitives]
+version = "0.1.39"
+git = "3dc242b511e01c9dfbea0c0ca57c0d0c9cf8a417"
+
+[crates.blvm-secp256k1]
+version = "0.1.19"
+git = "bde125067b405d043e661ca12dc23f344704d242"
+
+[crates.blvm-muhash]
+version = "0.1.12"
+git = "e60ac9ae32bc67eabbb9930e08b295457d490ea1"
+
+[crates.blvm-sdk]
+version = "0.1.27"
+git = "1789e1288f61e779673d77c2ffb8664a7103a94a"
