@@ -571,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f59c589f0d73b81bcdf1c54ee49cd287ec04f538c42520879560413a3b196b3"
+checksum = "8a4c17539b0a5976495f984024d66b9ddde13c18f03a717cb1a9212e9b06a1be"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -603,9 +603,9 @@ dependencies = [
 
 [[package]]
 name = "blvm-sdk-macros"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f34406f313b4210d674dfa5a0ae3ef08eef072ae27a9b412449d6f38f40bb393"
+checksum = "2e41e73d7cc7243845dcd3d50cccb4cad70214eed3102326ebd4bf7551e4a2a1"
 dependencies = [
  "proc-macro2",
  "quote",
