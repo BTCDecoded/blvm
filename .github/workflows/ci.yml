@@ -929,135 +929,23 @@ jobs:
             echo "✅ Created and pushed tag ${VERSION_TAG}"
           fi
 
+      - name: Compile release notes
+        run: |
+          set -euo pipefail
+          python3 scripts/release/build_release_notes.py \
+            --accumulate \
+            --repo "${GITHUB_WORKSPACE}"
+          test -s docs/release/RELEASE_NOTES.md
+          cp docs/release/RELEASE_NOTES.md release-notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@26994186c0ac3ef5cae75ac16aa32e8153525f77
         with:
           tag_name: ${{ steps.version.outputs.version_tag }}
           name: blvm ${{ steps.version.outputs.version_tag }}
-          body: |
-            **Bitcoin Commons BLVM** — Bitcoin node CLI.
-
-            > [!NOTE]
-            > Verify your download against `checksums.sha256` before running.
-
-            ## Downloads
-
-            | Platform | File | Notes |
-            |---|---|---|
-            | **Linux x86_64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-x86_64` | Default `cargo build --release` feature set |
-            | **Linux aarch64** (binary) | `blvm-${{ steps.version.outputs.version }}-linux-aarch64` | Raspberry Pi 4/5 (64-bit OS); same features as Linux x86_64 |
-            | **Linux x86_64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm` + governance CLIs (+ checksum file inside) |
-            | **Linux aarch64** (tarball) | `blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz` | `blvm` for 64-bit ARM Linux (+ checksum file inside) |
-            | **Linux x86_64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-x86_64.pkg.tar.gz` | Installs `blvm.service` and does not enable it |
-            | **Linux aarch64** (Arch / pacman) | `blvm-${{ steps.version.outputs.version }}-aarch64.pkg.tar.gz` | Installs `blvm.service` and does not enable it |
-            | **Linux x86_64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_amd64.deb` | Installs `blvm.service` and does not enable it |
-            | **Linux aarch64** (Debian/Ubuntu) | `blvm_${{ steps.version.outputs.version }}_arm64.deb` | Installs `blvm.service` and does not enable it |
-            | **Linux x86_64** (RHEL/Fedora) | `blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm` | Installs `blvm.service` and does not enable it |
-            | **Windows x86_64** | `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe` | Linux defaults minus Unix-only nix/libc |
-            | **Windows x86_64** (zip) | `blvm-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | Same as .exe in archive form |
-            | **Linux x86_64** (minimal) | `blvm-minimal-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz` | `blvm-minimal`, `minimal-hardened.toml`, `SHA256SUMS` |
-            | **Linux aarch64** (minimal) | `blvm-minimal-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz` | Same contents, 64-bit ARM |
-            | **Windows x86_64** (minimal) | `blvm-minimal-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` | `blvm-minimal.exe`, `minimal-hardened.toml`, `SHA256SUMS` |
-            | **Checksums** | `checksums.sha256`, `SHA256SUMS-blvm-*`, `SHA256SUMS-linux-packages.txt` | Verify downloads |
-
-            ## Verify
-
-            ```bash
-            sha256sum -c checksums.sha256
-            ```
-
-            ## Install
-
-            **Linux (single binary):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-linux-x86_64
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/checksums.sha256
-            sha256sum -c checksums.sha256
-            chmod +x blvm-${{ steps.version.outputs.version }}-linux-x86_64
-            sudo mv blvm-${{ steps.version.outputs.version }}-linux-x86_64 /usr/local/bin/blvm
-            ```
-
-            **Linux aarch64 (Raspberry Pi 4/5, 64-bit OS):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-linux-aarch64
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/checksums.sha256
-            sha256sum -c checksums.sha256
-            chmod +x blvm-${{ steps.version.outputs.version }}-linux-aarch64
-            sudo mv blvm-${{ steps.version.outputs.version }}-linux-aarch64 /usr/local/bin/blvm
-            ```
-
-            **Linux (tarball):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
-            tar -xzf blvm-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
-            sudo mv blvm /usr/local/bin/
-            ```
-
-            **Linux aarch64 (tarball, Raspberry Pi 4/5):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz
-            tar -xzf blvm-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz
-            sudo mv blvm /usr/local/bin/
-            ```
-
-            **Debian/Ubuntu (x86_64):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_amd64.deb
-            sudo dpkg -i blvm_${{ steps.version.outputs.version }}_amd64.deb
-            sudo cp /usr/share/doc/blvm/blvm.toml.example /etc/blvm/blvm.toml
-            ```
-
-            **Debian/Ubuntu (Raspberry Pi 4/5, 64-bit OS):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm_${{ steps.version.outputs.version }}_arm64.deb
-            sudo dpkg -i blvm_${{ steps.version.outputs.version }}_arm64.deb
-            sudo cp /usr/share/doc/blvm/blvm.toml.example /etc/blvm/blvm.toml
-            ```
-
-            **RHEL/Fedora:**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
-            sudo rpm -i blvm-${{ steps.version.outputs.version }}-1.x86_64.rpm
-            sudo cp /usr/share/doc/blvm/blvm.toml.example /etc/blvm/blvm.toml
-            ```
-
-            The Linux `.deb`, `.rpm`, and Arch packages install the systemd unit and do not enable it. Copy the example to `/etc/blvm/blvm.toml` before enabling. The unit is `Type=notify`: `systemctl start` returns when the process sends `READY=1`, and fails at 61 seconds if that binary never sends it. This release links the published `blvm-node` crate in `Cargo.lock`, which sends `READY=1` after the RPC port binds. The tarballs and the standalone binaries do not include a unit.
-
-            **Docker** (uid 61100, data directory `/var/lib/blvm`, RPC stays on loopback):
-            ```bash
-            mkdir -p /var/lib/blvm && sudo chown 61100:61100 /var/lib/blvm
-            docker run -d --name blvm --stop-timeout 240 \
-              -p 8333:8333 \
-              -v /var/lib/blvm:/var/lib/blvm \
-              ghcr.io/btcdecoded/blvm:${{ steps.version.outputs.version }} \
-              --network mainnet --listen-addr 0.0.0.0:8333
-            ```
-
-            **Nix / NixOS:** this tag includes `flake.nix` (heed3 package and a NixOS module for x86_64 and aarch64).
-            ```bash
-            nix build github:${{ github.repository }}/${{ steps.version.outputs.version_tag }}
-            ```
-
-            **Windows:** Download `blvm-${{ steps.version.outputs.version }}-windows-x86_64.exe`, verify checksum, and run from a terminal. The zip does not include a service program.
-
-            **Minimal (Linux):**
-            ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/blvm-minimal-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
-            tar -xzf blvm-minimal-${{ steps.version.outputs.version_tag }}-linux-x86_64.tar.gz
-            sha256sum -c SHA256SUMS
-            ```
-
-            **Minimal (Windows):** extract `blvm-minimal-${{ steps.version.outputs.version_tag }}-windows-x86_64.zip` and run `blvm-minimal.exe`. The aarch64 minimal archive is `blvm-minimal-${{ steps.version.outputs.version_tag }}-linux-aarch64.tar.gz`.
-
-            ## Linked crates
-
-            The binary linked these crates.io versions: consensus `${{ steps.checksums.outputs.consensus }}`, protocol `${{ steps.checksums.outputs.protocol }}`, node `${{ steps.checksums.outputs.node }}`, sdk `${{ steps.checksums.outputs.sdk }}`.
-
-            ## Changes
-
-            See [commit history](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
+          body_path: release-notes.md
           files: release-artifacts/*
-          draft: false
+          draft: true
           prerelease: ${{ contains(steps.version.outputs.version_tag, '-unverified') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
